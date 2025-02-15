@@ -5,7 +5,7 @@ import (
 	"embed"
 	"fmt"
 	"os"
-	"videoarchiver/backend/services"
+	"videoarchiver/backend/domains/db"
 
 	"github.com/NotCoffee418/dbmigrator"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -24,13 +24,13 @@ func NewApp() *App {
 	return &App{}
 }
 
-// startup is called when the app starts. The context is saved
+// startup is called when the app starts. The context is savedservices
 // so we can call the runtime methods
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 
 	// Set up database service
-	dbService, err := services.NewDatabaseService()
+	dbService, err := db.NewDatabaseService()
 	if err != nil {
 		a.HandleFatalError("Failed to create database service: " + err.Error())
 		os.Exit(1)

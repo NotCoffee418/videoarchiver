@@ -1,10 +1,10 @@
-package services
+package db
 
 import (
 	"database/sql"
 	"path/filepath"
 	"sync"
-	"videoarchiver/backend/utils"
+	"videoarchiver/backend/domains/pathing"
 
 	_ "modernc.org/sqlite"
 )
@@ -47,7 +47,7 @@ func (d *DatabaseService) GetDB() *sql.DB {
 }
 
 func getDatabasePath() (string, error) {
-	workingDir, err := utils.GetWorkingDir()
+	workingDir, err := pathing.GetWorkingDir()
 	if err != nil {
 		return "", err
 	}
