@@ -1,0 +1,12 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Wails Dev",
+            "type": "shell",
+            "command": "wails dev",
+            "problemMatcher": [],
+            "isBackground": true
+        }
+    ]
+}

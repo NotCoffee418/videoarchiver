@@ -1,0 +1,13 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "videoarchiver",
+  "outputfilename": "videoarchiver",
+  "frontend:install": "npm install",
+  "frontend:build": "npm run build",
+  "frontend:dev:watcher": "npm run dev",
+  "frontend:dev:serverUrl": "auto",
+  "author": {
+    "name": "Stijn Raeymaekers",
+    "email": "9306304+NotCoffee418@users.noreply.github.com"
+  }
+}

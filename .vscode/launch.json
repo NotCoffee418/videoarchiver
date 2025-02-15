@@ -1,0 +1,13 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run Wails Dev",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "wails",
+            "runtimeArgs": ["dev"],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}
