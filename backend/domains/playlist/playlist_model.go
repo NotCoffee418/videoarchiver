@@ -2,7 +2,6 @@ package playlist
 
 import (
 	"database/sql"
-	"time"
 )
 
 type Playlist struct {
@@ -13,5 +12,5 @@ type Playlist struct {
 	SaveDirectory   string         `json:"save_directory" db:"save_directory"`
 	ThumbnailBase64 sql.NullString `json:"thumbnail_base64,omitempty" db:"thumbnail_base64"`
 	IsEnabled       bool           `json:"is_enabled" db:"is_enabled"`
-	AddedAt         time.Time      `json:"added_at" db:"added_at"`
+	AddedAt         int64          `json:"added_at" db:"added_at"`
 }

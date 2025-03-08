@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS "playlists" (
     "save_directory" VARCHAR NOT NULL,
     "thumbnail_base64" TEXT DEFAULT NULL,
     "is_enabled" BOOLEAN NOT NULL DEFAULT TRUE,
-    "added_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "added_at" BIGINT NOT NULL DEFAULT (strftime('%s', 'now')),
     PRIMARY KEY("id")
 );
 
@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS "downloads" (
     "status" INTEGER NOT NULL,
     "format_downloaded" VARCHAR NOT NULL,
     "md5" VARCHAR,
-    "last_attempt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "last_attempt" BIGINT NOT NULL DEFAULT (strftime('%s', 'now')),
     "fail_message" VARCHAR,
     "attempt_count" INTEGER NOT NULL,
     PRIMARY KEY("id"),
@@ -32,7 +32,7 @@ ON "downloads" ("playlist_id", "video_id", "md5");
 CREATE TABLE IF NOT EXISTS "logs" (
     "id" INTEGER NOT NULL UNIQUE,
     "verbosity" INTEGER NOT NULL,
-    "timestamp" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "timestamp" BIGINT NOT NULL DEFAULT (strftime('%s', 'now')),
     "message" TEXT NOT NULL,
     PRIMARY KEY("id")
 );
