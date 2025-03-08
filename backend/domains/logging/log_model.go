@@ -1,12 +1,10 @@
 package logging
 
-import "time"
-
 type Log struct {
-	ID        int       `json:"id" db:"id"`
-	Verbosity int       `json:"verbosity" db:"verbosity"`
-	Timestamp time.Time `json:"timestamp" db:"timestamp"`
-	Message   string    `json:"message" db:"message"`
+	ID        int    `json:"id" db:"id"`
+	Verbosity int    `json:"verbosity" db:"verbosity"`
+	Timestamp int64  `json:"timestamp" db:"timestamp"`
+	Message   string `json:"message" db:"message"`
 }
 
 // LogVerbosity represents log levels
