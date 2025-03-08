@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"embed"
-	"fmt"
 	"os"
 	"videoarchiver/backend/domains/db"
 
@@ -53,9 +52,4 @@ func (a *App) HandleFatalError(message string) {
 		Message: message,
 	})
 	os.Exit(1)
-}
-
-// todo: DELETEME
-func (a *App) Greet(name string) string {
-	return fmt.Sprintf("Hello %s, It's show time!", name)
 }
