@@ -54,7 +54,7 @@ input, select, button {
   height: 2.5rem;
 }
 
-.btn:hover {
+button:hover {
   background-color: #555;
 }
 

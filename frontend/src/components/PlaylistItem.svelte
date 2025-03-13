@@ -1,15 +1,12 @@
 <script>  
+    import SelectDirectoryButton from './SelectDirectoryButton.svelte';
+
     export let playlist;
   
-    async function changeDirectory() {
+    async function changeDirectory(newPath) {
       console.log(`Changing directory for: ${playlist.name}`);
   
       try {
-        if (!window.go?.main?.App) {
-          console.error("App binding not available");
-          return;
-        }
-        const newPath = await window.go.main.App.SelectDirectory();
         if (newPath) {
           playlist.save_directory = newPath;
           console.log(`Updated directory for ${playlist.name}: ${newPath}`);
@@ -53,8 +50,8 @@
   
       <div class="path-container">
         <input type="text" bind:value={playlist.save_directory} class="path" />
-        <button on:click={changeDirectory} class="btn">Change</button>
-        <button on:click={openDirectory} class="btn">Open Directory</button>
+        <SelectDirectoryButton text="Change" clickHandlerAsync={changeDirectory} />
+        <button on:click={openDirectory} class="btn">Open</button>
       </div>
   
       <div class="format-container">

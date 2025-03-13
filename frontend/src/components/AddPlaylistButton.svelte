@@ -1,4 +1,7 @@
 <script>  
+    import SelectDirectoryButton from './SelectDirectoryButton.svelte';
+
+
     let showModal = $state(false);
     let playlistUrl = $state("");
     let saveDirectory = $state("");
@@ -44,6 +47,10 @@
         }
     }
 
+    async function setDirectory(newPath) {
+        saveDirectory = newPath;
+    }
+
   </script>
   
   <!-- Button to Open Modal -->
@@ -59,15 +66,18 @@
       <label for="playlist-url">Playlist URL</label>
       <div class="input-group">
         <input id="playlist-url" type="text" bind:value={playlistUrl} />
-        <button class="btn" onclick={pasteUrl}>Paste</button>
+        <button class="btn-add-playlist-modal-button" onclick={pasteUrl}>Paste</button>
       </div>
     </div>
   
     <div class="form-group">
       <label for="save-directory">Directory</label>
       <div class="input-group">
-        <input id="save-directory" type="text" bind:value={saveDirectory} readonly />
-        <button class="btn">Browse</button>
+        <input id="save-directory" type="text" bind:value={saveDirectory} />        
+        <SelectDirectoryButton
+            text="Change"
+            clickHandlerAsync={setDirectory}
+            class="btn-add-playlist-modal-button" />
       </div>
     </div>
   
@@ -114,9 +124,9 @@
     }
 
     .add-btn:hover {
-        background-color: #45a049;
+        background-color: #393;
         color: #fff;
-        border-color: #45a049;
+        border-color: #393;
     }
 
     .modal {
@@ -159,7 +169,7 @@
         flex-grow: 1;
     }
 
-    .btn {
+    :global(.btn-add-playlist-modal-button) {
         width: 6rem;
         flex-shrink: 0;
     }
