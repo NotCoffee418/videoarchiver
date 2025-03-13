@@ -129,10 +129,6 @@
       white-space: nowrap;
     }
   
-    h2[title] {
-      cursor: help;
-    }
-  
     .open-link {
       font-size: 0.9rem;
       color: #7abaff;
