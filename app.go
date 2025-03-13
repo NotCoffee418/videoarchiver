@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"embed"
+	"fmt"
 	"os"
 	"videoarchiver/backend/domains/db"
 	"videoarchiver/backend/domains/playlist"
@@ -82,4 +83,11 @@ func (a *App) SelectDirectory() (string, error) {
 
 func (a *App) GetClipboard() (string, error) {
 	return a.Utils.GetClipboard()
+}
+
+func (a *App) UpdatePlaylistDirectory(id int, newDirectory string) error {
+	if _, err := os.Stat(newDirectory); os.IsNotExist(err) {
+		return fmt.Errorf("directory does not exist: %s", newDirectory)
+	}
+	return a.PlaylistDB.UpdatePlaylistDirectory(id, newDirectory)
 }

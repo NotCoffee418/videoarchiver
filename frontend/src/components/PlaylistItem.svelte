@@ -10,6 +10,8 @@
         if (newPath) {
           playlist.save_directory = newPath;
           console.log(`Updated directory for ${playlist.name}: ${newPath}`);
+          await window.go?.main?.App?.UpdatePlaylistDirectory(playlist.id, newPath);
+          window.location.reload();
         }
       } catch (error) {
         console.error("Failed to select directory:", error);
@@ -24,7 +26,7 @@
           console.error("App binding not available");
           return;
         }
-        await window.go.main.App.OpenDirectory(playlist.save_directory);
+        await window.go?.main?.App?.OpenDirectory(playlist.save_directory);
       } catch (error) {
         console.error("Failed to open directory:", error);
       }
@@ -49,7 +51,7 @@
       </div>
   
       <div class="path-container">
-        <input type="text" bind:value={playlist.save_directory} class="path" />
+        <input type="text" bind:value={playlist.save_directory} class="path" readonly />
         <SelectDirectoryButton text="Change" clickHandlerAsync={changeDirectory} />
         <button on:click={openDirectory} class="btn">Open</button>
       </div>

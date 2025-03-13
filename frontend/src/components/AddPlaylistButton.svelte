@@ -1,8 +1,15 @@
 <script>  
+    import LoadingSpinner from './LoadingSpinner.svelte';
     import SelectDirectoryButton from './SelectDirectoryButton.svelte';
 
+    let {
+            onPlaylistAdded = async () => {
+                console.warn("onPlaylistAdded has no handler.");
+            }
+    } = $props();
 
     let showModal = $state(false);
+    let modalProcessing = $state(false);
     let playlistUrl = $state("");
     let saveDirectory = $state("");
     let format = $state("mp3");
@@ -26,13 +33,18 @@
       format = "mp3";
     }
   
-    function handleAddPlaylist() {
+    async function handleAddPlaylist() {
+      modalProcessing = true;
       console.log("Adding playlist:", {
         playlistUrl,
         saveDirectory,
         format
       });
       // TODO: Implement actual add logic
+      await onPlaylistAdded();
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      closeModal();
+      modalProcessing = false;
     }
   
 
@@ -58,40 +70,44 @@
   
   <!-- Modal -->
   <dialog id="add-playlist-dialog" class="modal">
-    <button class="close-btn" onclick={closeModal}>✕</button>
-  
-    <h1>Add Playlist</h1>
-  
-    <div class="form-group">
-      <label for="playlist-url">Playlist URL</label>
-      <div class="input-group">
-        <input id="playlist-url" type="text" bind:value={playlistUrl} />
-        <button class="btn-add-playlist-modal-button" onclick={pasteUrl}>Paste</button>
-      </div>
-    </div>
-  
-    <div class="form-group">
-      <label for="save-directory">Directory</label>
-      <div class="input-group">
-        <input id="save-directory" type="text" bind:value={saveDirectory} />        
-        <SelectDirectoryButton
-            text="Change"
-            clickHandlerAsync={setDirectory}
-            class="btn-add-playlist-modal-button" />
-      </div>
-    </div>
-  
-    <div class="form-group">
-      <label for="format">Format</label>
-      <div class="input-group">
-        <select id="format" bind:value={format}>
-            <option value="mp3">MP3</option>
-            <option value="mp4">MP4</option>
-        </select>
-      </div>
-    </div>
-  
-    <button class="add-btn" onclick={handleAddPlaylist}>Add Playlist</button>
+    {#if modalProcessing}
+        <LoadingSpinner />
+    {:else}
+        <button class="close-btn" onclick={closeModal}>✕</button>
+    
+        <h1>Add Playlist</h1>
+    
+        <div class="form-group">
+        <label for="playlist-url">Playlist URL</label>
+        <div class="input-group">
+            <input id="playlist-url" type="text" bind:value={playlistUrl} />
+            <button class="btn-add-playlist-modal-button" onclick={pasteUrl}>Paste</button>
+        </div>
+        </div>
+    
+        <div class="form-group">
+        <label for="save-directory">Directory</label>
+        <div class="input-group">
+            <input id="save-directory" type="text" bind:value={saveDirectory} />        
+            <SelectDirectoryButton
+                text="Change"
+                clickHandlerAsync={setDirectory}
+                class="btn-add-playlist-modal-button" />
+        </div>
+        </div>
+    
+        <div class="form-group">
+        <label for="format">Format</label>
+        <div class="input-group">
+            <select id="format" bind:value={format}>
+                <option value="mp3">MP3</option>
+                <option value="mp4">MP4</option>
+            </select>
+        </div>
+        </div>
+    
+        <button class="add-btn" onclick={handleAddPlaylist}>Add Playlist</button>
+    {/if}
   </dialog>
   
   <style>
@@ -130,6 +146,8 @@
     }
 
     .modal {
+        width: 50rem;
+        height: 27rem;
         position: fixed;
         inset: 0;
         margin: auto;
@@ -137,7 +155,6 @@
         color: #fff;
         padding: 2rem;
         border-radius: 12px;
-        width: 50rem;
         border: none;
     }
 

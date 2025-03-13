@@ -21,3 +21,7 @@ export function OpenDirectory(arg1) {
 export function SelectDirectory() {
   return window['go']['main']['App']['SelectDirectory']();
 }
+
+export function UpdatePlaylistDirectory(arg1, arg2) {
+  return window['go']['main']['App']['UpdatePlaylistDirectory'](arg1, arg2);
+}

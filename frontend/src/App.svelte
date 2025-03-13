@@ -8,6 +8,7 @@
   import PlaylistsPage from './routes/PlaylistsPage.svelte';
   import LogsPage from './routes/LogsPage.svelte';
   import SettingsPage from './routes/SettingsPage.svelte';
+  import LoadingSpinner from './components/LoadingSpinner.svelte';
 
   const routes = {
     '/': PlaylistsPage,
@@ -56,9 +57,7 @@
     <p>Something went wrong starting the application. Please restart the application.</p>
   </div>
 {:else if !isRuntimeReady}
-  <div class="loading-container">
-    <div class="spinner"></div>
-  </div>
+  <LoadingSpinner />
 {:else}
   <div class="app">
     <Navbar />
@@ -82,7 +81,7 @@
     color: #fff;
   }
 
-  .loading-container, .error-container {
+  .error-container {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -110,20 +109,5 @@
   .error-container p {
     margin: 0.5rem 0;
     opacity: 0.8;
-  }
-
-  .spinner {
-    width: 40px;
-    height: 40px;
-    margin-bottom: 1rem;
-    border: 4px solid #ffffff33;
-    border-top: 4px solid #ffffff;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-  }
-
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
   }
 </style>

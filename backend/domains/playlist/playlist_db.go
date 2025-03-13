@@ -18,6 +18,11 @@ func (p *PlaylistDB) UpdatePlaylistName(id int, newName string) error {
 	return err
 }
 
+func (p *PlaylistDB) UpdatePlaylistDirectory(id int, newDirectory string) error {
+	_, err := p.db.Exec("UPDATE playlists SET save_directory = ? WHERE id = ?", newDirectory, id)
+	return err
+}
+
 func (p *PlaylistDB) DeletePlaylist(id int) error {
 	_, err := p.db.Exec("DELETE FROM playlists WHERE id = ?", id)
 	return err

@@ -5,7 +5,7 @@
 
   let playlists = $state([]);
 
-  async function loadPlaylists() {
+  async function reloadPlaylists() {
     try {
       if (!window.go?.main?.App) {
         console.error("App binding not available");
@@ -14,25 +14,24 @@
       const data = await window.go.main.App.GetPlaylists();
       if (data) {
         playlists = data;
-        console.log("Playlists loaded:", data);
       } else {
         console.error("No data returned from GetPlaylists");
       }
     } catch (error) {
       console.error("Failed to load playlists:", error);
     }
+    console.log("Playlists loaded:", playlists);
   }
 
-
   onMount(() => {
-    loadPlaylists();
+    reloadPlaylists();
   });
 </script>
 
 <main>
   <div class="header">
     <h1>Playlists</h1>
-    <AddPlaylistButton />
+    <AddPlaylistButton onPlaylistAdded={reloadPlaylists} />
   </div>
 
   {#if playlists.length > 0}
@@ -57,7 +56,7 @@
     padding: 0;
     margin: 0;
   }
-  
+
   .header {
     display: flex;
     justify-content: space-between;

@@ -11,3 +11,5 @@ export function HandleFatalError(arg1:string):Promise<void>;
 export function OpenDirectory(arg1:string):Promise<void>;
 
 export function SelectDirectory():Promise<string>;
+
+export function UpdatePlaylistDirectory(arg1:number,arg2:string):Promise<void>;
