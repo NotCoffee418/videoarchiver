@@ -42,6 +42,7 @@
         text-decoration: none;
         padding: 0.5rem 1rem;
         transition: background-color 0.2s ease;
+        border-radius: 4px;
     }
 
     a:hover {
@@ -50,7 +51,6 @@
 
     .active {
         background-color: rgba(255, 255, 255, 0.2);
-        border-radius: 4px;
     }
   </style>
   
