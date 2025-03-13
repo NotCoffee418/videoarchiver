@@ -6,7 +6,7 @@
       { name: 'Settings', path: '/settings' }
     ];
   
-    let currentRoute = '/';
+    let currentRoute = $state('/');
   
     // Listen for hash change to update active state
     function updateRoute() {

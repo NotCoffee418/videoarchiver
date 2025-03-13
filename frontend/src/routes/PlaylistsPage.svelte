@@ -1,7 +1,7 @@
 <script>
     import { onMount } from 'svelte';
 
-    let playlists = [];
+    let playlists = $state([]);
 
     async function loadPlaylists() {
     try {
@@ -87,8 +87,8 @@
               <!-- Path + Buttons -->
               <div class="path-container">
                 <input type="text" value={playlist.save_directory} readonly class="path" />
-                <button on:click={() => changeDirectory(playlist.save_directory)} class="btn">Change</button>
-                <button on:click={() => openDirectory(playlist.save_directory)} class="btn">Open Directory</button>
+                <button onclick={() => changeDirectory(playlist.save_directory)} class="btn">Change</button>
+                <button onclick={() => openDirectory(playlist.save_directory)} class="btn">Open Directory</button>
               </div>
   
               <!-- Format Combobox -->

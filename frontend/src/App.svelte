@@ -15,8 +15,8 @@
     '/settings': SettingsPage
   };
 
-  let isRuntimeReady = false;
-  let hasError = false;
+  let isRuntimeReady = $state(false);
+  let hasError = $state(false);
 
   // Listen for wails ready event
   onMount(() => {
