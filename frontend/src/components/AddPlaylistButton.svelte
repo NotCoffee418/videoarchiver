@@ -3,9 +3,9 @@
     import SelectDirectoryButton from './SelectDirectoryButton.svelte';
 
     let {
-            onPlaylistAdded = async () => {
-                console.warn("onPlaylistAdded has no handler.");
-            }
+        onPlaylistAdded = async () => {
+            console.warn("onPlaylistAdded has no handler.");
+        }
     } = $props();
 
     let showModal = $state(false);
@@ -35,14 +35,7 @@
   
     async function handleAddPlaylist() {
       modalProcessing = true;
-      console.log("Adding playlist:", {
-        playlistUrl,
-        saveDirectory,
-        format
-      });
-      // TODO: Implement actual add logic
       await onPlaylistAdded();
-      await new Promise(resolve => setTimeout(resolve, 1000));
       closeModal();
       modalProcessing = false;
     }

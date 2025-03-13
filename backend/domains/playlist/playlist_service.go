@@ -10,5 +10,7 @@ func NewPlaylistService(db *PlaylistDB) *PlaylistService {
 
 func (p *PlaylistService) AddNewPlaylist(url, directory, format string) error {
 	//todo: implement
+	// validate and get full data with ytdlp
+	// use playlist DB service
 	return nil
 }
