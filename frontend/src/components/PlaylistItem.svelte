@@ -1,0 +1,193 @@
+<script>  
+    export let playlist;
+  
+    async function changeDirectory() {
+      console.log(`Changing directory for: ${playlist.name}`);
+  
+      try {
+        if (!window.go?.main?.App) {
+          console.error("App binding not available");
+          return;
+        }
+        const newPath = await window.go.main.App.SelectDirectory();
+        if (newPath) {
+          playlist.save_directory = newPath;
+          console.log(`Updated directory for ${playlist.name}: ${newPath}`);
+        }
+      } catch (error) {
+        console.error("Failed to select directory:", error);
+      }
+    }
+  
+    async function openDirectory() {
+      console.log(`Opening directory for: ${playlist.save_directory}`);
+  
+      try {
+        if (!window.go?.main?.App) {
+          console.error("App binding not available");
+          return;
+        }
+        await window.go.main.App.OpenDirectory(playlist.save_directory);
+      } catch (error) {
+        console.error("Failed to open directory:", error);
+      }
+    }
+  </script>
+  
+  <li>
+    <div class="thumbnail">
+      {#if playlist.thumbnail_base64}
+        <img src={`data:image/jpeg;base64,${playlist.thumbnail_base64}`} alt="Thumbnail" />
+      {:else}
+        <div class="thumbnail-placeholder">No Image</div>
+      {/if}
+    </div>
+  
+    <div class="content">
+      <div class="title-container">
+        <h2 title={`Added At: ${playlist.added_at ? new Date(playlist.added_at).toLocaleString() : 'N/A'}`}>
+          {playlist.name}
+        </h2>
+        <a href={playlist.url} target="_blank" class="open-link">Open Playlist</a>
+      </div>
+  
+      <div class="path-container">
+        <input type="text" bind:value={playlist.save_directory} class="path" />
+        <button on:click={changeDirectory} class="btn">Change</button>
+        <button on:click={openDirectory} class="btn">Open Directory</button>
+      </div>
+  
+      <div class="format-container">
+        <select disabled>
+          <option value="mp3" selected={playlist.output_format === 'mp3'}>MP3</option>
+          <option value="mp4" selected={playlist.output_format === 'mp4'}>MP4</option>
+        </select>
+      </div>
+    </div>
+  </li>
+  
+
+  <style>
+    li {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      border: 1px solid var(--border-color, #555);
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border-radius: 12px;
+      transition: background-color 0.2s ease;
+    }
+  
+    li:hover {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+  
+    .thumbnail {
+      width: 100px;
+      height: 100px;
+      border-radius: 8px;
+      overflow: hidden;
+      background-color: #333;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  
+    .thumbnail img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  
+    .thumbnail-placeholder {
+      color: #999;
+      font-size: 0.8rem;
+      text-align: center;
+    }
+  
+    .content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+  
+    .title-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+    }
+  
+    h2 {
+      font-size: 1.2rem;
+      font-weight: 500;
+      margin: 0;
+      color: inherit;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  
+    h2[title] {
+      cursor: help;
+    }
+  
+    .open-link {
+      font-size: 0.9rem;
+      color: #7abaff;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+  
+    .open-link:hover {
+      color: #4ea1d3;
+    }
+  
+    .path-container {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+  
+    .path {
+      flex: 1;
+      background-color: #222;
+      color: inherit;
+      border: 1px solid var(--border-color, #555);
+      padding: 0.5rem;
+      border-radius: 4px;
+      font-size: 0.9rem;
+    }
+  
+    .btn {
+      background-color: #444;
+      color: #ddd;
+      border: 1px solid #555;
+      padding: 0.4rem 0.7rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: background-color 0.2s ease;
+    }
+  
+    .btn:hover {
+      background-color: #555;
+    }
+  
+    .format-container {
+      margin-top: 0.5rem;
+    }
+  
+    select {
+      background-color: #222;
+      color: inherit;
+      border: 1px solid var(--border-color, #555);
+      padding: 0.4rem;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      appearance: none;
+    }
+  </style>
+  
