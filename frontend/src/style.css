@@ -47,9 +47,9 @@ input, select, button {
   background-color: #333;
   color: #fff;
   border: 1px solid #555;  
-  padding: 0.4rem 0.7rem;
+  padding: 0rem 0.7rem;
   border-radius: 4px;
-  font-size: 0.9rem;
+  font-size: 1rem;
   transition: background-color 0.2s ease;
   height: 2.5rem;
 }

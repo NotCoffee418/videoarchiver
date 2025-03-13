@@ -1,16 +1,26 @@
 <script>  
     let showModal = $state(false);
+    let playlistUrl = $state("");
+    let saveDirectory = $state("");
+    let format = $state("mp3");
   
     function openModal() {
       showModal = true;
-      const dialog = document.getElementById('add-playlist-dialog');
+      /** @type {HTMLDialogElement | null} */
+      const dialog = document.querySelector('dialog#add-playlist-dialog');
       if (dialog) dialog.showModal();
     }
   
     function closeModal() {
       showModal = false;
-      const dialog = document.getElementById('add-playlist-dialog');
+      /** @type {HTMLDialogElement | null} */
+      const dialog = document.querySelector('dialog#add-playlist-dialog');
       if (dialog) dialog.close();
+
+      // Reset modal inputs
+      playlistUrl = "";
+      saveDirectory = "";
+      format = "mp3";
     }
   
     function handleAddPlaylist() {
@@ -22,9 +32,18 @@
       // TODO: Implement actual add logic
     }
   
-    let playlistUrl = "";
-    let saveDirectory = "";
-    let format = "mp3";
+
+    async function pasteUrl() {
+        try {
+            const text = await window.go.main.App.GetClipboard();
+            if (text) {
+                playlistUrl = text;
+            }
+        } catch (error) {
+            console.error('Failed to paste:', error);
+        }
+    }
+
   </script>
   
   <!-- Button to Open Modal -->
@@ -66,6 +85,10 @@
   </dialog>
   
   <style>
+    h1 {
+        margin-bottom: 1rem;
+    }
+
     .add-playlist-btn {
         background-color: transparent;
         color: #4caf50;
@@ -88,6 +111,12 @@
         margin-top: 1rem;
         width: 100%;
 
+    }
+
+    .add-btn:hover {
+        background-color: #45a049;
+        color: #fff;
+        border-color: #45a049;
     }
 
     .modal {

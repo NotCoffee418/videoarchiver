@@ -48,3 +48,7 @@ func (u *Utils) OpenDirectory(path string) error {
 
 	return cmd.Start()
 }
+
+func (u *Utils) GetClipboard() (string, error) {
+	return wailsRuntime.ClipboardGetText(u.ctx)
+}

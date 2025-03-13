@@ -66,7 +66,6 @@ func (a *App) HandleFatalError(message string) {
 	os.Exit(1)
 }
 
-
 // -- Bind functions - Dont try to fix, just add them here
 // -- Hours wasted: 2
 func (a *App) GetPlaylists() ([]playlist.Playlist, error) {
@@ -79,4 +78,8 @@ func (a *App) OpenDirectory(path string) error {
 
 func (a *App) SelectDirectory() (string, error) {
 	return a.Utils.SelectDirectory()
+}
+
+func (a *App) GetClipboard() (string, error) {
+	return a.Utils.GetClipboard()
 }
