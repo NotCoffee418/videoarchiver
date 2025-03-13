@@ -18,10 +18,11 @@ var migrationFS embed.FS
 
 // App struct
 type App struct {
-	ctx        context.Context
-	Utils      *utils.Utils
-	DB         *db.DatabaseService
-	PlaylistDB *playlist.PlaylistDB
+	ctx             context.Context
+	Utils           *utils.Utils
+	DB              *db.DatabaseService
+	PlaylistDB      *playlist.PlaylistDB
+	PlaylistService *playlist.PlaylistService
 }
 
 // NewApp creates a new App application struct
@@ -43,6 +44,7 @@ func (a *App) startup(ctx context.Context) {
 
 	// ✅ Create PlaylistDB using dbService
 	a.PlaylistDB = playlist.NewPlaylistDB(dbService)
+	a.PlaylistService = playlist.NewPlaylistService(a.PlaylistDB)
 
 	// ✅ Init utils with context
 	a.Utils = utils.NewUtils(ctx)
@@ -90,4 +92,8 @@ func (a *App) UpdatePlaylistDirectory(id int, newDirectory string) error {
 		return fmt.Errorf("directory does not exist: %s", newDirectory)
 	}
 	return a.PlaylistDB.UpdatePlaylistDirectory(id, newDirectory)
+}
+
+func (a *App) ValidateAndAddPlaylist(url, directory, format string) error {
+	return a.PlaylistService.TryAddNewPlaylist(url, directory, format)
 }

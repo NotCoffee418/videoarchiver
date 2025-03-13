@@ -25,3 +25,7 @@ export function SelectDirectory() {
 export function UpdatePlaylistDirectory(arg1, arg2) {
   return window['go']['main']['App']['UpdatePlaylistDirectory'](arg1, arg2);
 }
+
+export function ValidateAndAddPlaylist(arg1, arg2, arg3) {
+  return window['go']['main']['App']['ValidateAndAddPlaylist'](arg1, arg2, arg3);
+}

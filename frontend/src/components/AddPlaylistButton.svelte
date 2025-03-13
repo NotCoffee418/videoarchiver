@@ -10,6 +10,8 @@
 
     let showModal = $state(false);
     let modalProcessing = $state(false);
+    /** @type {string | null} */
+    let modalError = $state(null);
     let playlistUrl = $state("");
     let saveDirectory = $state("");
     let format = $state("mp3");
@@ -31,13 +33,27 @@
       playlistUrl = "";
       saveDirectory = "";
       format = "mp3";
+      modalError = null;
+      modalProcessing = false;
     }
   
     async function handleAddPlaylist() {
       modalProcessing = true;
-      await onPlaylistAdded();
-      closeModal();
-      modalProcessing = false;
+      try {
+        // Validate and add playlist
+        await window.go.main.App.ValidateAndAddPlaylist(playlistUrl, saveDirectory, format);
+
+        // Notify caller and cleanup
+        if (onPlaylistAdded) {
+            console.log("added");
+          await onPlaylistAdded();
+        }
+        closeModal();
+      } catch (error) {
+        modalError = error;
+      } finally {
+        modalProcessing = false;
+      }
     }
   
 
@@ -65,38 +81,41 @@
   <dialog id="add-playlist-dialog" class="modal">
     {#if modalProcessing}
         <LoadingSpinner />
+    {:else if modalError}
+        <button class="close-btn" onclick={closeModal}>✕</button>
+        <p class="error-message">Error: {modalError}</p>
     {:else}
         <button class="close-btn" onclick={closeModal}>✕</button>
     
         <h1>Add Playlist</h1>
     
         <div class="form-group">
-        <label for="playlist-url">Playlist URL</label>
-        <div class="input-group">
-            <input id="playlist-url" type="text" bind:value={playlistUrl} />
-            <button class="btn-add-playlist-modal-button" onclick={pasteUrl}>Paste</button>
-        </div>
-        </div>
-    
-        <div class="form-group">
-        <label for="save-directory">Directory</label>
-        <div class="input-group">
-            <input id="save-directory" type="text" bind:value={saveDirectory} />        
-            <SelectDirectoryButton
-                text="Change"
-                clickHandlerAsync={setDirectory}
-                class="btn-add-playlist-modal-button" />
-        </div>
+            <label for="playlist-url">Playlist URL</label>
+            <div class="input-group">
+                <input id="playlist-url" type="text" bind:value={playlistUrl} />
+                <button class="btn-add-playlist-modal-button" onclick={pasteUrl}>Paste</button>
+            </div>
         </div>
     
         <div class="form-group">
-        <label for="format">Format</label>
-        <div class="input-group">
-            <select id="format" bind:value={format}>
-                <option value="mp3">MP3</option>
-                <option value="mp4">MP4</option>
-            </select>
+            <label for="save-directory">Directory</label>
+            <div class="input-group">
+                <input id="save-directory" type="text" bind:value={saveDirectory} />        
+                <SelectDirectoryButton
+                    text="Change"
+                    clickHandlerAsync={setDirectory}
+                    class="btn-add-playlist-modal-button" />
+            </div>
         </div>
+    
+        <div class="form-group">
+            <label for="format">Format</label>
+            <div class="input-group">
+                <select id="format" bind:value={format}>
+                    <option value="mp3">MP3</option>
+                    <option value="mp4">MP4</option>
+                </select>
+            </div>
         </div>
     
         <button class="add-btn" onclick={handleAddPlaylist}>Add Playlist</button>
@@ -182,6 +201,10 @@
     :global(.btn-add-playlist-modal-button) {
         width: 6rem;
         flex-shrink: 0;
+    }
+
+    .error-message {
+        color: #f00;
     }
 
 

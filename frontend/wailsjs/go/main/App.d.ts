@@ -13,3 +13,5 @@ export function OpenDirectory(arg1:string):Promise<void>;
 export function SelectDirectory():Promise<string>;
 
 export function UpdatePlaylistDirectory(arg1:number,arg2:string):Promise<void>;
+
+export function ValidateAndAddPlaylist(arg1:string,arg2:string,arg3:string):Promise<void>;

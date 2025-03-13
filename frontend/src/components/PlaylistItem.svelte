@@ -31,6 +31,10 @@
         console.error("Failed to open directory:", error);
       }
     }
+
+    async function copyPlaylistUrl() {
+      await navigator.clipboard.writeText(playlist.url);
+    }
   </script>
   
   <li>
@@ -47,13 +51,13 @@
         <h2 title={`Added At: ${playlist.added_at ? new Date(playlist.added_at).toLocaleString() : 'N/A'}`}>
           {playlist.name}
         </h2>
-        <a href={playlist.url} target="_blank" class="open-link">Open Playlist</a>
+        <button onclick={copyPlaylistUrl} class="button-link">Copy Playlist URL</button>
       </div>
   
       <div class="path-container">
         <input type="text" bind:value={playlist.save_directory} class="path" readonly />
         <SelectDirectoryButton text="Change" clickHandlerAsync={changeDirectory} />
-        <button on:click={openDirectory} class="btn">Open</button>
+        <button onclick={openDirectory} class="btn">Open</button>
       </div>
   
       <div class="format-container">
@@ -160,5 +164,15 @@
     .format-container {
       margin-top: 0.5rem;
     }
+
+    .button-link {
+      all: unset; /* Resets all button styles */
+      cursor: pointer;
+    }
+
+    .button-link:hover {
+      text-decoration: underline;
+    }
+
   </style>
   
