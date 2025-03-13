@@ -84,8 +84,8 @@
     }
   
     .thumbnail {
-      width: 100px;
-      height: 100px;
+      width: 111px;
+      height: 111px;
       border-radius: 8px;
       overflow: hidden;
       background-color: #333;
