@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import PlaylistItem from '../components/PlaylistItem.svelte';
+  import AddPlaylistButton from '../components/AddPlaylistButton.svelte';
 
   let playlists = $state([]);
 
@@ -12,7 +13,7 @@
       }
       const data = await window.go.main.App.GetPlaylists();
       if (data) {
-        playlists = data; // ✅ Use .set() to update the state properly
+        playlists = data;
         console.log("Playlists loaded:", data);
       } else {
         console.error("No data returned from GetPlaylists");
@@ -29,7 +30,10 @@
 </script>
 
 <main>
-  <h1>Playlists</h1>
+  <div class="header">
+    <h1>Playlists</h1>
+    <AddPlaylistButton />
+  </div>
 
   {#if playlists.length > 0}
     <ul>
@@ -52,5 +56,12 @@
     list-style: none;
     padding: 0;
     margin: 0;
+  }
+  
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
   }
 </style>

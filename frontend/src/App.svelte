@@ -8,7 +8,7 @@
   import PlaylistsPage from './routes/PlaylistsPage.svelte';
   import LogsPage from './routes/LogsPage.svelte';
   import SettingsPage from './routes/SettingsPage.svelte';
-  
+
   const routes = {
     '/': PlaylistsPage,
     '/logs': LogsPage,

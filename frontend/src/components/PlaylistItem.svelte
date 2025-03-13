@@ -58,10 +58,7 @@
       </div>
   
       <div class="format-container">
-        <select disabled>
-          <option value="mp3" selected={playlist.output_format === 'mp3'}>MP3</option>
-          <option value="mp4" selected={playlist.output_format === 'mp4'}>MP4</option>
-        </select>
+        {playlist.output_format.toUpperCase()}
       </div>
     </div>
   </li>
@@ -84,9 +81,9 @@
     }
   
     .thumbnail {
-      width: 111px;
-      height: 111px;
-      border-radius: 8px;
+      width: 100px;
+      height: 100px;
+      border-radius: 4px;
       overflow: hidden;
       background-color: #333;
       display: flex;
@@ -161,33 +158,8 @@
       font-size: 0.9rem;
     }
   
-    .btn {
-      background-color: #444;
-      color: #ddd;
-      border: 1px solid #555;
-      padding: 0.4rem 0.7rem;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 0.9rem;
-      transition: background-color 0.2s ease;
-    }
-  
-    .btn:hover {
-      background-color: #555;
-    }
-  
     .format-container {
       margin-top: 0.5rem;
-    }
-  
-    select {
-      background-color: #222;
-      color: inherit;
-      border: 1px solid var(--border-color, #555);
-      padding: 0.4rem;
-      border-radius: 4px;
-      font-size: 0.9rem;
-      appearance: none;
     }
   </style>
   
