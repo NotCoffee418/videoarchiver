@@ -36,8 +36,8 @@
   
   <li>
     <div class="thumbnail">
-      {#if playlist.thumbnail_base64}
-        <img src={`data:image/jpeg;base64,${playlist.thumbnail_base64}`} alt="Thumbnail" />
+      {#if playlist.thumbnail_base64?.Valid && playlist.thumbnail_base64?.String.trim() !== ""}
+        <img src={`data:image/jpg;base64,${playlist.thumbnail_base64.String}`} alt="Thumbnail" />
       {:else}
         <div class="thumbnail-placeholder">No Image</div>
       {/if}
