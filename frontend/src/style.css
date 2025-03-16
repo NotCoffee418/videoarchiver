@@ -13,6 +13,10 @@ body {
   line-height: 1.5;
 }
 
+button {
+  cursor: pointer;
+}
+
 a {
   color: inherit;
   text-decoration: none;
@@ -58,3 +62,29 @@ button:hover {
   background-color: #555;
 }
 
+dialog {
+  width: 50rem;
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  background-color: #222;
+  color: #fff;
+  padding: 2rem;
+  border-radius: 12px;
+  border: none;
+}
+
+dialog::backdrop {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.dialog-close-btn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: none;
+  color: #fff;
+  font-size: 1.5rem;
+  border: none;
+  cursor: pointer;
+}

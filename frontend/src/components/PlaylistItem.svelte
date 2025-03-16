@@ -31,6 +31,26 @@
     async function copyPlaylistUrl() {
       await navigator.clipboard.writeText(playlist.url);
     }
+
+    function openDeletePlaylistItemModal() {
+      /** @type {HTMLDialogElement} */
+      const deleteModal = document.querySelector("#delete-playlist-item-modal")
+      deleteModal.showModal();
+    }
+
+    function closeDeletePlaylistItemModal() {
+      /** @type {HTMLDialogElement} */
+      const deleteModal = document.querySelector("#delete-playlist-item-modal")
+      deleteModal.close();
+    }
+
+    async function confirmDeletePlaylistItem() {
+
+      closeDeletePlaylistItemModal();
+      await window.go?.main?.App?.DeletePlaylist(playlist.id);
+      await refreshFunction();      
+    }
+    
   </script>
   
   <li>
@@ -71,6 +91,15 @@
       </div>
     </div>
   </li>
+
+
+  <dialog id="delete-playlist-item-modal">
+    <button class="dialog-close-btn" onclick={closeDeletePlaylistItemModal}>✕</button>
+    <h1>Delete Playlist</h1>
+    <p>Are you sure you want to delete playlist <span class="playlist-name">'{playlist.name}'</span>?</p>
+    <button class="danger-btn" onclick={confirmDeletePlaylistItem}>Delete</button>
+    <button class="" onclick={closeDeletePlaylistItemModal}>Cancel</button>
+  </dialog>
   
 
   <style>
@@ -189,6 +218,15 @@
       color: rgba(255, 0, 0, 0.664);
 
       border-radius: 4px;
+    }
+
+    .danger-btn {
+      background-color: rgba(255, 0, 0, 0.664);
+      color: #fff;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      margin-top: 1rem;
     }
 
   </style>

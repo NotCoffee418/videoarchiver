@@ -77,14 +77,14 @@
   <button class="add-playlist-btn" onclick={openModal}>+ Add Playlist</button>
   
   <!-- Modal -->
-  <dialog id="add-playlist-dialog" class="modal">
+  <dialog id="add-playlist-dialog">
     {#if modalProcessing}
         <LoadingSpinner />
     {:else if modalError}
-        <button class="close-btn" onclick={closeModal}>✕</button>
+        <button class="dialog-close-btn" onclick={closeModal}>✕</button>
         <p class="error-message">Error: {modalError}</p>
     {:else}
-        <button class="close-btn" onclick={closeModal}>✕</button>
+        <button class="dialog-close-btn" onclick={closeModal}>✕</button>
     
         <h1>Add Playlist</h1>
     
@@ -154,34 +154,6 @@
         background-color: #393;
         color: #fff;
         border-color: #393;
-    }
-
-    .modal {
-        width: 50rem;
-        height: 27rem;
-        position: fixed;
-        inset: 0;
-        margin: auto;
-        background-color: #222;
-        color: #fff;
-        padding: 2rem;
-        border-radius: 12px;
-        border: none;
-    }
-
-    .modal::backdrop {
-        background: rgba(0, 0, 0, 0.5);
-    }
-
-    .close-btn {
-        position: absolute;
-        top: 0.5rem;
-        right: 0.5rem;
-        background: none;
-        color: #fff;
-        font-size: 1.5rem;
-        border: none;
-        cursor: pointer;
     }
 
     .form-group {

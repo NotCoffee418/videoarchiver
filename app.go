@@ -136,6 +136,10 @@ func (a *App) ValidateAndAddPlaylist(url, directory, format string) error {
 	return a.PlaylistService.TryAddNewPlaylist(url, directory, format)
 }
 
+func (a *App) DeletePlaylist(id int) error {
+	return a.PlaylistDB.DeletePlaylist(id)
+}
+
 func (a *App) IsStartupComplete() bool {
 	return a.StartupComplete
 }

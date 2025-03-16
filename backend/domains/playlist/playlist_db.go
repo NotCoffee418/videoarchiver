@@ -40,7 +40,7 @@ func (p *PlaylistDB) GetPlaylists() ([]Playlist, error) {
 	}
 	defer rows.Close()
 
-	var playlists []Playlist
+	playlists := make([]Playlist, 0)
 	for rows.Next() {
 		var playlist Playlist
 		err := rows.Scan(

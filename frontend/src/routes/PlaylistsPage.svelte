@@ -1,5 +1,5 @@
 <script>
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import PlaylistItem from '../components/PlaylistItem.svelte';
   import AddPlaylistButton from '../components/AddPlaylistButton.svelte';
 
@@ -14,6 +14,7 @@
       const data = await window.go.main.App.GetPlaylists();
       if (data) {
         playlists = data;
+        await tick();
       } else {
         console.error("No data returned from GetPlaylists");
       }
