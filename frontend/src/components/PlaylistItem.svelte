@@ -83,16 +83,16 @@
       height: 100px;
       border-radius: 4px;
       overflow: hidden;
-      background-color: #333;
       display: flex;
       align-items: center;
       justify-content: center;
+      border: 1px solid var(--border-color, #555);
     }
   
     .thumbnail img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
+      width: auto;
+      height: auto;
+      object-fit: contain;
     }
   
     .thumbnail-placeholder {

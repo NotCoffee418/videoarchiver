@@ -1,8 +1,10 @@
 package playlist
 
 import (
-	"errors"
-	"time"
+	"fmt"
+	"os"
+	"videoarchiver/backend/domains/ytdlp"
+	"videoarchiver/backend/imaging"
 )
 
 type PlaylistService struct {
@@ -14,9 +16,34 @@ func NewPlaylistService(db *PlaylistDB) *PlaylistService {
 }
 
 func (p *PlaylistService) TryAddNewPlaylist(url, directory, format string) error {
-	//todo: implement
-	// validate and get full data with ytdlp
-	// use playlist DB service
-	time.Sleep(2 * time.Second)
-	return errors.New("not implemented")
+	// Check if directory exists
+	if _, err := os.Stat(directory); directory == "" || os.IsNotExist(err) {
+		return fmt.Errorf("directory does not exist: %s", directory)
+	}
+
+	// Check if directory is writable
+	if _, err := os.Stat(directory); os.IsPermission(err) {
+		return fmt.Errorf("no permission to write to directory: %s", directory)
+	}
+
+	// Get playlist info
+	plInfo, err := ytdlp.GetPlaylistInfoFlat(url)
+	if err != nil {
+		return err
+	}
+
+	// Get thumbnail
+	thumbnailBase64, err := imaging.GetBase64Thumb(plInfo.ThumbnailURL)
+	if err != nil {
+		return err
+	}
+
+	// Add playlist to database
+	return p.db.AddPlaylist(
+		plInfo.Title,
+		url,
+		directory,
+		format,
+		thumbnailBase64,
+	)
 }

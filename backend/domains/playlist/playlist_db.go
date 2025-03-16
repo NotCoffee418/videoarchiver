@@ -34,7 +34,7 @@ func (p *PlaylistDB) UpdatePlaylistThumbnail(id int, thumbnailBase64 string) err
 }
 
 func (p *PlaylistDB) GetPlaylists() ([]Playlist, error) {
-	rows, err := p.db.Query("SELECT * FROM playlists")
+	rows, err := p.db.Query("SELECT * FROM playlists ORDER BY added_at DESC")
 	if err != nil {
 		return nil, err
 	}
@@ -58,8 +58,8 @@ func (p *PlaylistDB) GetPlaylists() ([]Playlist, error) {
 
 func (p *PlaylistDB) AddPlaylist(name, url, directory, format, thumbnail string) error {
 	_, err := p.db.Exec(
-		`INSERT INTO playlists (name, url, output_format, save_directory, thumbnail_base64, is_enabled, added_at)
-		VALUES (?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP)`,
+		`INSERT INTO playlists (name, url, output_format, save_directory, thumbnail_base64, is_enabled)
+		VALUES (?, ?, ?, ?, ?, 1)`,
 		name, url, format, directory, thumbnail,
 	)
 	return err
