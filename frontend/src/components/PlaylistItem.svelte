@@ -129,17 +129,6 @@
       white-space: nowrap;
     }
   
-    .open-link {
-      font-size: 0.9rem;
-      color: #7abaff;
-      text-decoration: none;
-      transition: color 0.2s;
-    }
-  
-    .open-link:hover {
-      color: #4ea1d3;
-    }
-  
     .path-container {
       display: flex;
       align-items: center;
