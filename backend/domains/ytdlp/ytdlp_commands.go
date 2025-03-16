@@ -41,6 +41,13 @@ func GetPlaylistInfoFlat(url string) (*PlaylistInfo, error) {
 	}
 	result.Title = playlistName
 
+	// Get clean URL
+	cleanUrl, ok := data["webpage_url"].(string)
+	if !ok {
+		return nil, errors.New("missing or invalid webpage URL")
+	}
+	result.CleanUrl = cleanUrl
+
 	// Get thumbnail URL (check existence + type)
 	thumbnails, ok := data["thumbnails"].([]interface{})
 	if ok && len(thumbnails) > 0 {

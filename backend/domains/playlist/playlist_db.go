@@ -56,11 +56,36 @@ func (p *PlaylistDB) GetPlaylists() ([]Playlist, error) {
 	return playlists, nil
 }
 
-func (p *PlaylistDB) AddPlaylist(name, url, directory, format, thumbnail string) error {
+func (p *PlaylistDB) IsDuplicatePlaylistConfig(
+	webpageUrl string,
+	directory string,
+	format string,
+) (bool, error) {
+
+	// Check if playlist already exists
+	var count int
+	err := p.db.QueryRow(
+		"SELECT COUNT(*) FROM playlists WHERE url = ? AND save_directory = ? AND output_format = ?",
+		webpageUrl, directory, format).Scan(&count)
+	if err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
+}
+
+func (p *PlaylistDB) AddPlaylist(
+	name,
+	webpageUrl,
+	directory,
+	format,
+	thumbnail string,
+) error {
+	// Add new playlist
 	_, err := p.db.Exec(
 		`INSERT INTO playlists (name, url, output_format, save_directory, thumbnail_base64, is_enabled)
 		VALUES (?, ?, ?, ?, ?, 1)`,
-		name, url, format, directory, thumbnail,
+		name, webpageUrl, format, directory, thumbnail,
 	)
 	return err
 }

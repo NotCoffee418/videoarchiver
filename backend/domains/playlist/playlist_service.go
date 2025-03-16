@@ -38,10 +38,23 @@ func (p *PlaylistService) TryAddNewPlaylist(url, directory, format string) error
 		return err
 	}
 
+	// Duplicate check
+	isDuplicate, err := p.db.IsDuplicatePlaylistConfig(
+		plInfo.CleanUrl,
+		directory,
+		format,
+	)
+	if err != nil {
+		return err
+	}
+	if isDuplicate {
+		return fmt.Errorf("playlist is already listed with this configuration")
+	}
+
 	// Add playlist to database
 	return p.db.AddPlaylist(
 		plInfo.Title,
-		url,
+		plInfo.CleanUrl,
 		directory,
 		format,
 		thumbnailBase64,

@@ -3,6 +3,7 @@ package ytdlp
 type PlaylistInfo struct {
 	Title        string
 	ThumbnailURL string
+	CleanUrl     string
 	Entries      []Entry
 }
 
