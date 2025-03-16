@@ -1,7 +1,8 @@
 <script>  
     // Also update router in App.svelte
     let links = [
-      { name: 'Playlists', path: '/' },
+      { name: 'Archive', path: '/' },
+      { name: 'Direct', path: '/direct' },
       { name: 'Logs', path: '/logs' },
       { name: 'Settings', path: '/settings' }
     ];

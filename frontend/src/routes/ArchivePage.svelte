@@ -30,7 +30,7 @@
 
 <main>
   <div class="header">
-    <h1>Playlists</h1>
+    <h1>Archive</h1>
     <AddPlaylistButton onPlaylistAdded={reloadPlaylists} />
   </div>
 

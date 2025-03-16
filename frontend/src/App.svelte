@@ -5,13 +5,15 @@
   import { onMount } from 'svelte';
   
   // Import your route components
-  import PlaylistsPage from './routes/PlaylistsPage.svelte';
+  import ArchivePage from './routes/ArchivePage.svelte';
+  import DirectPage from './routes/DirectPage.svelte';
   import LogsPage from './routes/LogsPage.svelte';
   import SettingsPage from './routes/SettingsPage.svelte';
   import LoadingSpinner from './components/LoadingSpinner.svelte';
 
   const routes = {
-    '/': PlaylistsPage,
+    '/': ArchivePage,
+    '/direct': DirectPage,
     '/logs': LogsPage,
     '/settings': SettingsPage
   };
