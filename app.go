@@ -36,7 +36,6 @@ func NewApp() *App {
 // startup is called when the app starts. The context is saved
 // so we can call the runtime methods
 func (a *App) startup(ctx context.Context) {
-	fmt.Println("Startup called")
 	a.ctx = ctx
 
 	// ✅ Install ytdlp in background channel
@@ -73,7 +72,6 @@ func (a *App) startup(ctx context.Context) {
 	)
 
 	// ✅ Await ytdlp update
-	fmt.Println("Awaiting ytdlp update")
 	err = <-ytdlpUpdateChan
 	if err != nil {
 		a.HandleFatalError("Failed to install ytdlp: " + err.Error())
@@ -84,7 +82,6 @@ func (a *App) startup(ctx context.Context) {
 		// Listen for confirmed event
 		awaitingConfirmation := true
 		runtime.EventsOn(a.ctx, "startup-complete-confirmed", func(data ...interface{}) {
-			fmt.Println("Startup complete confirmed")
 			awaitingConfirmation = false
 		})
 
@@ -97,10 +94,7 @@ func (a *App) startup(ctx context.Context) {
 			time.Sleep(250 * time.Millisecond)
 		}
 	}()
-	fmt.Println("Startup complete")
 }
-
-
 
 // ✅ Centralized error handling
 func (a *App) HandleFatalError(message string) {

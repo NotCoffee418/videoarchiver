@@ -3,13 +3,10 @@
 
     export let playlist;
   
-    async function changeDirectory(newPath) {
-      console.log(`Changing directory for: ${playlist.name}`);
-  
+    async function changeDirectory(newPath) {  
       try {
         if (newPath) {
           playlist.save_directory = newPath;
-          console.log(`Updated directory for ${playlist.name}: ${newPath}`);
           await window.go?.main?.App?.UpdatePlaylistDirectory(playlist.id, newPath);
           window.location.reload();
         }
@@ -19,8 +16,6 @@
     }
   
     async function openDirectory() {
-      console.log(`Opening directory for: ${playlist.save_directory}`);
-  
       try {
         if (!window.go?.main?.App) {
           console.error("App binding not available");

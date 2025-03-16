@@ -45,7 +45,6 @@
 
         // Notify caller and cleanup
         if (onPlaylistAdded) {
-            console.log("added");
           await onPlaylistAdded();
         }
         closeModal();

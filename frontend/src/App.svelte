@@ -34,12 +34,9 @@
     } else {
       // If not, wait for the 'wails:ready' event
       const wailsReadyHandler = () => {
-        // Wails runtime ready
-        console.log("Wails runtime is ready");
         isRuntimeReady = true;
         document.removeEventListener('wails:ready', wailsReadyHandler);        
       };
-      console.log("Waiting for wails:ready event");
       document.addEventListener('wails:ready', wailsReadyHandler);
     }
 
@@ -48,9 +45,6 @@
       startupComplete = true;
       window.runtime.EventsEmit('startup-complete-confirmed');
     });
-    
-
-
 
     // Add a timeout of 10 seconds
     setTimeout(() => {
@@ -66,7 +60,7 @@
         console.error("Startup failed to complete within timeout");
         hasError = true;
       }
-    }, 10000);
+    }, 30000);
 
   });
 </script>

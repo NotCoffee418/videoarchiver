@@ -20,7 +20,6 @@
     } catch (error) {
       console.error("Failed to load playlists:", error);
     }
-    console.log("Playlists loaded:", playlists);
   }
 
   onMount(() => {
