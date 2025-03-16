@@ -8,6 +8,7 @@ import (
 	"time"
 	"videoarchiver/backend/domains/db"
 	"videoarchiver/backend/domains/playlist"
+	"videoarchiver/backend/domains/settings"
 	"videoarchiver/backend/domains/utils"
 	"videoarchiver/backend/domains/ytdlp"
 
@@ -26,6 +27,7 @@ type App struct {
 	DB              *db.DatabaseService
 	PlaylistDB      *playlist.PlaylistDB
 	PlaylistService *playlist.PlaylistService
+	SettingsService *settings.SettingsService
 }
 
 // NewApp creates a new App application struct
@@ -54,6 +56,9 @@ func (a *App) startup(ctx context.Context) {
 		a.HandleFatalError("Failed to create database service: " + err.Error())
 	}
 	a.DB = dbService
+
+	// ✅ Create SettingsService using dbService
+	a.SettingsService = settings.NewSettingsService(dbService)
 
 	// ✅ Create PlaylistDB using dbService
 	a.PlaylistDB = playlist.NewPlaylistDB(dbService)
@@ -142,4 +147,12 @@ func (a *App) DeletePlaylist(id int) error {
 
 func (a *App) IsStartupComplete() bool {
 	return a.StartupComplete
+}
+
+func (a *App) GetSettingString(key string) (string, error) {
+	return a.SettingsService.GetSettingString(key)
+}
+
+func (a *App) SetSettingPreparsed(key string, value string) error {
+	return a.SettingsService.SetPreparsed(key, value)
 }

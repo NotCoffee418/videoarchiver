@@ -8,6 +8,8 @@ export function GetClipboard():Promise<string>;
 
 export function GetPlaylists():Promise<Array<playlist.Playlist>>;
 
+export function GetSettingString(arg1:string):Promise<string>;
+
 export function HandleFatalError(arg1:string):Promise<void>;
 
 export function IsStartupComplete():Promise<boolean>;
@@ -15,6 +17,8 @@ export function IsStartupComplete():Promise<boolean>;
 export function OpenDirectory(arg1:string):Promise<void>;
 
 export function SelectDirectory():Promise<string>;
+
+export function SetSettingPreparsed(arg1:string,arg2:string):Promise<void>;
 
 export function UpdatePlaylistDirectory(arg1:number,arg2:string):Promise<void>;
 

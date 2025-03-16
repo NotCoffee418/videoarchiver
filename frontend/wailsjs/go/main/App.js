@@ -14,6 +14,10 @@ export function GetPlaylists() {
   return window['go']['main']['App']['GetPlaylists']();
 }
 
+export function GetSettingString(arg1) {
+  return window['go']['main']['App']['GetSettingString'](arg1);
+}
+
 export function HandleFatalError(arg1) {
   return window['go']['main']['App']['HandleFatalError'](arg1);
 }
@@ -28,6 +32,10 @@ export function OpenDirectory(arg1) {
 
 export function SelectDirectory() {
   return window['go']['main']['App']['SelectDirectory']();
+}
+
+export function SetSettingPreparsed(arg1, arg2) {
+  return window['go']['main']['App']['SetSettingPreparsed'](arg1, arg2);
 }
 
 export function UpdatePlaylistDirectory(arg1, arg2) {

@@ -58,6 +58,14 @@ input, select, button {
   height: 2.5rem;
 }
 
+.invalid-input {
+  border: 1px solid red;
+}
+.multiselect-slot .invalid-input {
+  border: 1px solid red;
+  color: red;
+}
+
 button:hover {
   background-color: #555;
 }
@@ -87,4 +95,8 @@ dialog::backdrop {
   font-size: 1.5rem;
   border: none;
   cursor: pointer;
+}
+
+.hidden {
+  display: none;
 }
