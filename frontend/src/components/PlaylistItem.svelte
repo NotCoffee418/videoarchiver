@@ -1,5 +1,7 @@
 <script>  
     import SelectDirectoryButton from './SelectDirectoryButton.svelte';
+    import DeletePlaylistIcon from '../assets/images/delete-btn.svg';
+
 
     export let playlist;
   
@@ -57,6 +59,16 @@
   
       <div class="format-container">
         {playlist.output_format.toUpperCase()}
+        <button onclick={openDeletePlaylistItemModal} class="delete-btn" aria-label="Delete playlist">
+
+            <svg class="delete-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6L18 20H6L5 6"></path>
+              <path d="M10 11V17"></path>
+              <path d="M14 11V17"></path>
+              <path d="M9 6L10 3H14L15 6"></path>
+            </svg>         
+        </button>
       </div>
     </div>
   </li>
@@ -143,6 +155,10 @@
   
     .format-container {
       margin-top: 0.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
     }
 
     .button-link {
@@ -152,6 +168,28 @@
 
     .button-link:hover {
       text-decoration: underline;
+    }
+
+    .btn {
+      cursor: pointer;
+    }
+
+    .delete-btn {
+      all: unset;
+      cursor: pointer;
+      border: 1px solid rgba(255, 0, 0, 0.664);
+      border-radius: 4px;
+      width: 1rem;
+      height: 1rem;
+      padding-bottom: 0.1rem;
+    }
+
+    .delete-icon {
+      height: 1rem;
+      width: 1rem;
+      color: rgba(255, 0, 0, 0.664);
+
+      border-radius: 4px;
     }
 
   </style>

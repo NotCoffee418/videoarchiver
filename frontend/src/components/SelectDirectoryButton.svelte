@@ -21,3 +21,9 @@
 </script>
 
 <button onclick={selectDirectory} {...$$props}>{text}</button>
+
+<style>
+    button {
+        cursor: pointer;
+    }
+</style>
