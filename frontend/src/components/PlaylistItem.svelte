@@ -1,16 +1,15 @@
 <script>  
-    import SelectDirectoryButton from './SelectDirectoryButton.svelte';
-    import DeletePlaylistIcon from '../assets/images/delete-btn.svg';
-
-
+    import SelectDirectoryButton from './SelectDirectoryButton.svelte'; 
     export let playlist;
+    /** @type {() => Promise<void>} */
+    export let refreshFunction = async () => {};
   
     async function changeDirectory(newPath) {  
       try {
         if (newPath) {
           playlist.save_directory = newPath;
           await window.go?.main?.App?.UpdatePlaylistDirectory(playlist.id, newPath);
-          window.location.reload();
+          await refreshFunction();
         }
       } catch (error) {
         console.error("Failed to select directory:", error);

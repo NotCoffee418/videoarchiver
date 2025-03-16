@@ -36,7 +36,7 @@
   {#if playlists.length > 0}
     <ul>
       {#each playlists as playlist (playlist.id)}
-        <PlaylistItem playlist={playlist} />
+        <PlaylistItem playlist={playlist} refreshFunction={reloadPlaylists} />
       {/each}
     </ul>
   {:else}
