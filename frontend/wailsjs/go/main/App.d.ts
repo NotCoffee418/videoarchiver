@@ -8,6 +8,8 @@ export function GetPlaylists():Promise<Array<playlist.Playlist>>;
 
 export function HandleFatalError(arg1:string):Promise<void>;
 
+export function IsStartupComplete():Promise<boolean>;
+
 export function OpenDirectory(arg1:string):Promise<void>;
 
 export function SelectDirectory():Promise<string>;

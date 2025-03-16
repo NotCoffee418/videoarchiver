@@ -21,7 +21,7 @@
   let startupComplete = $state(false);
 
   // Listen for wails ready event
-  onMount(() => {
+  onMount(async () => {
     // Check if we're in a Wails context
     if (typeof window == 'undefined') {      
       console.error("Not in a Wails context");
@@ -30,12 +30,15 @@
     }
 
     if (window.runtime) {
+      // On refresh
       isRuntimeReady = true;
+      startupComplete = await window.go?.main?.App?.IsStartupComplete();
     } else {
+      // On startup
       // If not, wait for the 'wails:ready' event
       const wailsReadyHandler = () => {
         isRuntimeReady = true;
-        document.removeEventListener('wails:ready', wailsReadyHandler);        
+        document.removeEventListener('wails:ready', wailsReadyHandler);
       };
       document.addEventListener('wails:ready', wailsReadyHandler);
     }

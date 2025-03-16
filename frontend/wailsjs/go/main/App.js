@@ -14,6 +14,10 @@ export function HandleFatalError(arg1) {
   return window['go']['main']['App']['HandleFatalError'](arg1);
 }
 
+export function IsStartupComplete() {
+  return window['go']['main']['App']['IsStartupComplete']();
+}
+
 export function OpenDirectory(arg1) {
   return window['go']['main']['App']['OpenDirectory'](arg1);
 }

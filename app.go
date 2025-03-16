@@ -86,6 +86,7 @@ func (a *App) startup(ctx context.Context) {
 		})
 
 		// emit complete event
+		a.StartupComplete = true
 		for i := 0; i < 300; i++ {
 			if !awaitingConfirmation {
 				break
@@ -133,4 +134,8 @@ func (a *App) UpdatePlaylistDirectory(id int, newDirectory string) error {
 
 func (a *App) ValidateAndAddPlaylist(url, directory, format string) error {
 	return a.PlaylistService.TryAddNewPlaylist(url, directory, format)
+}
+
+func (a *App) IsStartupComplete() bool {
+	return a.StartupComplete
 }
