@@ -79,7 +79,10 @@
   <!-- Modal -->
   <dialog id="add-playlist-dialog">
     {#if modalProcessing}
-        <LoadingSpinner />
+        <div class="modal-processing">
+            <LoadingSpinner />
+            <p>Loading playlist info...</p>
+        </div>
     {:else if modalError}
         <button class="dialog-close-btn" onclick={closeModal}>✕</button>
         <p class="error-message">Error: {modalError}</p>
@@ -176,6 +179,13 @@
 
     .error-message {
         color: #f00;
+    }
+
+    .modal-processing {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
     }
 
 
