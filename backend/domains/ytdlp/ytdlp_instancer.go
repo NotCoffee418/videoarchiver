@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
-	"time"
 	"videoarchiver/backend/domains/pathing"
 )
 
@@ -103,9 +102,6 @@ func getExecutableFileName() string {
 }
 
 func downloadFile(url string, filePath string) error {
-	// !!! TODO DELETE ME
-	time.Sleep(2 * time.Second)
-
 	// Open HTTP connection to the file
 	resp, err := http.Get(url)
 	if err != nil {

@@ -5,9 +5,11 @@ import (
 	"embed"
 	"fmt"
 	"os"
+	"time"
 	"videoarchiver/backend/domains/db"
 	"videoarchiver/backend/domains/playlist"
 	"videoarchiver/backend/domains/utils"
+	"videoarchiver/backend/domains/ytdlp"
 
 	"github.com/NotCoffee418/dbmigrator"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -19,6 +21,7 @@ var migrationFS embed.FS
 // App struct
 type App struct {
 	ctx             context.Context
+	StartupComplete bool
 	Utils           *utils.Utils
 	DB              *db.DatabaseService
 	PlaylistDB      *playlist.PlaylistDB
@@ -33,7 +36,18 @@ func NewApp() *App {
 // startup is called when the app starts. The context is saved
 // so we can call the runtime methods
 func (a *App) startup(ctx context.Context) {
+	fmt.Println("Startup called")
 	a.ctx = ctx
+
+	// ✅ Install ytdlp in background channel
+	ytdlpUpdateChan := make(chan error)
+	go func() {
+		defer close(ytdlpUpdateChan)
+		err := ytdlp.InstallOrUpdate()
+		if err != nil {
+			ytdlpUpdateChan <- err
+		}
+	}()
 
 	// ✅ Create database service ONCE
 	dbService, err := db.NewDatabaseService()
@@ -57,7 +71,36 @@ func (a *App) startup(ctx context.Context) {
 		migrationFS,
 		"migrations",
 	)
+
+	// ✅ Await ytdlp update
+	fmt.Println("Awaiting ytdlp update")
+	err = <-ytdlpUpdateChan
+	if err != nil {
+		a.HandleFatalError("Failed to install ytdlp: " + err.Error())
+	}
+
+	// ✅ Emit startup complete event in background
+	go func() {
+		// Listen for confirmed event
+		awaitingConfirmation := true
+		runtime.EventsOn(a.ctx, "startup-complete-confirmed", func(data ...interface{}) {
+			fmt.Println("Startup complete confirmed")
+			awaitingConfirmation = false
+		})
+
+		// emit complete event
+		for i := 0; i < 300; i++ {
+			if !awaitingConfirmation {
+				break
+			}
+			runtime.EventsEmit(a.ctx, "startup-complete")
+			time.Sleep(250 * time.Millisecond)
+		}
+	}()
+	fmt.Println("Startup complete")
 }
+
+
 
 // ✅ Centralized error handling
 func (a *App) HandleFatalError(message string) {
