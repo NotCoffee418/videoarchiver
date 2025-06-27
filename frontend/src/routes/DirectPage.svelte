@@ -1,3 +1,30 @@
+<script>
+    import LoadingSpinner from "../components/LoadingSpinner.svelte";
+    import SelectDirectoryButton from "../components/SelectDirectoryButton.svelte";
+
+    let format = "mp3";
+    let url = "";
+    let directory = "";
+    let isDownloading = false;
+
+    async function selectDirectory(path) {
+        directory = path;
+    }
+
+    function pasteUrl() {
+        window.go.main.App.GetClipboard().then(text => {
+            url = text;
+        });
+    }
+
+    function directDownload() {
+        isDownloading = true;
+        window.go.main.App.DirectDownload(url, directory, format).then(() => {
+            isDownloading = false;
+        });
+    }
+</script>
+
 <div class="container">
     <h1>Direct Download</h1>
 
@@ -13,6 +40,7 @@
         <label for="directory">Directory</label>
         <div class="input-group">
             <input type="text" id="directory" placeholder="Enter directory" bind:value={directory} />
+            <SelectDirectoryButton text="Select Directory" clickHandlerAsync={selectDirectory} />
         </div>
     </div>
 
@@ -26,7 +54,13 @@
         </div>
     </div>
 
-    <button class="download-button">Download</button>
+    {#if isDownloading}
+        <LoadingSpinner size="4rem" />
+    {:else}
+        <div class="spinner-filler"></div>
+    {/if}
+
+    <button class="download-button" id="download-button" onclick={directDownload} disabled={isDownloading}>Download</button>
 </div>
 
 <style>
@@ -83,7 +117,7 @@
 
     .download-button {
         display: block;
-        width: 100%;
+        width: 10rem;
         padding: 0.75rem;
         background-color: #4CAF50;
         color: white;
@@ -96,17 +130,13 @@
     .download-button:hover {
         background-color: #45a049;
     }
-</style>
 
-
-<script>
-    let format = "mp3";
-    let url = "";
-    let directory = "";
-
-    function pasteUrl() {
-        navigator.clipboard.readText().then(text => {
-            console.log(text);
-        });
+    .download-button:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
     }
-</script>
+
+    .spinner-filler {
+        height: 5rem;
+    }
+</style>
