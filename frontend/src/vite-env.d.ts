@@ -18,6 +18,7 @@ declare global {
           SetSettingPreparsed: (arg1: string, arg2: string) => Promise<void>;
           UpdatePlaylistDirectory: (arg1: number, arg2: string) => Promise<void>;
           ValidateAndAddPlaylist: (arg1: string, arg2: string, arg3: string) => Promise<void>;
+          DirectDownload: (arg1: string, arg2: string, arg3: string) => Promise<void>;
         };
       };
     };

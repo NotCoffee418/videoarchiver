@@ -6,6 +6,10 @@ export function DeletePlaylist(arg1) {
   return window['go']['main']['App']['DeletePlaylist'](arg1);
 }
 
+export function DirectDownload(arg1, arg2, arg3) {
+  return window['go']['main']['App']['DirectDownload'](arg1, arg2, arg3);
+}
+
 export function GetClipboard() {
   return window['go']['main']['App']['GetClipboard']();
 }

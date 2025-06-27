@@ -6,6 +6,7 @@
     let url = "";
     let directory = "";
     let isDownloading = false;
+    let error = "";
 
     async function selectDirectory(path) {
         directory = path;
@@ -19,8 +20,12 @@
 
     function directDownload() {
         isDownloading = true;
+        error = "";
         window.go.main.App.DirectDownload(url, directory, format).then(() => {
             isDownloading = false;
+        }).catch(err => {
+            isDownloading = false;
+            error = err.toString();
         });
     }
 </script>
@@ -56,6 +61,8 @@
 
     {#if isDownloading}
         <LoadingSpinner size="4rem" />
+    {:else if error}
+        <p class="error">Error: {error}</p>
     {:else}
         <div class="spinner-filler"></div>
     {/if}
@@ -138,5 +145,10 @@
 
     .spinner-filler {
         height: 5rem;
+    }
+
+    .error {
+        color: red;
+        margin-bottom: 1rem;
     }
 </style>

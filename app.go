@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 	"videoarchiver/backend/domains/db"
+	"videoarchiver/backend/domains/download"
 	"videoarchiver/backend/domains/playlist"
 	"videoarchiver/backend/domains/settings"
 	"videoarchiver/backend/domains/utils"
@@ -28,6 +29,7 @@ type App struct {
 	PlaylistDB      *playlist.PlaylistDB
 	PlaylistService *playlist.PlaylistService
 	SettingsService *settings.SettingsService
+	DownloadService *download.DownloadService
 }
 
 // NewApp creates a new App application struct
@@ -50,24 +52,27 @@ func (a *App) startup(ctx context.Context) {
 		}
 	}()
 
-	// ✅ Create database service ONCE
+	// Create database service ONCE
 	dbService, err := db.NewDatabaseService()
 	if err != nil {
 		a.HandleFatalError("Failed to create database service: " + err.Error())
 	}
 	a.DB = dbService
 
-	// ✅ Create SettingsService using dbService
+	// Create SettingsService using dbService
 	a.SettingsService = settings.NewSettingsService(dbService)
 
-	// ✅ Create PlaylistDB using dbService
+	// Create PlaylistDB using dbService
 	a.PlaylistDB = playlist.NewPlaylistDB(dbService)
 	a.PlaylistService = playlist.NewPlaylistService(a.PlaylistDB)
 
-	// ✅ Init utils with context
+	// Create DownloadService using dbService
+	a.DownloadService = download.NewDownloadService(ctx)
+
+	// Init utils with context
 	a.Utils = utils.NewUtils(ctx)
 
-	// ✅ Apply database migrations (AFTER setting up DB)
+	// Apply database migrations (AFTER setting up DB)
 	db := dbService.GetDB()
 	dbmigrator.SetDatabaseType(dbmigrator.SQLite)
 	<-dbmigrator.MigrateUpCh(
@@ -76,13 +81,13 @@ func (a *App) startup(ctx context.Context) {
 		"migrations",
 	)
 
-	// ✅ Await ytdlp update
+	// Await ytdlp update
 	err = <-ytdlpUpdateChan
 	if err != nil {
 		a.HandleFatalError("Failed to install ytdlp: " + err.Error())
 	}
 
-	// ✅ Emit startup complete event in background
+	// Emit startup complete event in background
 	go func() {
 		// Listen for confirmed event
 		awaitingConfirmation := true
@@ -102,7 +107,7 @@ func (a *App) startup(ctx context.Context) {
 	}()
 }
 
-// ✅ Centralized error handling
+// Centralized error handling
 func (a *App) HandleFatalError(message string) {
 	runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
 		Type:    runtime.ErrorDialog,
@@ -155,4 +160,8 @@ func (a *App) GetSettingString(key string) (string, error) {
 
 func (a *App) SetSettingPreparsed(key string, value string) error {
 	return a.SettingsService.SetPreparsed(key, value)
+}
+
+func (a *App) DirectDownload(url, directory, format string) error {
+	return a.DownloadService.DownloadFile(url, directory, format)
 }
