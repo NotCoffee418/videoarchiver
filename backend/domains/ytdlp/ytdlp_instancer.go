@@ -221,6 +221,8 @@ func runCommand(args ...string) (string, error) {
 		return "", err
 	}
 
+	// print command
+	fmt.Println("Running command:", ytdlpPath, strings.Join(args, " "))
 	cmd := exec.Command(ytdlpPath, args...)
 
 	var stdout, stderr bytes.Buffer
@@ -232,7 +234,14 @@ func runCommand(args ...string) (string, error) {
 		return stdout.String(), fmt.Errorf("%s: %s", err, stderr.String())
 	}
 
-	return stdout.String(), nil
+	stdoutStr := strings.TrimSpace(stdout.String())
+	stderrStr := strings.TrimSpace(stderr.String())
+
+	if stderrStr != "" {
+		return stdoutStr, fmt.Errorf("ytdlp command failed: %s", stderrStr)
+	}
+
+	return stdoutStr, nil
 }
 
 // Get full path to the ytdlp executable
@@ -263,6 +272,14 @@ func getFfprobePath() (string, error) {
 	}
 
 	return ffprobeExecutableFullPath, nil
+}
+
+func getFfmpegDir() (string, error) {
+	ffmpegPath, err := getFfmpegPath()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Dir(ffmpegPath), nil
 }
 
 // Get the name of the ytdlp executable on the current OS

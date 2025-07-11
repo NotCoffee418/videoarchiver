@@ -102,12 +102,12 @@ func DownloadFile(url, outputPath, format string) (string, error) {
 		return "", fmt.Errorf("unsupported format: %s", format)
 	}
 
-	ffmpegPath, err := getFfmpegPath()
+	ffmpegDir, err := getFfmpegDir()
 	if err != nil {
-		return "", fmt.Errorf("failed to get ffmpeg path: %w", err)
+		return "", fmt.Errorf("failed to get ffmpeg dir: %w", err)
 	}
 
-	baseArgs := []string{"--ffmpeg-location", ffmpegPath, "--prefer-ffmpeg", "--add-metadata", "--embed-thumbnail", "--metadata-from-title", "%(artist)s - %(title)s", "--no-warnings"}
+	baseArgs := []string{"--ffmpeg-location", ffmpegDir, "--prefer-ffmpeg", "--add-metadata", "--embed-thumbnail", "--metadata-from-title", "%(artist)s - %(title)s", "--no-warnings"}
 
 	if format == "mp3" {
 		args := append([]string{"-x", "--audio-format", "mp3"}, baseArgs...)
