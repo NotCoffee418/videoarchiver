@@ -46,7 +46,7 @@ func (a *App) startup(ctx context.Context) {
 	ytdlpUpdateChan := make(chan error)
 	go func() {
 		defer close(ytdlpUpdateChan)
-		err := ytdlp.InstallOrUpdate()
+		err := ytdlp.InstallOrUpdate(false)
 		if err != nil {
 			ytdlpUpdateChan <- err
 		}

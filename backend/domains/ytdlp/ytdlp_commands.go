@@ -7,17 +7,17 @@ import (
 )
 
 // Get minimal playlist info
-func GetPlaylistInfoFlat(url string) (*PlaylistInfo, error) {
+func GetPlaylistInfoFlat(url string) (*YtdlpPlaylistInfo, error) {
 	raw, err := runCommand("--no-warnings", "--flat-playlist", "--yes-playlist", "-J", url)
 	if err != nil {
 		return nil, err
 	}
 
 	// Prepare result object
-	result := &PlaylistInfo{
+	result := &YtdlpPlaylistInfo{
 		Title:        "",
 		ThumbnailURL: "",
-		Entries:      make([]Entry, 0),
+		Entries:      make([]YtdlpEntry, 0),
 	}
 
 	// Parse json
@@ -88,11 +88,36 @@ func GetPlaylistInfoFlat(url string) (*PlaylistInfo, error) {
 		}
 
 		// Add entry to result
-		result.Entries = append(result.Entries, Entry{
+		result.Entries = append(result.Entries, YtdlpEntry{
 			Title: title,
 			URL:   url,
 		})
 	}
 
 	return result, nil
+}
+
+func DownloadFile(url, outputPath, format string) (string, error) {
+	if format != "mp3" && format != "mp4" {
+		return "", fmt.Errorf("unsupported format: %s", format)
+	}
+
+	ffmpegPath, err := getFfmpegPath()
+	if err != nil {
+		return "", fmt.Errorf("failed to get ffmpeg path: %w", err)
+	}
+
+	baseArgs := []string{"--ffmpeg-location", ffmpegPath, "--prefer-ffmpeg", "--add-metadata", "--embed-thumbnail", "--metadata-from-title", "%(artist)s - %(title)s", "--no-warnings"}
+
+	if format == "mp3" {
+		args := append([]string{"-x", "--audio-format", "mp3"}, baseArgs...)
+		return runCommand(append(args, "-o", outputPath, url)...)
+	} else {
+		args := append([]string{
+			"-f",
+			"bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best"},
+			baseArgs...)
+		return runCommand(append(args, "-o", outputPath, url)...)
+	}
+
 }

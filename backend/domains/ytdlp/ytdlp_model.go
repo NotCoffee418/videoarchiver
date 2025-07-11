@@ -1,13 +1,13 @@
 package ytdlp
 
-type PlaylistInfo struct {
+type YtdlpPlaylistInfo struct {
 	Title        string
 	ThumbnailURL string
 	CleanUrl     string
-	Entries      []Entry
+	Entries      []YtdlpEntry
 }
 
-type Entry struct {
+type YtdlpEntry struct {
 	Title string
 	URL   string
 }
