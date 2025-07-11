@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 	"videoarchiver/backend/domains/pathing"
 
@@ -47,8 +48,22 @@ func installUpdateYtdlp() error {
 		return err
 	}
 
+	// Check for corruption
+	if fileExists(ytdlpPath) {
+		err = ytdlpCorruptionCheck(ytdlpPath)
+		if err != nil {
+			fmt.Println("ytdlp corruption check failed, reinstalling")
+
+			// Delete old version
+			err = os.Remove(ytdlpPath)
+			if err != nil {
+				return fmt.Errorf("ytdlp instancer: failed to delete old ytdlp: %w", err)
+			}
+		}
+	}
+
 	// Download ytdlp if it doesn't exist
-	if _, err := os.Stat(ytdlpPath); os.IsNotExist(err) {
+	if !fileExists(ytdlpPath) {
 		// Download
 		downloadUrl := baseYtdlpDownloadUrl + getYtdlpExecutableFileName()
 		err := downloadFileHttp(downloadUrl, ytdlpPath)
@@ -85,7 +100,7 @@ func installUpdateFfmpeg(forceReinstall bool) error {
 	}
 
 	// Delete existing ffmpeg if any, if forceUpdate is true
-	if forceReinstall || fileExists(ffmpegPath) {
+	if forceReinstall || !fileExists(ffmpegPath) || ffmpegCorruptionCheck(ffmpegPath) != nil {
 		err := os.Remove(ffmpegPath)
 		if err != nil {
 			return fmt.Errorf("ytdlp instancer: failed to delete old ffmpeg: %w", err)
@@ -141,7 +156,7 @@ func installUpdateFfmpeg(forceReinstall bool) error {
 		}
 
 		// Extract ffmpeg
-		err = extractFile(tmpFile, fmt.Sprintf("%s/bin/ffmpeg", tarName), ffmpegPath)
+		err = extractFile(tmpFile, "bin/ffmpeg", ffmpegPath)
 		if err != nil {
 			return fmt.Errorf("ytdlp instancer: failed to extract ffmpeg: %w", err)
 		}
@@ -263,6 +278,26 @@ func fileExists(path string) bool {
 	return !os.IsNotExist(err)
 }
 
+func ffmpegCorruptionCheck(ffmpegPath string) error {
+	// Create the command
+	cmd := exec.Command(ffmpegPath, "-version")
+
+	// Run the command and capture output
+	_, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("ffmpeg corruption check failed, reinstalling: %v", err)
+	}
+	return nil
+}
+
+func ytdlpCorruptionCheck(ytdlpPath string) error {
+	_, err := runCommand("--version")
+	if err != nil {
+		return fmt.Errorf("ytdlp corruption check failed, reinstalling: %v", err)
+	}
+	return nil
+}
+
 // Extract a file from an archive
 func extractFile(archivePath, fileToExtract, outputFile string) error {
 	file, err := os.Open(archivePath)
@@ -281,7 +316,7 @@ func extractFile(archivePath, fileToExtract, outputFile string) error {
 
 		file.Seek(0, 0)
 		err := ex.Extract(context.Background(), file, func(ctx context.Context, f archives.FileInfo) error {
-			if f.NameInArchive == fileToExtract {
+			if strings.HasSuffix(f.NameInArchive, fileToExtract) {
 				found = true
 				outFile, err := os.Create(outputFile)
 				if err != nil {
