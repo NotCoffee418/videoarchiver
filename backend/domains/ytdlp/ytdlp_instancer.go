@@ -21,8 +21,9 @@ const baseYtdlpDownloadUrl = "https://github.com/yt-dlp/yt-dlp/releases/latest/d
 
 // memoized - call getExecutableFileName() once and store the result
 var (
-	ytdlpExecutableFileName  string = ""
-	ffmpegExecutableFullPath string = ""
+	ytdlpExecutableFileName   string = ""
+	ffmpegExecutableFullPath  string = ""
+	ffprobeExecutableFullPath string = ""
 )
 
 func InstallOrUpdate(forceReinstall bool) error {
@@ -93,22 +94,45 @@ func installUpdateYtdlp() error {
 }
 
 func installUpdateFfmpeg(forceReinstall bool) error {
+	fmt.Println("Installing or updating ffmpeg")
+
 	// Get ffmpeg path
 	ffmpegPath, err := getFfmpegPath()
 	if err != nil {
 		return err
 	}
 
+	// Get ffprobe path
+	ffprobePath, err := getFfprobePath()
+	if err != nil {
+		return err
+	}
+
 	// Delete existing ffmpeg if any, if forceUpdate is true
-	if forceReinstall || !fileExists(ffmpegPath) || ffmpegCorruptionCheck(ffmpegPath) != nil {
-		err := os.Remove(ffmpegPath)
-		if err != nil {
-			return fmt.Errorf("ytdlp instancer: failed to delete old ffmpeg: %w", err)
+	if forceReinstall || ffmpegCorruptionCheck(ffmpegPath) != nil {
+		if fileExists(ffmpegPath) {
+			err := os.Remove(ffmpegPath)
+			if err != nil {
+				return fmt.Errorf("ytdlp instancer: failed to delete old ffmpeg: %w", err)
+			}
 		}
+		forceReinstall = true
+	}
+
+	// Delete existing ffprobe if any, if forceUpdate is true
+	if forceReinstall || ffprobeCorruptionCheck(ffprobePath) != nil {
+		if fileExists(ffprobePath) {
+			err := os.Remove(ffprobePath)
+			if err != nil {
+				return fmt.Errorf("ytdlp instancer: failed to delete old ffprobe: %w", err)
+			}
+		}
+		forceReinstall = true
 	}
 
 	// Already exists, no update needed
-	if fileExists(ffmpegPath) {
+	if !forceReinstall && fileExists(ffmpegPath) && fileExists(ffprobePath) {
+		fmt.Println("ffmpeg and ffprobe already exist, no update needed")
 		return nil
 	}
 
@@ -129,6 +153,12 @@ func installUpdateFfmpeg(forceReinstall bool) error {
 		err = extractFile(tmpFile, "bin/ffmpeg.exe", ffmpegPath)
 		if err != nil {
 			return fmt.Errorf("ytdlp instancer: failed to extract ffmpeg: %w", err)
+		}
+
+		// Extract ffprobe.exe
+		err = extractFile(tmpFile, "bin/ffprobe.exe", ffprobePath)
+		if err != nil {
+			return fmt.Errorf("ytdlp instancer: failed to extract ffprobe: %w", err)
 		}
 	case "linux":
 		// Identify download for architecture
@@ -161,10 +191,22 @@ func installUpdateFfmpeg(forceReinstall bool) error {
 			return fmt.Errorf("ytdlp instancer: failed to extract ffmpeg: %w", err)
 		}
 
+		// Extract ffprobe
+		err = extractFile(tmpFile, "bin/ffprobe", ffprobePath)
+		if err != nil {
+			return fmt.Errorf("ytdlp instancer: failed to extract ffprobe: %w", err)
+		}
+
 		// Make executable on unix
 		err = os.Chmod(ffmpegPath, 0755)
 		if err != nil {
 			return fmt.Errorf("ytdlp instancer: failed to make ffmpeg executable: %w", err)
+		}
+
+		// Make executable on unix
+		err = os.Chmod(ffprobePath, 0755)
+		if err != nil {
+			return fmt.Errorf("ytdlp instancer: failed to make ffprobe executable: %w", err)
 		}
 	default:
 		return fmt.Errorf("ytdlp instancer: unsupported OS: %s", runtime.GOOS)
@@ -211,6 +253,18 @@ func getFfmpegPath() (string, error) {
 	return ffmpegExecutableFullPath, nil
 }
 
+func getFfprobePath() (string, error) {
+	if ffprobeExecutableFullPath == "" {
+		p, err := pathing.GetWorkingFile(getFfprobeExecutableFileName())
+		if err != nil {
+			return "", err
+		}
+		ffprobeExecutableFullPath = p
+	}
+
+	return ffprobeExecutableFullPath, nil
+}
+
 // Get the name of the ytdlp executable on the current OS
 func getYtdlpExecutableFileName() string {
 	if ytdlpExecutableFileName != "" {
@@ -247,6 +301,16 @@ func getFfmpegExecutableFileName() string {
 		return "ffmpeg"
 	}
 	return "ffmpeg"
+}
+
+func getFfprobeExecutableFileName() string {
+	switch runtime.GOOS {
+	case "windows":
+		return "ffprobe.exe"
+	case "linux":
+		return "ffprobe"
+	}
+	return "ffprobe"
 }
 
 func downloadFileHttp(url string, filePath string) error {
@@ -286,6 +350,18 @@ func ffmpegCorruptionCheck(ffmpegPath string) error {
 	_, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("ffmpeg corruption check failed, reinstalling: %v", err)
+	}
+	return nil
+}
+
+func ffprobeCorruptionCheck(ffprobePath string) error {
+	// Create the command
+	cmd := exec.Command(ffprobePath, "-version")
+
+	// Run the command and capture output
+	_, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("ffprobe corruption check failed, reinstalling: %v", err)
 	}
 	return nil
 }

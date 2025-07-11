@@ -65,7 +65,7 @@
         console.error("Startup failed to complete within timeout");
         hasError = true;
       }
-    }, 30000);
+    }, 60000);
 
   });
 </script>

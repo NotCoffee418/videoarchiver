@@ -18,9 +18,6 @@ func NewDownloadService(ctx context.Context) *DownloadService {
 
 // Download a file via Ytdlp
 func (d *DownloadService) DownloadFile(url, directory, format string) error {
-
-	return errors.New("not implemented")
-
 	// Set temp path for the file
 	tmpFile, err := os.CreateTemp("", "videoarchiver-*")
 	if err != nil {
@@ -38,5 +35,6 @@ func (d *DownloadService) DownloadFile(url, directory, format string) error {
 
 	// Add to database
 
+	return errors.New("not implemented")
 	return nil
 }
