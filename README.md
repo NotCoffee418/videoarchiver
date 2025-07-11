@@ -6,9 +6,8 @@ A simple tool for archiving videos from playlists. Add videos to a playlist, and
 
 - **Playlist Monitoring**: Watches your playlists and automatically downloads new videos
 - **Direct Downloads**: Manual download option for individual videos
-- **Background Processing**: Runs in the background, minimizing to system tray
-- **Format Options**: Choose your preferred video quality and format
-- **Self-Contained**: Automatically downloads required tools - no manual installation required
+- **Background Processing**: Runs in the background
+- **Format Options**: Choose your preferred format per playlist
 
 ## Usage
 
