@@ -17,6 +17,48 @@
         type={SettingType.BOOL} />
 </SettingsGroup>
 
+<SettingsGroup title="SponsorBlock">
+    <div class="flex-container">
+        <div class="column">
+            <SettingView 
+                key="sponsorblock_video"
+                label="Video"
+                description="SponsorBlock will remove the following segments from videos"
+                type={SettingType.MULTISELECT}
+                options={[
+                    { label: "Sponsor", value: "sponsor" },
+                    { label: "Intro", value: "intro" },
+                    { label: "Outro", value: "outro" },
+                    { label: "Selfpromo", value: "selfpromo" },
+                    { label: "Interaction", value: "interaction" },
+                    { label: "Music Offtopic", value: "music_offtopic" },
+                    { label: "Preview", value: "preview" },
+                    { label: "Filler", value: "filler" },
+                    { label: "Chapter", value: "chapter" }
+                ]} />
+        </div>
+        <div class="column">
+            <SettingView 
+                key="sponsorblock_audio"
+                label="Music"
+                description="SponsorBlock will remove the following segments from music"
+                type={SettingType.MULTISELECT}
+                options={[
+                    { label: "Sponsor", value: "sponsor" },
+                    { label: "Intro", value: "intro" },
+                    { label: "Outro", value: "outro" },
+                    { label: "Selfpromo", value: "selfpromo" },
+                    { label: "Interaction", value: "interaction" },
+                    { label: "Music Offtopic", value: "music_offtopic" },
+                    { label: "Preview", value: "preview" },
+                    { label: "Filler", value: "filler" },
+                    { label: "Chapter", value: "chapter" }
+                ]} />
+        </div>
+      </div>
+      
+      
+</SettingsGroup>
 <!-- Hidden div for development -->
 <!-- <SettingsGroup title="Example Settings">
     <SettingView 
@@ -67,3 +109,20 @@
             return values.get("option1_value") === true;
         }} />     
 </SettingsGroup> -->
+
+<style>
+    .flex-container {
+      display: flex;
+      gap: 1rem;
+    }
+    
+    .column {
+      flex: 1;
+    }
+    
+    @media (max-width: 768px) {
+      .flex-container {
+        flex-direction: column;
+      }
+    }
+</style>

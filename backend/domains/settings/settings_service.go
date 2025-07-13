@@ -28,7 +28,6 @@ func (s *SettingsService) GetSettingString(key string) (string, error) {
 
 // Set inserts or updates the setting value
 func (s *SettingsService) SetPreparsed(key string, value string) error {
-	// Handle both PostgreSQL and MySQL/SQLite syntax
 	_, err := s.db.Exec(`
 		UPDATE settings SET setting_value = ? WHERE setting_key = ?
 	`, value, key)

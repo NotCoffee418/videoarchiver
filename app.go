@@ -67,7 +67,7 @@ func (a *App) startup(ctx context.Context) {
 	a.PlaylistService = playlist.NewPlaylistService(a.PlaylistDB)
 
 	// Create DownloadService using dbService
-	a.DownloadService = download.NewDownloadService(ctx)
+	a.DownloadService = download.NewDownloadService(ctx, a.SettingsService)
 
 	// Init utils with context
 	a.Utils = utils.NewUtils(ctx)

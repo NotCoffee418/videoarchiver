@@ -7,15 +7,17 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+	"videoarchiver/backend/domains/settings"
 	"videoarchiver/backend/domains/ytdlp"
 )
 
 type DownloadService struct {
-	ctx context.Context
+	ctx             context.Context
+	settingsService *settings.SettingsService
 }
 
-func NewDownloadService(ctx context.Context) *DownloadService {
-	return &DownloadService{ctx: ctx}
+func NewDownloadService(ctx context.Context, settingsService *settings.SettingsService) *DownloadService {
+	return &DownloadService{ctx: ctx, settingsService: settingsService}
 }
 
 // Download a file via Ytdlp
@@ -25,7 +27,7 @@ func (d *DownloadService) DownloadFile(url, directory, format string) error {
 	defer os.Remove(tmpFile)
 
 	// Download to temp path
-	_, err := ytdlp.DownloadFile(url, tmpFile, format)
+	_, err := ytdlp.DownloadFile(d.settingsService, url, tmpFile, format)
 	if err != nil {
 		return fmt.Errorf("download service: failed to download file: %w", err)
 	}

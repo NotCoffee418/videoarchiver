@@ -182,16 +182,14 @@
     async function loadSetting(key) {
         console.log(key);
         const loadedValue = await window.go.main.App.GetSettingString(key);
-        console.log("loadedValue", loadedValue);
-        const parsedValue = JSON.parse(loadedValue);
-        console.log("parsedValue", parsedValue);
         
         // Handle loaded value per type
         if (type === SettingType.BOOL) { 
             console.log(loadedValue);
-            value = parsedValue == true;
+            value = JSON.parse(loadedValue) == true;
         } else if (type === SettingType.MULTISELECT) {
             const selectedValues = loadedValue.split(",");
+            console.log(selectedValues);
             // Find options that match selectedValues
             options.forEach(option => {
                 /** @type {HTMLInputElement | null} */
@@ -203,7 +201,7 @@
 
         } else {
             // Everything else acts like a string
-            value = parsedValue;
+            value = JSON.parse(loadedValue);
         }
     }
     
@@ -285,6 +283,11 @@
         border-bottom: 1px solid #333;
     }
 
+    .setting-row:has(.multiselect-slot) {
+        grid-template-columns: 1fr;
+        align-items: start;
+    }
+
     .key-slot {
         text-align: left;
         font-weight: bold;
@@ -302,9 +305,9 @@
     }
 
     label {
-        display: flex; /* ✅ Flexbox for alignment */
-        align-items: center; /* ✅ Vertical alignment */
-        gap: 0.5rem; /* ✅ Clean spacing between checkbox and label */
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
         cursor: pointer;
     }
 

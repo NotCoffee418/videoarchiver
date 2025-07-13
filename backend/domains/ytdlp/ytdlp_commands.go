@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"videoarchiver/backend/domains/settings"
 )
 
 // Get minimal playlist info
@@ -97,7 +98,12 @@ func GetPlaylistInfoFlat(url string) (*YtdlpPlaylistInfo, error) {
 	return result, nil
 }
 
-func DownloadFile(url, outputPath, format string) (string, error) {
+func DownloadFile(
+	settingsService *settings.SettingsService,
+	url,
+	outputPath,
+	format string,
+) (string, error) {
 	if format != "mp3" && format != "mp4" {
 		return "", fmt.Errorf("unsupported format: %s", format)
 	}
@@ -107,17 +113,56 @@ func DownloadFile(url, outputPath, format string) (string, error) {
 		return "", fmt.Errorf("failed to get ffmpeg dir: %w", err)
 	}
 
-	baseArgs := []string{"--ffmpeg-location", ffmpegDir, "--prefer-ffmpeg", "--add-metadata", "--embed-thumbnail", "--metadata-from-title", "%(artist)s - %(title)s", "--no-warnings"}
+	baseArgs := []string{
+		"--ffmpeg-location", ffmpegDir,
+		"--prefer-ffmpeg",
+		"--add-metadata",
+		"--embed-thumbnail",
+		"--embed-metadata",
+		"--print-json",
+		"--metadata-from-title", "%(artist)s - %(title)s",
+		"--no-warnings",
+	}
+
+	var outputString string
+	var outputError error
 
 	if format == "mp3" {
 		args := append([]string{"-x", "--audio-format", "mp3"}, baseArgs...)
-		return runCommand(append(args, "-o", outputPath, url)...)
-	} else {
+
+		// Sponsorblock audio (stored as comma seperated string for multiselect settings)
+		sponsorblockAudio, err := settingsService.GetSettingString("sponsorblock_audio")
+		if err != nil {
+			return "", fmt.Errorf("failed to get sponsorblock audio setting: %w", err)
+		}
+		if sponsorblockAudio != "" {
+			args = append(args, "--sponsorblock-remove", sponsorblockAudio)
+		}
+
+		// Download
+		outputString, outputError = runCommand(append(args, "-o", outputPath, url)...)
+	} else { // mp4
 		args := append([]string{
 			"-f",
-			"bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best"},
+			"bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
+			"--embed-chapters"},
 			baseArgs...)
-		return runCommand(append(args, "-o", outputPath, url)...)
+
+		// Sponsorblock video (stored as comma seperated string for multiselect settings)
+		sponsorblockVideo, err := settingsService.GetSettingString("sponsorblock_video")
+		if err != nil {
+			return "", fmt.Errorf("failed to get sponsorblock video setting: %w", err)
+		}
+		if sponsorblockVideo != "" {
+			args = append(args, "--sponsorblock-remove", sponsorblockVideo)
+		}
+
+		// Download
+		outputString, outputError = runCommand(append(args, "-o", outputPath, url)...)
 	}
 
+	fmt.Println(outputString)
+	fmt.Println(outputError)
+
+	return outputString, outputError
 }
