@@ -74,6 +74,7 @@ func (a *App) startup(ctx context.Context) {
 	a.Utils = utils.NewUtils(ctx)
 
 	// Start thread for spamming startup progress
+	// We need this because desync between js/backend
 	go func() {
 		for !a.StartupComplete {
 			if a.StartupProgress != "" {
