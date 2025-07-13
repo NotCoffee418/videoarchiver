@@ -21,6 +21,7 @@
   let isRuntimeReady = $state(false);
   let hasError = $state(false);
   let startupComplete = $state(false);
+  let loadingText = $state("Initializing Application...");
 
   // Listen for wails ready event
   onMount(async () => {
@@ -43,12 +44,20 @@
         document.removeEventListener('wails:ready', wailsReadyHandler);
       };
       document.addEventListener('wails:ready', wailsReadyHandler);
+
     }
+
+    // Report startup progress
+    window.runtime.EventsOn('startup-progress', (progress) => {
+      loadingText = progress;
+      console.log("Startup progress:", progress);
+    });
 
     // Startup complete event
     window.runtime.EventsOn('startup-complete', () => {
       startupComplete = true;
       window.runtime.EventsEmit('startup-complete-confirmed');
+      console.log("Startup complete");
     });
 
     // Add a timeout of 10 seconds
@@ -65,7 +74,7 @@
         console.error("Startup failed to complete within timeout");
         hasError = true;
       }
-    }, 60000);
+    }, 120000);
 
   });
 </script>
@@ -80,7 +89,7 @@
   <div class="app">
     <div class="loader">
       <LoadingSpinner />
-      <p class="loading-text">Loading...</p>
+      <p class="loading-text">{loadingText}</p>
     </div>
   </div>
 {:else}

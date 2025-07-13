@@ -30,6 +30,7 @@ type App struct {
 	PlaylistService *playlist.PlaylistService
 	SettingsService *settings.SettingsService
 	DownloadService *download.DownloadService
+	StartupProgress string
 }
 
 // NewApp creates a new App application struct
@@ -72,7 +73,18 @@ func (a *App) startup(ctx context.Context) {
 	// Init utils with context
 	a.Utils = utils.NewUtils(ctx)
 
+	// Start thread for spamming startup progress
+	go func() {
+		for !a.StartupComplete {
+			if a.StartupProgress != "" {
+				runtime.EventsEmit(a.ctx, "startup-progress", a.StartupProgress)
+			}
+			time.Sleep(100 * time.Millisecond)
+		}
+	}()
+
 	// Apply database migrations (AFTER setting up DB)
+	a.StartupProgress = "Applying database updates..."
 	db := dbService.GetDB()
 	dbmigrator.SetDatabaseType(dbmigrator.SQLite)
 	<-dbmigrator.MigrateUpCh(
@@ -81,13 +93,29 @@ func (a *App) startup(ctx context.Context) {
 		"migrations",
 	)
 
-	// Await ytdlp update
+	// Prepare message for ytdlp update if it needs to do a full install/update
+	a.StartupProgress = "Checking dependencies..."
+	ytdlpUpdateDone := false
+	ytdlpUpdateStartTime := time.Now()
+	go func() {
+		for !ytdlpUpdateDone {
+			if time.Since(ytdlpUpdateStartTime) > 3*time.Second {
+				a.StartupProgress = "Updating dependencies. This may take a minute or two. Please wait..."
+				break
+			}
+			time.Sleep(100 * time.Millisecond)
+		}
+	}()
+
+	// Install/update ytdlp/ffmpeg
 	err = <-ytdlpUpdateChan
 	if err != nil {
 		a.HandleFatalError("Failed to install ytdlp: " + err.Error())
 	}
+	ytdlpUpdateDone = true
 
 	// Emit startup complete event in background
+	a.StartupProgress = "Startup complete"
 	go func() {
 		// Listen for confirmed event
 		awaitingConfirmation := true
