@@ -4,7 +4,7 @@ import {playlist} from '../models';
 
 export function DeletePlaylist(arg1:number):Promise<void>;
 
-export function DirectDownload(arg1:string,arg2:string,arg3:string):Promise<void>;
+export function DirectDownload(arg1:string,arg2:string,arg3:string):Promise<string>;
 
 export function GetClipboard():Promise<string>;
 

@@ -26,6 +26,8 @@
         }).catch(err => {
             isDownloading = false;
             error = err.toString();
+        }).then(path => {
+            //window.go.main.App.OpenDirectory(path);
         });
     }
 </script>
