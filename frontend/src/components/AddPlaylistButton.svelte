@@ -12,7 +12,7 @@
     let modalProcessing = $state(false);
     /** @type {string | null} */
     let modalError = $state(null);
-    let playlistUrl = $state("");
+    let playlistGuid = $state("");
     let saveDirectory = $state("");
     let format = $state("mp3");
   
@@ -30,7 +30,7 @@
       if (dialog) dialog.close();
 
       // Reset modal inputs
-      playlistUrl = "";
+      playlistGuid = "";
       saveDirectory = "";
       format = "mp3";
       modalError = null;
@@ -41,7 +41,7 @@
       modalProcessing = true;
       try {
         // Validate and add playlist
-        await window.go.main.App.ValidateAndAddPlaylist(playlistUrl, saveDirectory, format);
+        await window.go.main.App.ValidateAndAddPlaylist(playlistGuid, saveDirectory, format);
 
         // Notify caller and cleanup
         if (onPlaylistAdded) {
@@ -60,7 +60,7 @@
         try {
             const text = await window.go.main.App.GetClipboard();
             if (text) {
-                playlistUrl = text;
+                playlistGuid = text;
             }
         } catch (error) {
             console.error('Failed to paste:', error);
@@ -94,7 +94,7 @@
         <div class="form-group">
             <label for="playlist-url">Playlist URL</label>
             <div class="input-group">
-                <input id="playlist-url" type="text" bind:value={playlistUrl} />
+                <input id="playlist-url" type="text" bind:value={playlistGuid} />
                 <button class="btn-add-playlist-modal-button" onclick={pasteUrl}>Paste</button>
             </div>
         </div>

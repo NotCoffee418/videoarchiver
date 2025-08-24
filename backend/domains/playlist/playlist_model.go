@@ -7,7 +7,7 @@ import (
 type Playlist struct {
 	ID              int            `json:"id" db:"id"`
 	Name            string         `json:"name" db:"name"`
-	URL             string         `json:"url" db:"url"`
+	PlaylistGUID    string         `json:"playlist_guid" db:"playlist_guid"`
 	OutputFormat    string         `json:"output_format" db:"output_format"`
 	SaveDirectory   string         `json:"save_directory" db:"save_directory"`
 	ThumbnailBase64 sql.NullString `json:"thumbnail_base64,omitempty" db:"thumbnail_base64"`

@@ -29,7 +29,7 @@
     }
 
     async function copyPlaylistUrl() {
-      await navigator.clipboard.writeText(playlist.url);
+      await navigator.clipboard.writeText("https://www.youtube.com/playlist?list="+playlist.playlist_guid);
     }
 
     function openDeletePlaylistItemModal() {

@@ -2,6 +2,7 @@ package playlist
 
 import (
 	"database/sql"
+	"fmt"
 	"videoarchiver/backend/domains/db"
 )
 
@@ -24,8 +25,10 @@ func (p *PlaylistDB) UpdatePlaylistDirectory(id int, newDirectory string) error 
 }
 
 func (p *PlaylistDB) DeletePlaylist(id int) error {
-	_, err := p.db.Exec("DELETE FROM playlists WHERE id = ?", id)
-	return err
+	fmt.Println("Deleting playlist", id)
+	//_, err := p.db.Exec("DELETE FROM playlists WHERE id = ?", id)
+	//return err
+	return nil
 }
 
 func (p *PlaylistDB) UpdatePlaylistThumbnail(id int, thumbnailBase64 string) error {
@@ -44,7 +47,7 @@ func (p *PlaylistDB) GetPlaylists() ([]Playlist, error) {
 	for rows.Next() {
 		var playlist Playlist
 		err := rows.Scan(
-			&playlist.ID, &playlist.Name, &playlist.URL,
+			&playlist.ID, &playlist.Name, &playlist.PlaylistGUID,
 			&playlist.OutputFormat, &playlist.SaveDirectory, &playlist.ThumbnailBase64,
 			&playlist.IsEnabled, &playlist.AddedAt,
 		)
@@ -57,7 +60,7 @@ func (p *PlaylistDB) GetPlaylists() ([]Playlist, error) {
 }
 
 func (p *PlaylistDB) IsDuplicatePlaylistConfig(
-	webpageUrl string,
+	playlistGUID string,
 	directory string,
 	format string,
 ) (bool, error) {
@@ -65,8 +68,8 @@ func (p *PlaylistDB) IsDuplicatePlaylistConfig(
 	// Check if playlist already exists
 	var count int
 	err := p.db.QueryRow(
-		"SELECT COUNT(*) FROM playlists WHERE url = ? AND save_directory = ? AND output_format = ?",
-		webpageUrl, directory, format).Scan(&count)
+		"SELECT COUNT(*) FROM playlists WHERE playlist_guid = ? AND save_directory = ? AND output_format = ?",
+		playlistGUID, directory, format).Scan(&count)
 	if err != nil {
 		return false, err
 	}
@@ -76,16 +79,16 @@ func (p *PlaylistDB) IsDuplicatePlaylistConfig(
 
 func (p *PlaylistDB) AddPlaylist(
 	name,
-	webpageUrl,
+	playlistGUID,
 	directory,
 	format,
 	thumbnail string,
 ) error {
 	// Add new playlist
 	_, err := p.db.Exec(
-		`INSERT INTO playlists (name, url, output_format, save_directory, thumbnail_base64, is_enabled)
+		`INSERT INTO playlists (name, playlist_guid, output_format, save_directory, thumbnail_base64, is_enabled)
 		VALUES (?, ?, ?, ?, ?, 1)`,
-		name, webpageUrl, format, directory, thumbnail,
+		name, playlistGUID, format, directory, thumbnail,
 	)
 	return err
 }
