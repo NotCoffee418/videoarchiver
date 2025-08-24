@@ -23,6 +23,7 @@ var migrationFS embed.FS
 // App struct
 type App struct {
 	ctx             context.Context
+	WailsEnabled    bool
 	StartupComplete bool
 	Utils           *utils.Utils
 	DB              *db.DatabaseService
@@ -34,8 +35,10 @@ type App struct {
 }
 
 // NewApp creates a new App application struct
-func NewApp() *App {
-	return &App{}
+func NewApp(wailsEnabled bool) *App {
+	return &App{
+		WailsEnabled: wailsEnabled,
+	}
 }
 
 // startup is called when the app starts. The context is saved
@@ -75,14 +78,16 @@ func (a *App) startup(ctx context.Context) {
 
 	// Start thread for spamming startup progress
 	// We need this because desync between js/backend
-	go func() {
-		for !a.StartupComplete {
-			if a.StartupProgress != "" {
-				runtime.EventsEmit(a.ctx, "startup-progress", a.StartupProgress)
+	if a.WailsEnabled {
+		go func() {
+			for !a.StartupComplete {
+				if a.StartupProgress != "" {
+					runtime.EventsEmit(a.ctx, "startup-progress", a.StartupProgress)
+				}
+				time.Sleep(100 * time.Millisecond)
 			}
-			time.Sleep(100 * time.Millisecond)
-		}
-	}()
+		}()
+	}
 
 	// Apply database migrations (AFTER setting up DB)
 	a.StartupProgress = "Applying database updates..."
@@ -117,33 +122,40 @@ func (a *App) startup(ctx context.Context) {
 
 	// Emit startup complete event in background
 	a.StartupProgress = "Startup complete"
-	go func() {
-		// Listen for confirmed event
-		awaitingConfirmation := true
-		runtime.EventsOn(a.ctx, "startup-complete-confirmed", func(data ...interface{}) {
-			awaitingConfirmation = false
-		})
+	if a.WailsEnabled {
+		go func() {
+			// Listen for confirmed event
+			awaitingConfirmation := true
+			runtime.EventsOn(a.ctx, "startup-complete-confirmed", func(data ...interface{}) {
+				awaitingConfirmation = false
+			})
 
-		// emit complete event
-		a.StartupComplete = true
-		for i := 0; i < 300; i++ {
-			if !awaitingConfirmation {
-				break
+			// emit complete event
+			a.StartupComplete = true
+			for i := 0; i < 300; i++ {
+				if !awaitingConfirmation {
+					break
+				}
+				runtime.EventsEmit(a.ctx, "startup-complete")
+				time.Sleep(250 * time.Millisecond)
 			}
-			runtime.EventsEmit(a.ctx, "startup-complete")
-			time.Sleep(250 * time.Millisecond)
-		}
-	}()
+		}()
+	}
 }
 
 // Centralized error handling
 func (a *App) HandleFatalError(message string) {
-	runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
-		Type:    runtime.ErrorDialog,
-		Title:   "Application Error",
-		Message: message,
-	})
-	os.Exit(1)
+	if a.WailsEnabled {
+		runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
+			Type:    runtime.ErrorDialog,
+			Title:   "Application Error",
+			Message: message,
+		})
+		os.Exit(1)
+	} else {
+		fmt.Println(message)
+		os.Exit(1)
+	}
 }
 
 // -- Bind functions - Dont try to fix, just add them here

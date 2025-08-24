@@ -7,6 +7,13 @@
             "command": "wails dev",
             "problemMatcher": [],
             "isBackground": true
+        },
+        {
+            "label": "Run Daemon",
+            "type": "shell",
+            "command": "go run . --mode daemon",
+            "problemMatcher": [],
+            "isBackground": true
         }
     ]
 }

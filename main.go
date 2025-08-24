@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"embed"
+	"flag"
 	"os"
 
 	"github.com/wailsapp/wails/v2"
@@ -13,9 +15,28 @@ import (
 var assets embed.FS
 
 func main() {
-	// ✅ Create an instance of the app structure
-	app := NewApp()
+	mode := flag.String("mode", "", "Startup mode: ui, daemon, or empty (defaults to ui)")
+	flag.Parse()
 
+	switch *mode {
+	case "daemon":
+		app := NewApp(false)
+		runDaemon(app)
+	case "ui", "":
+		app := NewApp(true)
+		runUI(app)
+	default:
+		println("Invalid startup mode: " + *mode)
+		os.Exit(1)
+	}
+}
+
+func runDaemon(app *App) {
+	app.startup(context.Background())
+	daemonStartup(app)
+}
+
+func runUI(app *App) {
 	// ✅ Create application with options
 	err := wails.Run(&options.App{
 		Title:  "videoarchiver",

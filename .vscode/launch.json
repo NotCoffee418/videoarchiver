@@ -8,6 +8,15 @@
             "runtimeExecutable": "wails",
             "runtimeArgs": ["dev"],
             "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Run Daemon Mode",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}",
+            "args": ["--mode", "daemon"],
+            "cwd": "${workspaceFolder}"
         }
     ]
 }
