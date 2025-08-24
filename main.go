@@ -4,6 +4,7 @@ import (
 	"context"
 	"embed"
 	"flag"
+	"fmt"
 	"os"
 
 	"github.com/wailsapp/wails/v2"
@@ -32,8 +33,10 @@ func main() {
 }
 
 func runDaemon(app *App) {
+	fmt.Println("Initializing application")
 	app.startup(context.Background())
-	daemonStartup(app)
+	fmt.Println("Daemon starting")
+	startDaemonLoop(app)
 }
 
 func runUI(app *App) {
