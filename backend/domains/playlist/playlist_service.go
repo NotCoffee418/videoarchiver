@@ -40,7 +40,7 @@ func (p *PlaylistService) TryAddNewPlaylist(url, directory, format string) error
 
 	// Duplicate check
 	isDuplicate, err := p.db.IsDuplicatePlaylistConfig(
-		plInfo.PlaylistGUID,
+		plInfo.CleanUrl,
 		directory,
 		format,
 	)
@@ -54,7 +54,7 @@ func (p *PlaylistService) TryAddNewPlaylist(url, directory, format string) error
 	// Add playlist to database
 	return p.db.AddPlaylist(
 		plInfo.Title,
-		plInfo.PlaylistGUID,
+		plInfo.CleanUrl,
 		directory,
 		format,
 		thumbnailBase64,

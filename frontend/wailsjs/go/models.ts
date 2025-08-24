@@ -3,7 +3,7 @@ export namespace playlist {
 	export class Playlist {
 	    id: number;
 	    name: string;
-	    playlist_guid: string;
+	    url: string;
 	    output_format: string;
 	    save_directory: string;
 	    thumbnail_base64?: sql.NullString;
@@ -18,7 +18,7 @@ export namespace playlist {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.id = source["id"];
 	        this.name = source["name"];
-	        this.playlist_guid = source["playlist_guid"];
+	        this.url = source["url"];
 	        this.output_format = source["output_format"];
 	        this.save_directory = source["save_directory"];
 	        this.thumbnail_base64 = this.convertValues(source["thumbnail_base64"], sql.NullString);

@@ -3,8 +3,8 @@ package ytdlp
 type YtdlpPlaylistInfo struct {
 	Title        string
 	ThumbnailURL string
+	CleanUrl     string
 	Entries      []YtdlpEntry
-	PlaylistGUID string
 }
 
 type YtdlpEntry struct {

@@ -19,7 +19,6 @@ func GetPlaylistInfoFlat(url string) (*YtdlpPlaylistInfo, error) {
 		Title:        "",
 		ThumbnailURL: "",
 		Entries:      make([]YtdlpEntry, 0),
-		PlaylistGUID: "",
 	}
 
 	// Parse json
@@ -43,12 +42,12 @@ func GetPlaylistInfoFlat(url string) (*YtdlpPlaylistInfo, error) {
 	}
 	result.Title = playlistName
 
-	// Get Playlist GUID
-	playlistGUID, ok := data["id"].(string)
+	// Get clean URL
+	cleanUrl, ok := data["webpage_url"].(string)
 	if !ok {
-		return nil, errors.New("missing or invalid playlist GUID")
+		return nil, errors.New("missing or invalid webpage URL")
 	}
-	result.PlaylistGUID = playlistGUID
+	result.CleanUrl = cleanUrl
 
 	// Get thumbnail URL (check existence + type)
 	thumbnails, ok := data["thumbnails"].([]interface{})
