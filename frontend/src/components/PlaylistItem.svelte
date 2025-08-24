@@ -34,13 +34,13 @@
 
     function openDeletePlaylistItemModal() {
       /** @type {HTMLDialogElement} */
-      const deleteModal = document.querySelector("#delete-playlist-item-modal")
+      const deleteModal = document.querySelector(`#delete-playlist-item-modal-${playlist.id}`)
       deleteModal.showModal();
     }
 
     function closeDeletePlaylistItemModal() {
       /** @type {HTMLDialogElement} */
-      const deleteModal = document.querySelector("#delete-playlist-item-modal")
+      const deleteModal = document.querySelector(`#delete-playlist-item-modal-${playlist.id}`)
       deleteModal.close();
     }
 
@@ -93,7 +93,7 @@
   </li>
 
 
-  <dialog id="delete-playlist-item-modal">
+  <dialog id="delete-playlist-item-modal-{playlist.id}">
     <button class="dialog-close-btn" onclick={closeDeletePlaylistItemModal}>✕</button>
     <h1>Delete Playlist</h1>
     <p>Are you sure you want to delete playlist <span class="playlist-name">'{playlist.name}'</span>?</p>
