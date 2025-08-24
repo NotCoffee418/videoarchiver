@@ -1,11 +1,12 @@
 module videoarchiver
 
-go 1.24.1
+go 1.25.0
 
 require (
 	github.com/NotCoffee418/dbmigrator v0.2.4
 	github.com/mholt/archives v0.1.3
 	github.com/sirupsen/logrus v1.9.3
+	github.com/wailsapp/go-webview2 v1.0.21 // indirect; unbreak wails v2.10.2 at go-webview2 v1.0.22
 	github.com/wailsapp/wails/v2 v2.10.2
 	golang.org/x/image v0.30.0
 	modernc.org/sqlite v1.38.2
@@ -52,7 +53,6 @@ require (
 	github.com/ulikunitz/xz v0.5.13 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
-	github.com/wailsapp/go-webview2 v1.0.22 // indirect
 	github.com/wailsapp/mimetype v1.4.1 // indirect
 	go4.org v0.0.0-20230225012048-214862532bf5 // indirect
 	golang.org/x/crypto v0.41.0 // indirect
