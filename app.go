@@ -192,5 +192,5 @@ func (a *App) SetSettingPreparsed(key string, value string) error {
 }
 
 func (a *App) DirectDownload(url, directory, format string) (string, error) {
-	return a.DownloadService.DownloadFile(url, directory, format, false)
+	return a.DownloadService.DownloadFile(url, directory, format)
 }

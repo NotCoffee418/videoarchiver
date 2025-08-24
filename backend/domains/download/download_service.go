@@ -22,8 +22,13 @@ func NewDownloadService(ctx context.Context, settingsService *settings.SettingsS
 	return &DownloadService{ctx: ctx, settingsService: settingsService}
 }
 
+// Called by the background, handles duplicate download tracking.
+func (d *DownloadService) DownloadFileForPlaylist(videoTitle, savePath string) error {
+	return errors.New("not implemented")
+}
+
 // Download a file via Ytdlp
-func (d *DownloadService) DownloadFile(url, directory, format string, saveToDB bool) (string, error) {
+func (d *DownloadService) DownloadFile(url, directory, format string) (string, error) {
 	// Set temp path for the file
 	tmpFile := filepath.Join(os.TempDir(), fmt.Sprintf("videoarchiver-download-%d.%s", time.Now().UnixNano(), format))
 	defer os.Remove(tmpFile)
@@ -48,11 +53,12 @@ func (d *DownloadService) DownloadFile(url, directory, format string, saveToDB b
 	}
 
 	// Move file to directory
-	os.Rename(tmpFile, savePath)
+	err = os.Rename(tmpFile, savePath)
+	if err != nil {
+		return "", fmt.Errorf("download service: failed to move file: %w", err)
+	}
 
-	// Add to database
-
-	return "", errors.New("not implemented")
+	return savePath, nil
 }
 
 func (d *DownloadService) fileExists(path string) bool {
