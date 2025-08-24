@@ -10,12 +10,12 @@ export function DirectDownload(arg1, arg2, arg3) {
   return window['go']['main']['App']['DirectDownload'](arg1, arg2, arg3);
 }
 
-export function GetClipboard() {
-  return window['go']['main']['App']['GetClipboard']();
+export function GetActivePlaylists() {
+  return window['go']['main']['App']['GetActivePlaylists']();
 }
 
-export function GetPlaylists() {
-  return window['go']['main']['App']['GetPlaylists']();
+export function GetClipboard() {
+  return window['go']['main']['App']['GetClipboard']();
 }
 
 export function GetSettingString(arg1) {

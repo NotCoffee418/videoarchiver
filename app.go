@@ -148,8 +148,8 @@ func (a *App) HandleFatalError(message string) {
 
 // -- Bind functions - Dont try to fix, just add them here
 // -- Hours wasted: 2
-func (a *App) GetPlaylists() ([]playlist.Playlist, error) {
-	return a.PlaylistDB.GetPlaylists()
+func (a *App) GetActivePlaylists() ([]playlist.Playlist, error) {
+	return a.PlaylistDB.GetActivePlaylists()
 }
 
 func (a *App) OpenDirectory(path string) error {

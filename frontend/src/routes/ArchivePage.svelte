@@ -11,12 +11,12 @@
         console.error("App binding not available");
         return;
       }
-      const data = await window.go.main.App.GetPlaylists();
+      const data = await window.go.main.App.GetActivePlaylists();
       if (data) {
         playlists = data;
         await tick();
       } else {
-        console.error("No data returned from GetPlaylists");
+        console.error("No data returned from GetActivePlaylists");
       }
     } catch (error) {
       console.error("Failed to load playlists:", error);

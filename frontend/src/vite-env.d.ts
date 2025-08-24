@@ -9,7 +9,7 @@ declare global {
         App: {
           DeletePlaylist: (arg1: number) => Promise<void>;
           GetClipboard: () => Promise<string>;
-          GetPlaylists: () => Promise<Array<any>>;
+          GetActivePlaylists: () => Promise<Array<any>>;
           GetSettingString: (arg1: string) => Promise<string>;
           HandleFatalError: (arg1: string) => Promise<void>;
           IsStartupComplete: () => Promise<boolean>;

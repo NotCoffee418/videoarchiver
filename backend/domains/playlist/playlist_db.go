@@ -19,12 +19,12 @@ func (p *PlaylistDB) UpdatePlaylistName(id int, newName string) error {
 }
 
 func (p *PlaylistDB) UpdatePlaylistDirectory(id int, newDirectory string) error {
-	_, err := p.db.Exec("UPDATE playlists SET save_directory = ? WHERE id = ?", newDirectory, id)
+	_, err := p.db.Exec("UPDATE playlists SET save_directory = ? WHERE id = ? AND is_enabled = 1", newDirectory, id)
 	return err
 }
 
 func (p *PlaylistDB) DeletePlaylist(id int) error {
-	_, err := p.db.Exec("DELETE FROM playlists WHERE id = ?", id)
+	_, err := p.db.Exec("UPDATE playlists SET is_enabled = 0 WHERE id = ?", id)
 	return err
 }
 
@@ -33,8 +33,8 @@ func (p *PlaylistDB) UpdatePlaylistThumbnail(id int, thumbnailBase64 string) err
 	return err
 }
 
-func (p *PlaylistDB) GetPlaylists() ([]Playlist, error) {
-	rows, err := p.db.Query("SELECT * FROM playlists ORDER BY added_at DESC")
+func (p *PlaylistDB) GetActivePlaylists() ([]Playlist, error) {
+	rows, err := p.db.Query("SELECT * FROM playlists WHERE is_enabled = 1 ORDER BY added_at DESC")
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +65,7 @@ func (p *PlaylistDB) IsDuplicatePlaylistConfig(
 	// Check if playlist already exists
 	var count int
 	err := p.db.QueryRow(
-		"SELECT COUNT(*) FROM playlists WHERE url = ? AND save_directory = ? AND output_format = ?",
+		"SELECT COUNT(*) FROM playlists WHERE url = ? AND save_directory = ? AND output_format = ? AND is_enabled = 1",
 		webpageUrl, directory, format).Scan(&count)
 	if err != nil {
 		return false, err
