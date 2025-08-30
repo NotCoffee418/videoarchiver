@@ -1,8 +1,5 @@
 Unicode true
 
-# Must match the definition in app.go
-!define WindowsServiceName "VideoArchiverDaemon"
-
 ####
 ## Please note: Template replacements don't work in this file. They are provided with default defines like
 ## mentioned underneath.
@@ -48,7 +45,6 @@ VIAddVersionKey "FileVersion"     "${INFO_PRODUCTVERSION}"
 VIAddVersionKey "LegalCopyright"  "${INFO_COPYRIGHT}"
 VIAddVersionKey "ProductName"     "${INFO_PRODUCTNAME}"
 
-
 # Enable HiDPI support. https://nsis.sourceforge.io/Reference/ManifestDPIAware
 ManifestDPIAware true
 
@@ -84,55 +80,6 @@ Function .onInit
    !insertmacro wails.checkArchitecture
 FunctionEnd
 
-!macro customInit
-    # Check if a previous version of the service exists and stop it
-    DetailPrint "Checking for existing service..."
-    nsExec::ExecToLog 'sc query "${WindowsServiceName}"'
-    Pop $0
-    ${If} $0 == 0
-        DetailPrint "Found existing service, attempting to stop it..."
-        nsExec::ExecToLog 'net stop "${WindowsServiceName}"'
-        Pop $0
-        ${If} $0 != 0
-            DetailPrint "Warning: Could not stop existing service (code: $0)"
-        ${EndIf}
-        # Give it a moment to fully stop
-        Sleep 2000
-    ${EndIf}
-!macroend
-
-!macro customInstall
-    # Install the service
-    DetailPrint "Installing ${INFO_PRODUCTNAME} Service..."
-    nsExec::ExecToLog '"$INSTDIR\${PRODUCT_EXECUTABLE}" --mode install-service'
-    Pop $0
-    ${If} $0 != 0
-        MessageBox MB_OK|MB_ICONSTOP "Failed to install service (code: $0)"
-        Abort "Service installation failed"
-    ${EndIf}
-
-    # Start the service
-    DetailPrint "Starting service..."
-    Sleep 1000  
-    nsExec::ExecToLog 'net start "${WindowsServiceName}"'
-    Pop $0
-    ${If} $0 != 0
-        DetailPrint "Warning: Service failed to start (code: $0)"
-        MessageBox MB_OK|MB_ICONEXCLAMATION "Service was installed but failed to start. You may need to start it manually from Services."
-    ${EndIf}
-!macroend
-
-!macro customUninstall
-    # Stop and remove the service
-    DetailPrint "Removing ${INFO_PRODUCTNAME} Service..."
-    nsExec::ExecToLog '"$INSTDIR\${PRODUCT_EXECUTABLE}" --mode remove-service'
-    Pop $0
-    ${If} $0 != 0
-        DetailPrint "Warning: Failed to remove service completely (code: $0)"
-        MessageBox MB_OK|MB_ICONEXCLAMATION "Could not completely remove the service. You may need to remove it manually from Services."
-    ${EndIf}
-!macroend
-
 Section
     !insertmacro wails.setShellContext
 
@@ -141,9 +88,6 @@ Section
     SetOutPath $INSTDIR
 
     !insertmacro wails.files
-
-    # Call our custom install macro here
-    !insertmacro customInstall
 
     CreateShortcut "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"
     CreateShortCut "$DESKTOP\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"
@@ -155,9 +99,6 @@ Section
 SectionEnd
 
 Section "uninstall"
-    # Call our custom uninstall macro first
-    !insertmacro customUninstall
-
     !insertmacro wails.setShellContext
 
     RMDir /r "$AppData\${PRODUCT_EXECUTABLE}" # Remove the WebView2 DataPath
