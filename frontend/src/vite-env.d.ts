@@ -16,9 +16,26 @@ declare global {
           OpenDirectory: (arg1: string) => Promise<void>;
           SelectDirectory: () => Promise<string>;
           SetSettingPreparsed: (arg1: string, arg2: string) => Promise<void>;
-          UpdatePlaylistDirectory: (arg1: number, arg2: string) => Promise<void>;
-          ValidateAndAddPlaylist: (arg1: string, arg2: string, arg3: string) => Promise<void>;
-          DirectDownload: (arg1: string, arg2: string, arg3: string) => Promise<void>;
+          UpdatePlaylistDirectory: (
+            arg1: number,
+            arg2: string
+          ) => Promise<void>;
+          ValidateAndAddPlaylist: (
+            arg1: string,
+            arg2: string,
+            arg3: string
+          ) => Promise<void>;
+          DirectDownload: (
+            arg1: string,
+            arg2: string,
+            arg3: string
+          ) => Promise<void>;
+          GetDownloadHistoryPage: (
+            arg1: number,
+            arg2: number,
+            arg3: boolean,
+            arg4: boolean
+          ) => Promise<Array<any>>;
         };
       };
     };

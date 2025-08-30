@@ -10,10 +10,12 @@
   import LogsPage from './routes/LogsPage.svelte';
   import SettingsPage from './routes/SettingsPage.svelte';
   import LoadingSpinner from './components/LoadingSpinner.svelte';
+  import HistoryPage from './routes/HistoryPage.svelte';
 
   const routes = {
     '/': ArchivePage,
     '/direct': DirectPage,
+    '/history': HistoryPage,
     '/logs': LogsPage,
     '/settings': SettingsPage
   };

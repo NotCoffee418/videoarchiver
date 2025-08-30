@@ -218,3 +218,7 @@ func (a *App) SetSettingPreparsed(key string, value string) error {
 func (a *App) DirectDownload(url, directory, format string) (string, error) {
 	return a.DownloadService.DownloadFile(url, directory, format)
 }
+
+func (a *App) GetDownloadHistoryPage(offset int, limit int, showSuccess, showFailed bool) ([]download.Download, error) {
+	return a.DownloadDB.GetDownloadHistoryPage(offset, limit, showSuccess, showFailed)
+}

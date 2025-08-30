@@ -3,6 +3,7 @@
     let links = [
       { name: 'Archive', path: '/' },
       { name: 'Direct', path: '/direct' },
+      { name: 'History', path: '/history' },
       { name: 'Logs', path: '/logs' },
       { name: 'Settings', path: '/settings' }
     ];

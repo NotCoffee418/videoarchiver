@@ -3,6 +3,7 @@ package download
 import (
 	"database/sql"
 	"regexp"
+	"strings"
 	"time"
 	"videoarchiver/backend/domains/db"
 )
@@ -26,6 +27,38 @@ func (d *DownloadDB) GetAllDownloads(limit int) ([]Download, error) {
 
 func (d *DownloadDB) GetDownloadsForPlaylist(playlistId int) ([]Download, error) {
 	rows, err := d.db.Query("SELECT * FROM downloads WHERE playlist_id = ?", playlistId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return d.scanRows(rows)
+}
+
+func (d *DownloadDB) GetDownloadHistoryPage(offset, limit int, showSuccess, showFailed bool) ([]Download, error) {
+	var statuses []int
+	if showSuccess {
+		statuses = append(statuses, StSuccess)
+	}
+	if showFailed {
+		statuses = append(statuses, StFailedRetry, StFailedGiveUp)
+	}
+
+	// Return empty if no filters selected
+	if len(statuses) == 0 {
+		return []Download{}, nil
+	}
+
+	query := "SELECT * FROM downloads WHERE status IN (?" + strings.Repeat(",?", len(statuses)-1) + ") ORDER BY last_attempt DESC LIMIT ? OFFSET ?"
+
+	// Convert statuses to interface{} for query args
+	args := make([]interface{}, len(statuses)+2)
+	for i, status := range statuses {
+		args[i] = status
+	}
+	args[len(statuses)] = limit
+	args[len(statuses)+1] = offset
+
+	rows, err := d.db.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}

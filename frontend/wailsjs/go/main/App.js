@@ -18,6 +18,10 @@ export function GetClipboard() {
   return window['go']['main']['App']['GetClipboard']();
 }
 
+export function GetDownloadHistoryPage(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['GetDownloadHistoryPage'](arg1, arg2, arg3, arg4);
+}
+
 export function GetSettingString(arg1) {
   return window['go']['main']['App']['GetSettingString'](arg1);
 }
