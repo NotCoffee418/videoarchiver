@@ -4,7 +4,7 @@
 
     let downloads = [];
     let offset = 0;
-    let limit = 2; // Changed from 10 to 2 for testing
+    let limit = 10; // Changed from 10 to 2 for testing
     let loading = false;
     let error = "";
 
@@ -17,9 +17,35 @@
     function statusLabel(s) {
         switch (s) {
             case 1: return "Success";
-            case 2: return "Failed (retry)";
-            case 3: return "Failed (give up)";
+            case 2: return "Failed (Auto Retry)";
+            case 3: return "Failed (Manual Retry)";
+            case 4: return "Failed (Given Up)";
             default: return "Unknown";
+        }
+    }
+
+    function getRetryState(d) {
+        switch (d.status) {
+            case 2: return { 
+                enabled: true, 
+                message: "Will retry automatically in next cycle", 
+                messageClass: "passive" 
+            };
+            case 3: return { 
+                enabled: false, 
+                message: "Manual retry in progress...", 
+                messageClass: "warning" 
+            };
+            case 4: return { 
+                enabled: true, 
+                message: "Download abandoned - manual retry only", 
+                messageClass: "error" 
+            };
+            default: return { 
+                enabled: false, 
+                message: "", 
+                messageClass: "" 
+            };
         }
     }
 
@@ -152,10 +178,21 @@
                             <div class="content">
                                 <div class="url-preview">{d.url}</div>
                                 <div class="retry-row">
-                                    <button class="retry-btn" on:click={() => onRetry(d)} disabled={retrying.has(d.id)}>
-                                        {#if retrying.has(d.id)}Retrying...{:else}Retry Download{/if}
-                                    </button>
-                                    <span class="attempts">({d.attempt_count} attempts)</span>
+                                    {#if d.status !== 1}
+                                        {@const retryState = getRetryState(d)}
+                                        <button 
+                                            class="retry-btn" 
+                                            on:click={() => onRetry(d)} 
+                                            disabled={retrying.has(d.id) || d.status === 3 || !getRetryState(d).enabled}>
+                                            {#if retrying.has(d.id)}Retrying...{:else}Retry Download{/if}
+                                        </button>
+                                        <span class="attempts">({d.attempt_count} attempts)</span>
+                                        {#if retryState.message}
+                                            <span class="retry-status {retryState.messageClass}">
+                                                {retryState.message}
+                                            </span>
+                                        {/if}
+                                    {/if}
                                 </div>
                                 <div class="actions">
                                     <a href="/" on:click|preventDefault={() => copyToClipboard(d.url)}>Copy URL</a>
@@ -337,6 +374,30 @@
         width: 1rem;
         height: 1rem;
         cursor: pointer;
+    }
+
+    .retry-status {
+        font-size: 0.9rem;
+        margin-left: 0.5rem;
+    }
+
+    .retry-status.passive {
+        color: #999;
+    }
+
+    .retry-status.warning {
+        color: #ffa500;
+    }
+
+    .retry-status.error {
+        color: #ff6666;
+    }
+
+    .retry-row {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.5rem;
     }
 
     @media (max-width: 600px) {

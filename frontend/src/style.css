@@ -7,7 +7,7 @@
 }
 
 body {
-  font-family: 'Arial', sans-serif;
+  font-family: "Arial", sans-serif;
   background-color: #121212;
   color: #e0e0e0;
   line-height: 1.5;
@@ -47,14 +47,16 @@ ul {
   background: #555;
 }
 
-input, select, button {
+input,
+select,
+button {
   background-color: #333;
   color: #fff;
-  border: 1px solid #555;  
+  border: 1px solid #555;
   padding: 0rem 0.7rem;
   border-radius: 4px;
   font-size: 1rem;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
   height: 2.5rem;
 }
 
@@ -66,8 +68,15 @@ input, select, button {
   color: red;
 }
 
-button:hover {
+button:hover:not(:disabled) {
   background-color: #555;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: #222;
+  border-color: #444;
 }
 
 dialog {
