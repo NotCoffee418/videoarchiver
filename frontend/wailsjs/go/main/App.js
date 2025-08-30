@@ -42,6 +42,10 @@ export function SelectDirectory() {
   return window['go']['main']['App']['SelectDirectory']();
 }
 
+export function SetManualRetry(arg1) {
+  return window['go']['main']['App']['SetManualRetry'](arg1);
+}
+
 export function SetSettingPreparsed(arg1, arg2) {
   return window['go']['main']['App']['SetSettingPreparsed'](arg1, arg2);
 }

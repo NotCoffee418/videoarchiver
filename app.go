@@ -79,7 +79,12 @@ func (a *App) startup(ctx context.Context) {
 
 	// Create DownloadService using dbService
 	a.DownloadDB = download.NewDownloadDB(dbService)
-	a.DownloadService = download.NewDownloadService(ctx, a.SettingsService)
+	a.DownloadService = download.NewDownloadService(
+		ctx,
+		a.SettingsService,
+		a.DownloadDB,
+		a.DaemonSignalService,
+	)
 
 	// Init utils with context
 	a.Utils = utils.NewUtils(ctx)
@@ -221,4 +226,8 @@ func (a *App) DirectDownload(url, directory, format string) (string, error) {
 
 func (a *App) GetDownloadHistoryPage(offset int, limit int, showSuccess, showFailed bool) ([]download.Download, error) {
 	return a.DownloadDB.GetDownloadHistoryPage(offset, limit, showSuccess, showFailed)
+}
+
+func (a *App) SetManualRetry(downloadId int) error {
+	return a.DownloadService.SetManualRetry(downloadId)
 }

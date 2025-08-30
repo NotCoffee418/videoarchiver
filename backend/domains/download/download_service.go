@@ -10,13 +10,16 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"videoarchiver/backend/daemonsignal"
 	"videoarchiver/backend/domains/settings"
 	"videoarchiver/backend/domains/ytdlp"
 )
 
 type DownloadService struct {
-	ctx             context.Context
-	settingsService *settings.SettingsService
+	ctx                 context.Context
+	settingsService     *settings.SettingsService
+	downloadDB          *DownloadDB
+	daemonSignalService *daemonsignal.DaemonSignalService
 }
 
 const (
@@ -24,8 +27,18 @@ const (
 	ErrDownloadErrorBase = "download service: failed to download file: "
 )
 
-func NewDownloadService(ctx context.Context, settingsService *settings.SettingsService) *DownloadService {
-	return &DownloadService{ctx: ctx, settingsService: settingsService}
+func NewDownloadService(
+	ctx context.Context,
+	settingsService *settings.SettingsService,
+	downloadDB *DownloadDB,
+	daemonSignalService *daemonsignal.DaemonSignalService,
+) *DownloadService {
+	return &DownloadService{
+		ctx:                 ctx,
+		settingsService:     settingsService,
+		downloadDB:          downloadDB,
+		daemonSignalService: daemonSignalService,
+	}
 }
 
 // Download a file via Ytdlp
@@ -80,4 +93,11 @@ func CalculateMD5(path string) (string, error) {
 func (d *DownloadService) fileExists(path string) bool {
 	_, err := os.Stat(path)
 	return !os.IsNotExist(err)
+}
+
+func (d *DownloadService) SetManualRetry(downloadId int) error {
+	if err := d.downloadDB.SetManualRetry(downloadId); err != nil {
+		return fmt.Errorf("failed to set manual retry: %w", err)
+	}
+	return d.daemonSignalService.TriggerChange()
 }

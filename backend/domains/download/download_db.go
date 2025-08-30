@@ -123,6 +123,16 @@ func (d *Download) SetFail(dlDB *DownloadDB, failMessage string) error {
 	return err
 }
 
+func (d *DownloadDB) SetManualRetry(downloadId int) error {
+	_, err := d.db.Exec(
+		"UPDATE downloads SET status = ?, last_attempt = ? WHERE id = ?",
+		StFailedManualRetry,
+		time.Now().Unix(),
+		downloadId,
+	)
+	return err
+}
+
 func (d *Download) insertDownload(dlDB *DownloadDB) error {
 	_, err := dlDB.db.Exec(
 		`INSERT INTO downloads (playlist_id, url, status, format_downloaded, md5, output_filename, last_attempt, fail_message, attempt_count)

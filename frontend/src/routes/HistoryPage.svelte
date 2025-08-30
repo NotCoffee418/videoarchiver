@@ -67,15 +67,24 @@
         catch (e) { console.error("copy failed", e); }
     }
 
-    function onRetry(d) {
+    // Update the onRetry function
+    async function onRetry(d) {
         if (retrying.has(d.id)) return;
         retrying = new Set([...retrying, d.id]);
-        // placeholder UI-only retry simulation
-        setTimeout(() => {
-            const s = new Set(retrying);
-            s.delete(d.id);
-            retrying = s;
-        }, 1500);
+        
+        try {
+            await window.go.main.App.SetManualRetry(d.id);
+            // Keep UI state for a moment to show feedback
+            setTimeout(() => {
+                const s = new Set(retrying);
+                s.delete(d.id);
+                retrying = s;
+            }, 1500);
+        } catch (err) {
+            console.error("Retry failed:", err);
+            // Remove from retrying state immediately on error
+            retrying = new Set([...retrying].filter(id => id !== d.id));
+        }
     }
 
     async function fetchPage(showLoading = true) {

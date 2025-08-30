@@ -36,6 +36,7 @@ declare global {
             arg3: boolean,
             arg4: boolean
           ) => Promise<Array<any>>;
+          SetManualRetry: (downloadId: number) => Promise<void>;
         };
       };
     };

@@ -23,6 +23,8 @@ export function OpenDirectory(arg1:string):Promise<void>;
 
 export function SelectDirectory():Promise<string>;
 
+export function SetManualRetry(arg1:number):Promise<void>;
+
 export function SetSettingPreparsed(arg1:string,arg2:string):Promise<void>;
 
 export function UpdatePlaylistDirectory(arg1:number,arg2:string):Promise<void>;
