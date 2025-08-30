@@ -2,6 +2,7 @@ package download
 
 import (
 	"database/sql"
+	"time"
 	"videoarchiver/backend/domains/db"
 )
 
@@ -59,15 +60,52 @@ func (d *DownloadDB) GetDownloadsForPlaylist(playlistId int) ([]Download, error)
 	return downloads, nil
 }
 
-func (d *DownloadDB) UpdateDownloadStatus(id int, newStatus int, failMessage *string) error {
-	_, err := d.db.Exec(
-		`UPDATE downloads
-		 SET status = ?,
-		 fail_message = COALESCE(?, fail_message),
-		 last_attempt = CURRENT_TIMESTAMP,
-		 attempt_count = attempt_count + 1
-		 WHERE id = ?`,
-		newStatus, failMessage, id,
+func (d *Download) SetSuccess(dlDB *DownloadDB, md5 string) error {
+	d.Status = StSuccess
+	d.MD5 = sql.NullString{String: md5, Valid: true}
+	d.FailMessage = sql.NullString{String: "", Valid: false}
+	d.AttemptCount += 1
+	d.LastAttempt = time.Now().Unix()
+
+	var err error
+	if d.ID == 0 {
+		err = d.insertDownload(dlDB)
+	} else {
+		err = d.updateDownload(dlDB)
+	}
+	return err
+}
+
+func (d *Download) SetFail(dlDB *DownloadDB, failMessage string) error {
+	d.AttemptCount += 1
+	if d.AttemptCount > MaxRetryCount {
+		d.Status = StFailedGiveUp
+	}
+
+	d.FailMessage = sql.NullString{String: failMessage, Valid: true}
+	d.LastAttempt = time.Now().Unix()
+
+	var err error
+	if d.ID == 0 {
+		err = d.insertDownload(dlDB)
+	} else {
+		err = d.updateDownload(dlDB)
+	}
+	return err
+}
+
+func (d *Download) insertDownload(dlDB *DownloadDB) error {
+	_, err := dlDB.db.Exec(
+		`INSERT INTO downloads (playlist_id, video_id, status, format_downloaded, md5, last_attempt, fail_message, attempt_count)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		d.PlaylistID, d.VideoID, d.Status, d.FormatDownloaded, d.MD5, d.LastAttempt, d.FailMessage, d.AttemptCount,
 	)
+	return err
+}
+
+func (d *Download) updateDownload(dlDB *DownloadDB) error {
+	_, err := dlDB.db.Exec(
+		`UPDATE downloads SET playlist_id = ?, video_id = ?, status = ?, format_downloaded = ?, md5 = ?, last_attempt = ?, fail_message = ?, attempt_count = ? WHERE id = ?`,
+		d.PlaylistID, d.VideoID, d.Status, d.FormatDownloaded, d.MD5, d.LastAttempt, d.FailMessage, d.AttemptCount, d.ID)
 	return err
 }

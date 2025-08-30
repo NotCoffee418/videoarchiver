@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 	"videoarchiver/backend/domains/download"
+	"videoarchiver/backend/domains/playlist"
 	"videoarchiver/backend/domains/ytdlp"
 )
 
@@ -121,42 +122,104 @@ func processActivePlaylists() {
 		}
 
 		// Filter out already downloaded urls
-		unprocessedUrls := filterUndownloadedUrls(plInfo, existingDls)
-		if len(unprocessedUrls) == 0 {
-			fmt.Printf("No new items to download for playlist: %s\n", pl.Name)
+		retryables, undownloadedUrls := getDownloadables(plInfo, existingDls)
+		if len(undownloadedUrls) == 0 && len(retryables) == 0 {
+			fmt.Printf("No new items or retryable to download for playlist: %s\n", pl.Name)
 			continue
 		}
-		fmt.Printf("Found %d new items to download for playlist: %s\n", len(unprocessedUrls), pl.Name)
+		fmt.Printf("Found %d new items and %d retryable items to download for playlist: %s\n",
+			len(undownloadedUrls), len(retryables), pl.Name)
 
-		// todo
-		fmt.Println("niy")
-		os.Exit(0)
+		// Download any new items
+		for _, url := range undownloadedUrls {
+			if shouldStopIteration() {
+				return
+			}
 
+			dl := download.NewDownload(pl.ID, url, pl.OutputFormat)
+			downloadItem(dl, &pl)
+		}
+
+		// Retry any retryable items
+		for _, dl := range retryables {
+			if shouldStopIteration() {
+				return
+			}
+			downloadItem(&dl, &pl)
+		}
 	}
 
 	fmt.Println("Playlist processing complete.")
 }
 
-func filterUndownloadedUrls(plInfo *ytdlp.YtdlpPlaylistInfo, existingDls []download.Download) []string {
-	// Create map for actual playlist items
-	plItemsMap := make(map[string]bool)
+// Get undownloaded and retryable items from playlist info and existing downloads
+func getDownloadables(plInfo *ytdlp.YtdlpPlaylistInfo, existingDls []download.Download) ([]download.Download, []string) {
+	// Prepare return values
+	retryables := make([]download.Download, 0)
+	undownloadedUrls := make([]string, 0)
+
+	// Create map of existing entries for quick lookup
+	existingMap := make(map[string]bool)
+	for _, existintEntry := range existingDls {
+		// Add every existing item to the existing map
+		existingMap[existintEntry.VideoID] = true
+
+		// Add redownloadable items to result
+		if existintEntry.Status == download.StFailedRetry && existintEntry.AttemptCount < download.MaxRetryCount {
+			retryables = append(retryables, existintEntry)
+		}
+	}
+
+	// Create download entries for new items
 	for _, item := range plInfo.Entries {
-		plItemsMap[item.URL] = false
-	}
-
-	// Indicate which items are already downloaded
-	for _, dl := range existingDls {
-		if _, exists := plItemsMap[dl.VideoID]; exists {
-			plItemsMap[dl.VideoID] = true
+		if _, exists := existingMap[item.URL]; !exists {
+			undownloadedUrls = append(undownloadedUrls, item.URL)
 		}
 	}
 
-	// Return urls that are not yet downloaded
-	unprocessedUrls := make([]string, 0)
-	for url, isDownloaded := range plItemsMap {
-		if !isDownloaded {
-			unprocessedUrls = append(unprocessedUrls, url)
+	// Return results
+	return retryables, undownloadedUrls
+}
+
+func shouldStopIteration() bool {
+	// Check for shutdown signal
+	select {
+	case <-context.Background().Done():
+		fmt.Println("Shutdown signal received, stopping downloads")
+		return true
+	default:
+		// Check for daemon change signal
+		isChangeTriggered, err := app.DaemonSignalService.IsChangeTriggered()
+		if err != nil {
+			fmt.Printf("Error: Failed to check if change is triggered: %v\n", err)
+			return true
+		}
+		if isChangeTriggered {
+			fmt.Println("Change triggered by UI, stopping downloads to restart iteration")
+			return true
 		}
 	}
-	return unprocessedUrls
+	return false
+}
+
+func downloadItem(dl *download.Download, pl *playlist.Playlist) {
+	fmt.Printf("Downloading new item: %s\n", dl.VideoID)
+	outputFilePath, err := app.DownloadService.DownloadFile(
+		dl.VideoID, pl.SaveDirectory, pl.OutputFormat)
+	if err != nil {
+		fmt.Printf("Error: Failed to download item %s: %v\n", dl.VideoID, err)
+		dl.SetFail(app.DownloadDB, err.Error())
+	} else {
+		// Calculate MD5 of downloaded file
+		md5, err := download.CalculateMD5(outputFilePath)
+		if err != nil {
+			fmt.Printf("Error: Failed to calculate MD5 for item %s: %v\n", dl.VideoID, err)
+			dl.SetFail(app.DownloadDB, fmt.Sprintf("Failed to calculate MD5: %v", err))
+			// Optionally delete the file if MD5 calculation fails
+			os.Remove(outputFilePath)
+		} else {
+			fmt.Printf("Download successful for item %s, saved to %s\n", dl.VideoID, outputFilePath)
+			dl.SetSuccess(app.DownloadDB, md5)
+		}
+	}
 }

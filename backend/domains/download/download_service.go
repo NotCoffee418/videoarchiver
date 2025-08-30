@@ -2,8 +2,9 @@ package download
 
 import (
 	"context"
-	"errors"
+	"crypto/md5"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -20,11 +21,6 @@ type DownloadService struct {
 
 func NewDownloadService(ctx context.Context, settingsService *settings.SettingsService) *DownloadService {
 	return &DownloadService{ctx: ctx, settingsService: settingsService}
-}
-
-// Called by the background, handles duplicate download tracking.
-func (d *DownloadService) DownloadFileForPlaylist(videoTitle, savePath string) error {
-	return errors.New("not implemented")
 }
 
 // Download a file via Ytdlp
@@ -59,6 +55,21 @@ func (d *DownloadService) DownloadFile(url, directory, format string) (string, e
 	}
 
 	return savePath, nil
+}
+
+func CalculateMD5(path string) (string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return "", fmt.Errorf("failed to open file: %w", err)
+	}
+	defer file.Close()
+
+	hash := md5.New()
+	if _, err := io.Copy(hash, file); err != nil {
+		return "", fmt.Errorf("failed to calculate MD5: %w", err)
+	}
+
+	return fmt.Sprintf("%x", hash.Sum(nil)), nil
 }
 
 func (d *DownloadService) fileExists(path string) bool {
