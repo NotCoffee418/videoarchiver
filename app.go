@@ -20,6 +20,8 @@ import (
 	"github.com/NotCoffee418/dbmigrator"
 	"github.com/pkg/errors"
 	"github.com/wailsapp/wails/v2/pkg/runtime" // keep wails runtime as is
+	"golang.org/x/sys/windows/svc"
+	"golang.org/x/sys/windows/svc/mgr"
 )
 
 //go:embed all:migrations
@@ -255,12 +257,23 @@ func (a *App) StartDaemon() error {
 
 	switch goruntime.GOOS {
 	case "windows":
-		cmd := exec.Command("sc", "start", WindowsServiceName)
-		if err := cmd.Run(); err != nil {
-			// Fallback to direct execution if service not installed
-			cmd = exec.Command(os.Args[0], "--daemon")
-			cmd.Start()
+		m, err := mgr.Connect()
+		if err != nil {
+			return fmt.Errorf("failed to connect to service manager: %v", err)
 		}
+		defer m.Disconnect()
+
+		s, err := m.OpenService(WindowsServiceName)
+		if err != nil {
+			return fmt.Errorf("could not access service: %v", err)
+		}
+		defer s.Close()
+
+		err = s.Start()
+		if err != nil {
+			return fmt.Errorf("could not start service: %v", err)
+		}
+
 	case "linux":
 		cmd := exec.Command("systemctl", "start", LinuxServiceName)
 		if err := cmd.Run(); err != nil {
@@ -283,11 +296,23 @@ func (a *App) StopDaemon() error {
 
 	switch goruntime.GOOS {
 	case "windows":
-		cmd := exec.Command("sc", "stop", WindowsServiceName)
-		if err := cmd.Run(); err != nil {
-			// Fallback to finding and killing the process
-			exec.Command("taskkill", "/F", "/FI", "IMAGENAME eq "+WindowsServiceName).Run()
+		m, err := mgr.Connect()
+		if err != nil {
+			return fmt.Errorf("failed to connect to service manager: %v", err)
 		}
+		defer m.Disconnect()
+
+		s, err := m.OpenService(WindowsServiceName)
+		if err != nil {
+			return fmt.Errorf("could not access service: %v", err)
+		}
+		defer s.Close()
+
+		_, err = s.Control(svc.Stop)
+		if err != nil {
+			return fmt.Errorf("could not stop service: %v", err)
+		}
+
 	case "linux":
 		cmd := exec.Command("systemctl", "stop", LinuxServiceName)
 		if err := cmd.Run(); err != nil {
@@ -305,11 +330,25 @@ func (a *App) StopDaemon() error {
 func (a *App) IsDaemonRunning() bool {
 	switch goruntime.GOOS {
 	case "windows":
-		cmd := exec.Command("sc", "query", WindowsServiceName)
-		if err := cmd.Run(); err == nil {
-			a.isDaemonRunning = true
-			return true
+		m, err := mgr.Connect()
+		if err != nil {
+			return false
 		}
+		defer m.Disconnect()
+
+		s, err := m.OpenService(WindowsServiceName)
+		if err != nil {
+			return false
+		}
+		defer s.Close()
+
+		status, err := s.Query()
+		if err != nil {
+			return false
+		}
+
+		return status.State == svc.Running
+
 	case "linux":
 		cmd := exec.Command("systemctl", "is-active", LinuxServiceName)
 		if err := cmd.Run(); err == nil {
