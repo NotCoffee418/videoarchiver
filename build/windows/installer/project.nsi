@@ -53,7 +53,10 @@ ManifestDPIAware true
 !define MUI_ICON "..\icon.ico"
 !define MUI_UNICON "..\icon.ico"
 # !define MUI_WELCOMEFINISHPAGE_BITMAP "resources\leftimage.bmp" #Include this to add a bitmap on the left side of the Welcome Page. Must be a size of 164x314
-!define MUI_FINISHPAGE_NOAUTOCLOSE # Wait on the INSTFILES page so the user can take a look into the details of the installation steps
+!define MUI_FINISHPAGE_RUN
+!define MUI_FINISHPAGE_RUN_TEXT "Start ${INFO_PRODUCTNAME} UI"
+!define MUI_FINISHPAGE_RUN_FUNCTION "LaunchUI"
+!define MUI_FINISHPAGE_NOAUTOCLOSE
 !define MUI_ABORTWARNING # This will warn the user if they exit from the installer.
 
 !insertmacro MUI_PAGE_WELCOME # Welcome to the installer page.
@@ -73,11 +76,15 @@ ManifestDPIAware true
 Name "${INFO_PRODUCTNAME}"
 OutFile "..\..\bin\${INFO_PROJECTNAME}-${ARCH}-installer.exe" # Name of the installer's file.
 # Define installation directory
-InstallDir "$PROGRAMFILES64\${INFO_PRODUCTNAME}" # Default installing folder ($PROGRAMFILES is Program Files folder).
+InstallDir "$LOCALAPPDATA\${INFO_PRODUCTNAME}" # Install to local app data folder
 ShowInstDetails show # This will always show the installation details.
 
 Function .onInit
    !insertmacro wails.checkArchitecture
+FunctionEnd
+
+Function LaunchUI
+    Exec '"$INSTDIR\${PRODUCT_EXECUTABLE}" --mode ui'
 FunctionEnd
 
 Section
@@ -89,8 +96,15 @@ Section
 
     !insertmacro wails.files
 
+    # Create regular shortcuts
     CreateShortcut "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"
     CreateShortCut "$DESKTOP\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"
+    
+    # Registry key to start daemon on startup
+    WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "${INFO_PRODUCTNAME} Daemon" '"$INSTDIR\${PRODUCT_EXECUTABLE}" --mode daemon'
+
+    # Start daemon immediately
+    Exec '"$INSTDIR\${PRODUCT_EXECUTABLE}" --mode daemon'
 
     !insertmacro wails.associateFiles
     !insertmacro wails.associateCustomProtocols
@@ -107,7 +121,9 @@ Section "uninstall"
 
     Delete "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk"
     Delete "$DESKTOP\${INFO_PRODUCTNAME}.lnk"
-
+    # Registry key to start daemon on startup
+    DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "${INFO_PRODUCTNAME} Daemon"
+    
     !insertmacro wails.unassociateFiles
     !insertmacro wails.unassociateCustomProtocols
 
