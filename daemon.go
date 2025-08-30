@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 	"videoarchiver/backend/domains/download"
@@ -219,7 +220,8 @@ func downloadItem(dl *download.Download, pl *playlist.Playlist) {
 			os.Remove(outputFilePath)
 		} else {
 			fmt.Printf("Download successful for item %s, saved to %s\n", dl.Url, outputFilePath)
-			err = dl.SetSuccess(app.DownloadDB, md5)
+			fileName := filepath.Base(outputFilePath)
+			err = dl.SetSuccess(app.DownloadDB, fileName, md5)
 		}
 
 		// Handle DB errors

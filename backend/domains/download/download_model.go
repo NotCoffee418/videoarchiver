@@ -16,6 +16,7 @@ type Download struct {
 	Status           Status         `json:"status" db:"status"`
 	FormatDownloaded string         `json:"format_downloaded" db:"format_downloaded"`
 	MD5              sql.NullString `json:"md5,omitempty" db:"md5"`
+	OutputFilename   sql.NullString `json:"output_filename,omitempty" db:"output_filename"`
 	LastAttempt      int64          `json:"last_attempt" db:"last_attempt"`
 	FailMessage      sql.NullString `json:"fail_message,omitempty" db:"fail_message"`
 	AttemptCount     int            `json:"attempt_count" db:"attempt_count"`
@@ -33,6 +34,7 @@ func NewDownload(
 		Status:           StUndownloaded,
 		FormatDownloaded: formatDownloaded,
 		MD5:              sql.NullString{String: "", Valid: false},
+		OutputFilename:   sql.NullString{String: "", Valid: false},
 		LastAttempt:      0,
 		FailMessage:      sql.NullString{String: "", Valid: false},
 		AttemptCount:     0,

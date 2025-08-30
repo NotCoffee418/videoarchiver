@@ -26,7 +26,7 @@ func (d *DownloadDB) GetAllDownloads(limit int) ([]Download, error) {
 		var download Download
 		err := rows.Scan(
 			&download.ID, &download.PlaylistID, &download.Url,
-			&download.Status, &download.FormatDownloaded, &download.MD5,
+			&download.Status, &download.FormatDownloaded, &download.MD5, &download.OutputFilename,
 			&download.LastAttempt, &download.FailMessage, &download.AttemptCount,
 		)
 		if err != nil {
@@ -49,7 +49,7 @@ func (d *DownloadDB) GetDownloadsForPlaylist(playlistId int) ([]Download, error)
 		var download Download
 		err := rows.Scan(
 			&download.ID, &download.PlaylistID, &download.Url,
-			&download.Status, &download.FormatDownloaded, &download.MD5,
+			&download.Status, &download.FormatDownloaded, &download.MD5, &download.OutputFilename,
 			&download.LastAttempt, &download.FailMessage, &download.AttemptCount,
 		)
 		if err != nil {
@@ -60,9 +60,10 @@ func (d *DownloadDB) GetDownloadsForPlaylist(playlistId int) ([]Download, error)
 	return downloads, nil
 }
 
-func (d *Download) SetSuccess(dlDB *DownloadDB, md5 string) error {
+func (d *Download) SetSuccess(dlDB *DownloadDB, outputFilename string, md5 string) error {
 	d.Status = StSuccess
 	d.MD5 = sql.NullString{String: md5, Valid: true}
+	d.OutputFilename = sql.NullString{String: outputFilename, Valid: true}
 	d.FailMessage = sql.NullString{String: "", Valid: false}
 	d.AttemptCount += 1
 	d.LastAttempt = time.Now().Unix()
@@ -98,9 +99,9 @@ func (d *Download) SetFail(dlDB *DownloadDB, failMessage string) error {
 
 func (d *Download) insertDownload(dlDB *DownloadDB) error {
 	_, err := dlDB.db.Exec(
-		`INSERT INTO downloads (playlist_id, url, status, format_downloaded, md5, last_attempt, fail_message, attempt_count)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-		d.PlaylistID, d.Url, d.Status, d.FormatDownloaded, d.MD5, d.LastAttempt, d.FailMessage, d.AttemptCount,
+		`INSERT INTO downloads (playlist_id, url, status, format_downloaded, md5, output_filename, last_attempt, fail_message, attempt_count)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		d.PlaylistID, d.Url, d.Status, d.FormatDownloaded, d.MD5, d.OutputFilename, d.LastAttempt, d.FailMessage, d.AttemptCount,
 	)
 	return err
 }
