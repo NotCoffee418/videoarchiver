@@ -5,13 +5,14 @@ import (
 )
 
 const (
+	// Amount of retries before status is changed to StGiveUp
 	MaxRetryCount = 5
 )
 
 type Download struct {
 	ID               int            `json:"id" db:"id"`
 	PlaylistID       int            `json:"playlist_id" db:"playlist_id"`
-	VideoID          string         `json:"video_id" db:"video_id"`
+	Url              string         `json:"url" db:"url"`
 	Status           Status         `json:"status" db:"status"`
 	FormatDownloaded string         `json:"format_downloaded" db:"format_downloaded"`
 	MD5              sql.NullString `json:"md5,omitempty" db:"md5"`
@@ -23,12 +24,12 @@ type Download struct {
 // Creates new instance of Download without an ID or attempt info
 func NewDownload(
 	playlistId int,
-	videoId string,
+	cleanUrl string,
 	formatDownloaded string,
 ) *Download {
 	return &Download{
 		PlaylistID:       playlistId,
-		VideoID:          videoId,
+		Url:              cleanUrl,
 		Status:           StUndownloaded,
 		FormatDownloaded: formatDownloaded,
 		MD5:              sql.NullString{String: "", Valid: false},

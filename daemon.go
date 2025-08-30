@@ -162,7 +162,7 @@ func getDownloadables(plInfo *ytdlp.YtdlpPlaylistInfo, existingDls []download.Do
 	existingMap := make(map[string]bool)
 	for _, existintEntry := range existingDls {
 		// Add every existing item to the existing map
-		existingMap[existintEntry.VideoID] = true
+		existingMap[existintEntry.Url] = true
 
 		// Add redownloadable items to result
 		if existintEntry.Status == download.StFailedRetry && existintEntry.AttemptCount < download.MaxRetryCount {
@@ -203,22 +203,22 @@ func shouldStopIteration() bool {
 }
 
 func downloadItem(dl *download.Download, pl *playlist.Playlist) {
-	fmt.Printf("Downloading new item: %s\n", dl.VideoID)
+	fmt.Printf("Downloading new item: %s\n", dl.Url)
 	outputFilePath, err := app.DownloadService.DownloadFile(
-		dl.VideoID, pl.SaveDirectory, pl.OutputFormat)
+		dl.Url, pl.SaveDirectory, pl.OutputFormat)
 	if err != nil {
-		fmt.Printf("Error: Failed to download item %s: %v\n", dl.VideoID, err)
+		fmt.Printf("Error: Failed to download item %s: %v\n", dl.Url, err)
 		dl.SetFail(app.DownloadDB, err.Error())
 	} else {
 		// Calculate MD5 of downloaded file
 		md5, err := download.CalculateMD5(outputFilePath)
 		if err != nil {
-			fmt.Printf("Error: Failed to calculate MD5 for item %s: %v\n", dl.VideoID, err)
+			fmt.Printf("Error: Failed to calculate MD5 for item %s: %v\n", dl.Url, err)
 			dl.SetFail(app.DownloadDB, fmt.Sprintf("Failed to calculate MD5: %v", err))
 			// Optionally delete the file if MD5 calculation fails
 			os.Remove(outputFilePath)
 		} else {
-			fmt.Printf("Download successful for item %s, saved to %s\n", dl.VideoID, outputFilePath)
+			fmt.Printf("Download successful for item %s, saved to %s\n", dl.Url, outputFilePath)
 			dl.SetSuccess(app.DownloadDB, md5)
 		}
 	}
