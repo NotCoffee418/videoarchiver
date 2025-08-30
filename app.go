@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
+	"syscall"
 	"time"
 	"videoarchiver/backend/daemonsignal"
 	"videoarchiver/backend/domains/db"
@@ -19,9 +21,8 @@ import (
 
 	"github.com/NotCoffee418/dbmigrator"
 	"github.com/pkg/errors"
+	"github.com/shirou/gopsutil/v3/process"
 	"github.com/wailsapp/wails/v2/pkg/runtime" // keep wails runtime as is
-	"golang.org/x/sys/windows/svc"
-	"golang.org/x/sys/windows/svc/mgr"
 )
 
 //go:embed all:migrations
@@ -257,21 +258,25 @@ func (a *App) StartDaemon() error {
 
 	switch goruntime.GOOS {
 	case "windows":
-		m, err := mgr.Connect()
+		exePath, err := os.Executable()
 		if err != nil {
-			return fmt.Errorf("failed to connect to service manager: %v", err)
+			return fmt.Errorf("failed to get executable path: %v", err)
 		}
-		defer m.Disconnect()
 
-		s, err := m.OpenService(WindowsServiceName)
-		if err != nil {
-			return fmt.Errorf("could not access service: %v", err)
+		cmd := exec.Command(exePath, "--mode", "daemon")
+		cmd.SysProcAttr = &syscall.SysProcAttr{
+			CreationFlags: 0x00000200 | 0x00000008, // CREATE_NEW_PROCESS_GROUP (0x200) | DETACHED_PROCESS (0x8)
 		}
-		defer s.Close()
 
-		err = s.Start()
+		err = cmd.Start()
 		if err != nil {
-			return fmt.Errorf("could not start service: %v", err)
+			return fmt.Errorf("failed to start daemon: %v", err)
+		}
+
+		// Wait a moment to check if process started successfully
+		time.Sleep(500 * time.Millisecond)
+		if !a.IsDaemonRunning() {
+			return fmt.Errorf("daemon process failed to start")
 		}
 
 	case "linux":
@@ -296,21 +301,38 @@ func (a *App) StopDaemon() error {
 
 	switch goruntime.GOOS {
 	case "windows":
-		m, err := mgr.Connect()
+		selfPid := os.Getpid()
+		processes, err := process.Processes()
 		if err != nil {
-			return fmt.Errorf("failed to connect to service manager: %v", err)
+			return fmt.Errorf("failed to list processes: %v", err)
 		}
-		defer m.Disconnect()
 
-		s, err := m.OpenService(WindowsServiceName)
+		selfExe, err := os.Executable()
 		if err != nil {
-			return fmt.Errorf("could not access service: %v", err)
+			return fmt.Errorf("failed to get executable path: %v", err)
 		}
-		defer s.Close()
+		selfExe = strings.ToLower(selfExe)
 
-		_, err = s.Control(svc.Stop)
-		if err != nil {
-			return fmt.Errorf("could not stop service: %v", err)
+		for _, p := range processes {
+			if int32(selfPid) == p.Pid {
+				continue
+			}
+
+			exe, err := p.Exe()
+			if err != nil {
+				continue
+			}
+
+			cmdline, _ := p.Cmdline()
+			exe = strings.ToLower(exe)
+
+			// Only kill processes running in daemon mode
+			if exe == selfExe && strings.Contains(cmdline, "--mode daemon") {
+				if err := p.Kill(); err != nil {
+					return fmt.Errorf("failed to kill process %d: %v", p.Pid, err)
+				}
+				fmt.Printf("Killed daemon process: PID=%d\n", p.Pid)
+			}
 		}
 
 	case "linux":
@@ -330,24 +352,41 @@ func (a *App) StopDaemon() error {
 func (a *App) IsDaemonRunning() bool {
 	switch goruntime.GOOS {
 	case "windows":
-		m, err := mgr.Connect()
+		selfPid := os.Getpid()
+		processes, err := process.Processes()
 		if err != nil {
-			return false
-		}
-		defer m.Disconnect()
-
-		s, err := m.OpenService(WindowsServiceName)
-		if err != nil {
-			return false
-		}
-		defer s.Close()
-
-		status, err := s.Query()
-		if err != nil {
+			fmt.Printf("Error getting process list: %v\n", err)
 			return false
 		}
 
-		return status.State == svc.Running
+		selfExe, err := os.Executable()
+		if err != nil {
+			fmt.Printf("Error getting executable path: %v\n", err)
+			return false
+		}
+		selfExe = strings.ToLower(selfExe)
+
+		for _, p := range processes {
+			if int32(selfPid) == p.Pid {
+				continue
+			}
+
+			exe, err := p.Exe()
+			if err != nil {
+				continue
+			}
+
+			cmdline, _ := p.Cmdline()
+			exe = strings.ToLower(exe)
+
+			// Check if it's our executable AND it's running in daemon mode
+			if exe == selfExe && strings.Contains(cmdline, "--mode daemon") {
+				fmt.Printf("Found daemon process: PID=%d CMD=%s\n", p.Pid, cmdline)
+				return true
+			}
+		}
+		fmt.Println("No daemon process found")
+		return false
 
 	case "linux":
 		cmd := exec.Command("systemctl", "is-active", LinuxServiceName)

@@ -2,18 +2,17 @@
     import { onMount, onDestroy } from "svelte";
 
     let isDaemonRunning = false;
-    let startCooldown = false;
-    let stopCooldown = false;
-    let checkInterval;
+    let isProcessing = false;
     let error = '';
+    let checkInterval;
 
     async function checkDaemonStatus() {
         try {
             const status = await window.go.main.App.IsDaemonRunning();
-            // Only update if status actually changed to avoid unnecessary rerenders
             if (status !== isDaemonRunning) {
                 isDaemonRunning = status;
-                error = ''; // Clear any previous errors on successful status change
+                isProcessing = false; // Clear processing state when status changes
+                error = '';
             }
         } catch (err) {
             console.error("Failed to check daemon status:", err);
@@ -22,56 +21,52 @@
     }
 
     async function onStart() {
-        if (startCooldown) return;
-        startCooldown = true;
+        if (isProcessing || isDaemonRunning) return;
+        isProcessing = true;
         error = '';
         
         try {
             await window.go.main.App.StartDaemon();
-            // Poll status with longer intervals for service startup
-            for (let i = 0; i < 6; i++) {
+            // Only poll if start command succeeded
+            for (let i = 0; i < 6 && !isDaemonRunning; i++) {
                 await checkDaemonStatus();
                 if (isDaemonRunning) break;
-                await new Promise(r => setTimeout(r, 5000)); // 5 second intervals
+                await new Promise(r => setTimeout(r, 5000));
             }
             
             if (!isDaemonRunning) {
                 error = "Failed to start daemon - service did not start within 30 seconds";
+                isProcessing = false;
             }
         } catch (err) {
             console.error("Failed to start daemon:", err);
             error = `Failed to start daemon: ${err.message || 'Unknown error'}`;
-        } finally {
-            setTimeout(() => {
-                startCooldown = false;
-            }, 10000);
+            isProcessing = false;
         }
     }
 
     async function onStop() {
-        if (stopCooldown) return;
-        stopCooldown = true;
+        if (isProcessing || !isDaemonRunning) return;
+        isProcessing = true;
         error = '';
         
         try {
             await window.go.main.App.StopDaemon();
-            // Poll status with longer intervals for service shutdown
-            for (let i = 0; i < 6; i++) {
+            // Only poll if stop command succeeded
+            for (let i = 0; i < 6 && isDaemonRunning; i++) {
                 await checkDaemonStatus();
                 if (!isDaemonRunning) break;
-                await new Promise(r => setTimeout(r, 5000)); // 5 second intervals
+                await new Promise(r => setTimeout(r, 5000));
             }
             
             if (isDaemonRunning) {
                 error = "Failed to stop daemon - service did not stop within 30 seconds";
+                isProcessing = false;
             }
         } catch (err) {
             console.error("Failed to stop daemon:", err);
             error = `Failed to stop daemon: ${err.message || 'Unknown error'}`;
-        } finally {
-            setTimeout(() => {
-                stopCooldown = false;
-            }, 10000);
+            isProcessing = false;
         }
     }
 
@@ -91,15 +86,15 @@
     <button 
         class="control-btn" 
         on:click={onStart} 
-        disabled={startCooldown || isDaemonRunning}>
-        {#if startCooldown}Starting...{:else}Start Daemon{/if}
+        disabled={isProcessing || isDaemonRunning}>
+        {#if isProcessing && !isDaemonRunning}Starting...{:else}Start Daemon{/if}
     </button>
 
     <button 
         class="control-btn" 
         on:click={onStop} 
-        disabled={stopCooldown || !isDaemonRunning}>
-        {#if stopCooldown}Stopping...{:else}Stop Daemon{/if}
+        disabled={isProcessing || !isDaemonRunning}>
+        {#if isProcessing && isDaemonRunning}Stopping...{:else}Stop Daemon{/if}
     </button>
 
     <div class="status">
