@@ -89,6 +89,11 @@ func (p *PlaylistService) TryDeletePlaylist(id int) error {
 		return errors.Wrap(err, "failed to delete playlist from database")
 	}
 
+	err = p.db.MarkDeletedPlaylistDownloads(id)
+	if err != nil {
+		return errors.Wrap(err, "failed to mark downloads of deleted playlist")
+	}
+
 	// Notify daemon of change
 	err = p.daemonSignalSvc.TriggerChange()
 	if err != nil {

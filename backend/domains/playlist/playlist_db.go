@@ -28,6 +28,18 @@ func (p *PlaylistDB) DeletePlaylist(id int) error {
 	return err
 }
 
+func (p *PlaylistDB) MarkDeletedPlaylistDownloads(playlistId int) error {
+	_, err := p.db.Exec(`
+        UPDATE downloads 
+        SET status = CASE 
+            WHEN status = 1 THEN 5 
+            ELSE 6 
+        END 
+        WHERE playlist_id = ?`,
+		playlistId)
+	return err
+}
+
 func (p *PlaylistDB) UpdatePlaylistThumbnail(id int, thumbnailBase64 string) error {
 	_, err := p.db.Exec("UPDATE playlists SET thumbnail_base64 = ? WHERE id = ?", thumbnailBase64, id)
 	return err

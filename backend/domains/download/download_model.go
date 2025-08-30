@@ -44,9 +44,11 @@ func NewDownload(
 type Status int
 
 const (
-	StUndownloaded      = 0 // 0 Should not be in DB
-	StSuccess           = 1
-	StFailedAutoRetry   = 2
-	StFailedManualRetry = 3
-	StFailedGiveUp      = 4
+	StUndownloaded           = 0 // 0 Should not be in DB
+	StSuccess                = 1
+	StFailedAutoRetry        = 2
+	StFailedManualRetry      = 3
+	StFailedGiveUp           = 4
+	StSuccessPlaylistRemoved = 5
+	StFailedPlaylistRemoved  = 6
 )

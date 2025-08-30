@@ -37,10 +37,10 @@ func (d *DownloadDB) GetDownloadsForPlaylist(playlistId int) ([]Download, error)
 func (d *DownloadDB) GetDownloadHistoryPage(offset, limit int, showSuccess, showFailed bool) ([]Download, error) {
 	var statuses []int
 	if showSuccess {
-		statuses = append(statuses, StSuccess)
+		statuses = append(statuses, StSuccess, StSuccessPlaylistRemoved)
 	}
 	if showFailed {
-		statuses = append(statuses, StFailedAutoRetry, StFailedManualRetry, StFailedGiveUp)
+		statuses = append(statuses, StFailedAutoRetry, StFailedManualRetry, StFailedGiveUp, StFailedPlaylistRemoved)
 	}
 
 	// Return empty if no filters selected

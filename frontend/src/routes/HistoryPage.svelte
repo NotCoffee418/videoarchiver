@@ -20,6 +20,8 @@
             case 2: return "Failed (Auto Retry)";
             case 3: return "Failed (Manual Retry)";
             case 4: return "Failed (Given Up)";
+            case 5: return "Success (Playlist Removed)";
+            case 6: return "Failed (Playlist Removed)";
             default: return "Unknown";
         }
     }
@@ -40,6 +42,16 @@
                 enabled: true, 
                 message: "Download abandoned - manual retry only", 
                 messageClass: "error" 
+            };
+            case 5: return {
+                enabled: false,
+                message: "Download succeeded but playlist was removed",
+                messageClass: "passive"
+            };
+            case 6: return {
+                enabled: false,
+                message: "Download failed and playlist was removed",
+                messageClass: "passive"
             };
             default: return { 
                 enabled: false, 
@@ -157,12 +169,12 @@
                 <div class="empty-state">No history</div>
             {:else}
                 {#each downloads as d}
-                    <div class="history-item {d.status === 1 ? 'success' : 'failed'}">
+                    <div class="history-item {d.status === 1 || d.status === 5 ? 'success' : 'failed'}">
                         <div class="status-ico" title={statusLabel(d.status)}>
-                            {#if d.status === 1}✅{:else}❌{/if}
+                            {#if d.status === 1 || d.status === 5}✅{:else}❌{/if}
                         </div>
 
-                        {#if d.status === 1}
+                        {#if d.status === 1 || d.status === 5}
                             <!-- Success layout -->
                             <div class="content">
                                 <div class="title">{displayTitle(d)}</div>
@@ -171,6 +183,9 @@
                                     <span class="separator">|</span>
                                     <a href="/" on:click|preventDefault={() => copyToClipboard(d.output_filename.String)}>Copy File Path</a>
                                 </div>
+                                {#if d.status === 5}
+                                    <div class="retry-status passive">Download succeeded but playlist was removed</div>
+                                {/if}
                                 <div class="timestamp">{formatTimestamp(d.last_attempt)}</div>
                             </div>
                         {:else}
@@ -178,12 +193,12 @@
                             <div class="content">
                                 <div class="url-preview">{d.url}</div>
                                 <div class="retry-row">
-                                    {#if d.status !== 1}
+                                    {#if d.status !== 1 && d.status !== 5}
                                         {@const retryState = getRetryState(d)}
                                         <button 
                                             class="retry-btn" 
                                             on:click={() => onRetry(d)} 
-                                            disabled={retrying.has(d.id) || d.status === 3 || !getRetryState(d).enabled}>
+                                            disabled={retrying.has(d.id) || d.status === 3 || d.status === 5 || d.status === 6 || !retryState.enabled}>
                                             {#if retrying.has(d.id)}Retrying...{:else}Retry Download{/if}
                                         </button>
                                         <span class="attempts">({d.attempt_count} attempts)</span>
