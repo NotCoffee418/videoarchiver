@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"time"
+	"videoarchiver/backend/daemonsignal"
 	"videoarchiver/backend/domains/db"
 	"videoarchiver/backend/domains/download"
 	"videoarchiver/backend/domains/playlist"
@@ -14,6 +15,7 @@ import (
 	"videoarchiver/backend/domains/ytdlp"
 
 	"github.com/NotCoffee418/dbmigrator"
+	"github.com/pkg/errors"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
@@ -22,16 +24,17 @@ var migrationFS embed.FS
 
 // App struct
 type App struct {
-	ctx             context.Context
-	WailsEnabled    bool
-	StartupComplete bool
-	Utils           *utils.Utils
-	DB              *db.DatabaseService
-	PlaylistDB      *playlist.PlaylistDB
-	PlaylistService *playlist.PlaylistService
-	SettingsService *settings.SettingsService
-	DownloadService *download.DownloadService
-	StartupProgress string
+	ctx                 context.Context
+	WailsEnabled        bool
+	StartupComplete     bool
+	Utils               *utils.Utils
+	DB                  *db.DatabaseService
+	PlaylistDB          *playlist.PlaylistDB
+	PlaylistService     *playlist.PlaylistService
+	SettingsService     *settings.SettingsService
+	DaemonSignalService *daemonsignal.DaemonSignalService
+	DownloadService     *download.DownloadService
+	StartupProgress     string
 }
 
 // NewApp creates a new App application struct
@@ -66,9 +69,12 @@ func (a *App) startup(ctx context.Context) {
 	// Create SettingsService using dbService
 	a.SettingsService = settings.NewSettingsService(dbService)
 
+	// Create DaemonTrigger service
+	a.DaemonSignalService = daemonsignal.NewDaemonSignalService(a.SettingsService)
+
 	// Create PlaylistDB using dbService
 	a.PlaylistDB = playlist.NewPlaylistDB(dbService)
-	a.PlaylistService = playlist.NewPlaylistService(a.PlaylistDB)
+	a.PlaylistService = playlist.NewPlaylistService(a.PlaylistDB, a.DaemonSignalService)
 
 	// Create DownloadService using dbService
 	a.DownloadService = download.NewDownloadService(ctx, a.SettingsService)
@@ -177,10 +183,7 @@ func (a *App) GetClipboard() (string, error) {
 }
 
 func (a *App) UpdatePlaylistDirectory(id int, newDirectory string) error {
-	if _, err := os.Stat(newDirectory); os.IsNotExist(err) {
-		return fmt.Errorf("directory does not exist: %s", newDirectory)
-	}
-	return a.PlaylistDB.UpdatePlaylistDirectory(id, newDirectory)
+	return a.PlaylistService.TryUpdatePlaylistDirectory(id, newDirectory)
 }
 
 func (a *App) ValidateAndAddPlaylist(url, directory, format string) error {
@@ -188,7 +191,7 @@ func (a *App) ValidateAndAddPlaylist(url, directory, format string) error {
 }
 
 func (a *App) DeletePlaylist(id int) error {
-	return a.PlaylistDB.DeletePlaylist(id)
+	return a.PlaylistService.TryDeletePlaylist(id)
 }
 
 func (a *App) IsStartupComplete() bool {
@@ -200,7 +203,14 @@ func (a *App) GetSettingString(key string) (string, error) {
 }
 
 func (a *App) SetSettingPreparsed(key string, value string) error {
-	return a.SettingsService.SetPreparsed(key, value)
+	err := a.SettingsService.SetPreparsed(key, value)
+	if err != nil {
+		return errors.Wrap(err, "failed to set setting")
+	}
+
+	// UI Settings changes trigger daemon change signal
+	return a.DaemonSignalService.TriggerChange()
+
 }
 
 func (a *App) DirectDownload(url, directory, format string) (string, error) {
