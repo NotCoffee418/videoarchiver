@@ -2,6 +2,7 @@ package download
 
 import (
 	"database/sql"
+	"regexp"
 	"time"
 	"videoarchiver/backend/domains/db"
 )
@@ -85,7 +86,10 @@ func (d *Download) SetFail(dlDB *DownloadDB, failMessage string) error {
 		d.Status = StFailedRetry
 	}
 
+	// Clean fail message
+	failMessage = cleanDownloadFailMessage(failMessage)
 	d.FailMessage = sql.NullString{String: failMessage, Valid: true}
+
 	d.LastAttempt = time.Now().Unix()
 
 	var err error
@@ -111,4 +115,10 @@ func (d *Download) updateDownload(dlDB *DownloadDB) error {
 		`UPDATE downloads SET playlist_id = ?, url = ?, status = ?, format_downloaded = ?, md5 = ?, last_attempt = ?, fail_message = ?, attempt_count = ? WHERE id = ?`,
 		d.PlaylistID, d.Url, d.Status, d.FormatDownloaded, d.MD5, d.LastAttempt, d.FailMessage, d.AttemptCount, d.ID)
 	return err
+}
+
+// Removes excessive error message parts
+func cleanDownloadFailMessage(msg string) string {
+	rx := regexp.MustCompile(`(` + ErrDownloadErrorBase + `)?(exit status \d+?: )?(ERROR: )?`)
+	return rx.ReplaceAllString(msg, "")
 }

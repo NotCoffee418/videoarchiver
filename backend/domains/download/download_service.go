@@ -19,6 +19,11 @@ type DownloadService struct {
 	settingsService *settings.SettingsService
 }
 
+const (
+	// Used to wrap errors from download service
+	ErrDownloadErrorBase = "download service: failed to download file: "
+)
+
 func NewDownloadService(ctx context.Context, settingsService *settings.SettingsService) *DownloadService {
 	return &DownloadService{ctx: ctx, settingsService: settingsService}
 }
@@ -32,7 +37,7 @@ func (d *DownloadService) DownloadFile(url, directory, format string) (string, e
 	// Download to temp path
 	outputString, err := ytdlp.DownloadFile(d.settingsService, url, tmpFile, format)
 	if err != nil {
-		return "", fmt.Errorf("download service: failed to download file: %w", err)
+		return "", fmt.Errorf("%s%w", ErrDownloadErrorBase, err)
 	}
 
 	// Extract video title from ytdlp outpuit
