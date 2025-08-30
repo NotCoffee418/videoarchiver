@@ -28,3 +28,6 @@ go.work.sum
 build/bin
 node_modules
 frontend/dist
+
+# Custom
+__debug_bin*

@@ -98,7 +98,7 @@ func (d *Download) SetFail(dlDB *DownloadDB, failMessage string) error {
 
 func (d *Download) insertDownload(dlDB *DownloadDB) error {
 	_, err := dlDB.db.Exec(
-		`INSERT INTO downloads (playlist_id, video_id, status, format_downloaded, md5, last_attempt, fail_message, attempt_count)
+		`INSERT INTO downloads (playlist_id, url, status, format_downloaded, md5, last_attempt, fail_message, attempt_count)
 		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 		d.PlaylistID, d.Url, d.Status, d.FormatDownloaded, d.MD5, d.LastAttempt, d.FailMessage, d.AttemptCount,
 	)
@@ -107,7 +107,7 @@ func (d *Download) insertDownload(dlDB *DownloadDB) error {
 
 func (d *Download) updateDownload(dlDB *DownloadDB) error {
 	_, err := dlDB.db.Exec(
-		`UPDATE downloads SET playlist_id = ?, video_id = ?, status = ?, format_downloaded = ?, md5 = ?, last_attempt = ?, fail_message = ?, attempt_count = ? WHERE id = ?`,
+		`UPDATE downloads SET playlist_id = ?, url = ?, status = ?, format_downloaded = ?, md5 = ?, last_attempt = ?, fail_message = ?, attempt_count = ? WHERE id = ?`,
 		d.PlaylistID, d.Url, d.Status, d.FormatDownloaded, d.MD5, d.LastAttempt, d.FailMessage, d.AttemptCount, d.ID)
 	return err
 }

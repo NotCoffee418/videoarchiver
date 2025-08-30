@@ -214,12 +214,17 @@ func downloadItem(dl *download.Download, pl *playlist.Playlist) {
 		md5, err := download.CalculateMD5(outputFilePath)
 		if err != nil {
 			fmt.Printf("Error: Failed to calculate MD5 for item %s: %v\n", dl.Url, err)
-			dl.SetFail(app.DownloadDB, fmt.Sprintf("Failed to calculate MD5: %v", err))
+			err = dl.SetFail(app.DownloadDB, fmt.Sprintf("Failed to calculate MD5: %v", err))
 			// Optionally delete the file if MD5 calculation fails
 			os.Remove(outputFilePath)
 		} else {
 			fmt.Printf("Download successful for item %s, saved to %s\n", dl.Url, outputFilePath)
-			dl.SetSuccess(app.DownloadDB, md5)
+			err = dl.SetSuccess(app.DownloadDB, md5)
+		}
+
+		// Handle DB errors
+		if err != nil {
+			fmt.Printf("failed to update database after download %s: %v\n", dl.Url, err)
 		}
 	}
 }
