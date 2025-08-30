@@ -33,6 +33,7 @@ type App struct {
 	PlaylistService     *playlist.PlaylistService
 	SettingsService     *settings.SettingsService
 	DaemonSignalService *daemonsignal.DaemonSignalService
+	DownloadDB          *download.DownloadDB
 	DownloadService     *download.DownloadService
 	StartupProgress     string
 }
@@ -77,6 +78,7 @@ func (a *App) startup(ctx context.Context) {
 	a.PlaylistService = playlist.NewPlaylistService(a.PlaylistDB, a.DaemonSignalService)
 
 	// Create DownloadService using dbService
+	a.DownloadDB = download.NewDownloadDB(dbService)
 	a.DownloadService = download.NewDownloadService(ctx, a.SettingsService)
 
 	// Init utils with context
