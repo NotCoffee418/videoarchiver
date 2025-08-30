@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os/exec"
 	"runtime"
+	"syscall"
 
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -33,20 +34,23 @@ func (u *Utils) SelectDirectory() (string, error) {
 }
 
 func (u *Utils) OpenDirectory(path string) error {
-	var cmd *exec.Cmd
-
 	switch runtime.GOOS {
 	case "windows":
-		cmd = exec.Command("explorer", path) // Windows Explorer
+		cmd := exec.Command("explorer", path)
+		cmd.SysProcAttr = &syscall.SysProcAttr{
+			HideWindow: true,
+		}
+		return cmd.Start()
+
 	case "darwin":
-		cmd = exec.Command("open", path) // macOS Finder
+		cmd := exec.Command("open", path) // macOS Finder
+		return cmd.Start()
 	case "linux":
-		cmd = exec.Command("xdg-open", path) // Linux file manager
+		cmd := exec.Command("xdg-open", path) // Linux file manager
+		return cmd.Start()
 	default:
 		return fmt.Errorf("unsupported platform")
 	}
-
-	return cmd.Start()
 }
 
 func (u *Utils) GetClipboard() (string, error) {

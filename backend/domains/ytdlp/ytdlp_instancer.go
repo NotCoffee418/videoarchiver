@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"syscall"
 	"time"
 	"videoarchiver/backend/domains/pathing"
 
@@ -52,6 +53,13 @@ func runCommand(args ...string) (string, error) {
 	// print command
 	fmt.Println("Running command:", ytdlpPath, strings.Join(args, " "))
 	cmd := exec.Command(ytdlpPath, args...)
+
+	// Hide console window on Windows
+	if runtime.GOOS == "windows" {
+		cmd.SysProcAttr = &syscall.SysProcAttr{
+			HideWindow: true,
+		}
+	}
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -364,6 +372,13 @@ func ffmpegCorruptionCheck(ffmpegPath string) error {
 	// Create the command
 	cmd := exec.Command(ffmpegPath, "-version")
 
+	// Hide console window on Windows
+	if runtime.GOOS == "windows" {
+		cmd.SysProcAttr = &syscall.SysProcAttr{
+			HideWindow: true,
+		}
+	}
+
 	// Run the command and capture output
 	_, err := cmd.CombinedOutput()
 	if err != nil {
@@ -375,6 +390,13 @@ func ffmpegCorruptionCheck(ffmpegPath string) error {
 func ffprobeCorruptionCheck(ffprobePath string) error {
 	// Create the command
 	cmd := exec.Command(ffprobePath, "-version")
+
+	// Hide console window on Windows
+	if runtime.GOOS == "windows" {
+		cmd.SysProcAttr = &syscall.SysProcAttr{
+			HideWindow: true,
+		}
+	}
 
 	// Run the command and capture output
 	_, err := cmd.CombinedOutput()
