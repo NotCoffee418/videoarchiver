@@ -26,9 +26,8 @@ import (
 var migrationFS embed.FS
 
 const (
-	WindowsServiceName = "VideoArchiver"
+	WindowsServiceName = "VideoArchiverDaemon" // Must match definition in project.nsi
 	LinuxServiceName   = "video-archiver.service"
-	ServiceName        = "VideoArchiverDaemon"
 )
 
 // App struct

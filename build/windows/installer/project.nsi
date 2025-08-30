@@ -1,5 +1,8 @@
 Unicode true
 
+# Must match the definition in app.go
+!define WindowsServiceName "VideoArchiverDaemon"
+
 ####
 ## Please note: Template replacements don't work in this file. They are provided with default defines like
 ## mentioned underneath.
@@ -45,6 +48,7 @@ VIAddVersionKey "FileVersion"     "${INFO_PRODUCTVERSION}"
 VIAddVersionKey "LegalCopyright"  "${INFO_COPYRIGHT}"
 VIAddVersionKey "ProductName"     "${INFO_PRODUCTNAME}"
 
+
 # Enable HiDPI support. https://nsis.sourceforge.io/Reference/ManifestDPIAware
 ManifestDPIAware true
 
@@ -82,38 +86,50 @@ FunctionEnd
 
 !macro customInit
     # Check if a previous version of the service exists and stop it
-    nsExec::ExecToLog 'net stop "${WindowsServiceName}"'
-    Pop $0  # Don't care about the result
+    DetailPrint "Checking for existing service..."
+    nsExec::ExecToLog 'sc query "${WindowsServiceName}"'
+    Pop $0
+    ${If} $0 == 0
+        DetailPrint "Found existing service, attempting to stop it..."
+        nsExec::ExecToLog 'net stop "${WindowsServiceName}"'
+        Pop $0
+        ${If} $0 != 0
+            DetailPrint "Warning: Could not stop existing service (code: $0)"
+        ${EndIf}
+        # Give it a moment to fully stop
+        Sleep 2000
+    ${EndIf}
 !macroend
 
 !macro customInstall
-    # Install and start the service
+    # Install the service
     DetailPrint "Installing ${INFO_PRODUCTNAME} Service..."
-    nsExec::ExecToLog '"$INSTDIR\${PRODUCT_EXECUTABLE}" --install-service'
+    nsExec::ExecToLog '"$INSTDIR\${PRODUCT_EXECUTABLE}" --mode install-service'
     Pop $0
     ${If} $0 != 0
-        MessageBox MB_OK|MB_ICONSTOP "Failed to install service. Please check the installation log."
+        MessageBox MB_OK|MB_ICONSTOP "Failed to install service (code: $0)"
+        Abort "Service installation failed"
     ${EndIf}
 
-    DetailPrint "Starting ${INFO_PRODUCTNAME} Service..."
+    # Start the service
+    DetailPrint "Starting service..."
+    Sleep 1000  
     nsExec::ExecToLog 'net start "${WindowsServiceName}"'
     Pop $0
     ${If} $0 != 0
-        MessageBox MB_OK|MB_ICONEXCLAMATION "Service installation succeeded but failed to start. You may need to start it manually."
+        DetailPrint "Warning: Service failed to start (code: $0)"
+        MessageBox MB_OK|MB_ICONEXCLAMATION "Service was installed but failed to start. You may need to start it manually from Services."
     ${EndIf}
 !macroend
 
 !macro customUninstall
-    # Stop and remove service
-    DetailPrint "Stopping ${INFO_PRODUCTNAME} Service..."
-    nsExec::ExecToLog 'net stop "${WindowsServiceName}"'
-    Pop $0  # Don't care about the result
-
+    # Stop and remove the service
     DetailPrint "Removing ${INFO_PRODUCTNAME} Service..."
-    nsExec::ExecToLog '"$INSTDIR\${PRODUCT_EXECUTABLE}" --remove-service'
+    nsExec::ExecToLog '"$INSTDIR\${PRODUCT_EXECUTABLE}" --mode remove-service'
     Pop $0
     ${If} $0 != 0
-        MessageBox MB_OK|MB_ICONEXCLAMATION "Failed to remove service completely. You may need to remove it manually."
+        DetailPrint "Warning: Failed to remove service completely (code: $0)"
+        MessageBox MB_OK|MB_ICONEXCLAMATION "Could not completely remove the service. You may need to remove it manually from Services."
     ${EndIf}
 !macroend
 

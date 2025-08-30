@@ -22,39 +22,36 @@ import (
 var assets embed.FS
 
 func main() {
-	mode := flag.String("mode", "", "Startup mode: ui, daemon, or empty (defaults to ui)")
-	installService := flag.Bool("install-service", false, "Install Windows service")
-	removeService := flag.Bool("remove-service", false, "Remove Windows service")
+	mode := flag.String("mode", "", "Startup mode: ui, daemon, install-service, remove-service (defaults to ui)")
 	flag.Parse()
 
-	// Handle service installation flags
-	if *installService {
+	switch *mode {
+	case "install-service":
 		if err := installWindowsService(); err != nil {
 			fmt.Printf("Failed to install service: %v\n", err)
 			os.Exit(1)
 		}
 		fmt.Println("Service installed successfully")
 		os.Exit(0)
-	}
 
-	if *removeService {
+	case "remove-service":
 		if err := removeWindowsService(); err != nil {
 			fmt.Printf("Failed to remove service: %v\n", err)
 			os.Exit(1)
 		}
 		fmt.Println("Service removed successfully")
 		os.Exit(0)
-	}
 
-	switch *mode {
 	case "daemon":
 		app := NewApp(false)
 		runDaemon(app)
+
 	case "ui", "":
 		app := NewApp(true)
 		runUI(app)
+
 	default:
-		println("Invalid startup mode: " + *mode)
+		println("Invalid startup mode. Valid modes: ui, daemon, install-service, remove-service")
 		os.Exit(1)
 	}
 }
