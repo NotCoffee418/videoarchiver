@@ -80,6 +80,8 @@ func (d *Download) SetFail(dlDB *DownloadDB, failMessage string) error {
 	d.AttemptCount += 1
 	if d.AttemptCount > MaxRetryCount {
 		d.Status = StFailedGiveUp
+	} else {
+		d.Status = StFailedRetry
 	}
 
 	d.FailMessage = sql.NullString{String: failMessage, Valid: true}
