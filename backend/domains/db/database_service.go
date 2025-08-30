@@ -33,6 +33,13 @@ func NewDatabaseService() (*DatabaseService, error) {
 			return
 		}
 
+		// Set a busy timeout to handle database locks gracefully
+		_, err = db.Exec("PRAGMA busy_timeout = 30000")
+		if err != nil {
+			errInit = err
+			return
+		}
+
 		dbInstance = &DatabaseService{db: db}
 	})
 
