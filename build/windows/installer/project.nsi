@@ -72,12 +72,50 @@ ManifestDPIAware true
 
 Name "${INFO_PRODUCTNAME}"
 OutFile "..\..\bin\${INFO_PROJECTNAME}-${ARCH}-installer.exe" # Name of the installer's file.
-InstallDir "$PROGRAMFILES64\${INFO_COMPANYNAME}\${INFO_PRODUCTNAME}" # Default installing folder ($PROGRAMFILES is Program Files folder).
+# Define installation directory
+InstallDir "$PROGRAMFILES64\${INFO_PRODUCTNAME}" # Default installing folder ($PROGRAMFILES is Program Files folder).
 ShowInstDetails show # This will always show the installation details.
 
 Function .onInit
    !insertmacro wails.checkArchitecture
 FunctionEnd
+
+!macro customInit
+    # Check if a previous version of the service exists and stop it
+    nsExec::ExecToLog 'net stop "${WindowsServiceName}"'
+    Pop $0  # Don't care about the result
+!macroend
+
+!macro customInstall
+    # Install and start the service
+    DetailPrint "Installing ${INFO_PRODUCTNAME} Service..."
+    nsExec::ExecToLog '"$INSTDIR\${PRODUCT_EXECUTABLE}" --install-service'
+    Pop $0
+    ${If} $0 != 0
+        MessageBox MB_OK|MB_ICONSTOP "Failed to install service. Please check the installation log."
+    ${EndIf}
+
+    DetailPrint "Starting ${INFO_PRODUCTNAME} Service..."
+    nsExec::ExecToLog 'net start "${WindowsServiceName}"'
+    Pop $0
+    ${If} $0 != 0
+        MessageBox MB_OK|MB_ICONEXCLAMATION "Service installation succeeded but failed to start. You may need to start it manually."
+    ${EndIf}
+!macroend
+
+!macro customUninstall
+    # Stop and remove service
+    DetailPrint "Stopping ${INFO_PRODUCTNAME} Service..."
+    nsExec::ExecToLog 'net stop "${WindowsServiceName}"'
+    Pop $0  # Don't care about the result
+
+    DetailPrint "Removing ${INFO_PRODUCTNAME} Service..."
+    nsExec::ExecToLog '"$INSTDIR\${PRODUCT_EXECUTABLE}" --remove-service'
+    Pop $0
+    ${If} $0 != 0
+        MessageBox MB_OK|MB_ICONEXCLAMATION "Failed to remove service completely. You may need to remove it manually."
+    ${EndIf}
+!macroend
 
 Section
     !insertmacro wails.setShellContext
@@ -87,6 +125,9 @@ Section
     SetOutPath $INSTDIR
 
     !insertmacro wails.files
+
+    # Call our custom install macro here
+    !insertmacro customInstall
 
     CreateShortcut "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"
     CreateShortCut "$DESKTOP\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"
@@ -98,6 +139,9 @@ Section
 SectionEnd
 
 Section "uninstall"
+    # Call our custom uninstall macro first
+    !insertmacro customUninstall
+
     !insertmacro wails.setShellContext
 
     RMDir /r "$AppData\${PRODUCT_EXECUTABLE}" # Remove the WebView2 DataPath

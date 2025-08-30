@@ -12,7 +12,10 @@ require (
 	modernc.org/sqlite v1.38.2
 )
 
-require github.com/pkg/errors v0.9.1
+require (
+	github.com/pkg/errors v0.9.1
+	golang.org/x/sys v0.35.0
+)
 
 require (
 	github.com/STARRY-S/zip v0.2.3 // indirect
@@ -59,7 +62,6 @@ require (
 	golang.org/x/crypto v0.41.0 // indirect
 	golang.org/x/exp v0.0.0-20250819193227-8b4c13bb791b // indirect
 	golang.org/x/net v0.43.0 // indirect
-	golang.org/x/sys v0.35.0 // indirect
 	golang.org/x/text v0.28.0 // indirect
 	modernc.org/libc v1.66.8 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
