@@ -187,48 +187,51 @@
                             <!-- Success layout -->
                             <div class="content">
                                 <div class="title">{displayTitle(d)}</div>
-                                <div class="actions">
-                                    <a href="/" on:click|preventDefault={() => copyToClipboard(d.url)}>Copy URL</a>
-                                    <span class="separator">|</span>
-                                    <a href="/" on:click|preventDefault={() => copyToClipboard(d.output_filename.String)}>Copy File Path</a>
-                                </div>
                                 {#if d.status === 5}
                                     <div class="retry-status passive">Download succeeded but playlist was removed</div>
                                 {/if}
-                                <div class="timestamp">{formatTimestamp(d.last_attempt)}</div>
+                                <div class="meta-section">
+                                    <div class="actions">
+                                        <a href="/" on:click|preventDefault={() => copyToClipboard(d.url)}>Copy URL</a>
+                                        <span class="separator">|</span>
+                                        <a href="/" on:click|preventDefault={() => copyToClipboard(d.output_filename.String)}>Copy File Path</a>
+                                    </div>
+                                    <div class="timestamp">{formatTimestamp(d.last_attempt)}</div>
+                                </div>
                             </div>
                         {:else}
                             <!-- Failed layout -->
+                            {@const retryState = getRetryState(d)}
                             <div class="content">
-                                <div class="url-preview">{d.url}</div>
-                                <div class="retry-row">
-                                    {#if d.status !== 1 && d.status !== 5}
-                                        {@const retryState = getRetryState(d)}
-                                        <button 
-                                            class="retry-btn" 
-                                            on:click={() => onRetry(d)} 
-                                            disabled={retrying.has(d.id) || d.status === 3 || d.status === 5 || d.status === 6 || !retryState.enabled}>
-                                            {#if retrying.has(d.id)}Retrying...{:else}Retry Download{/if}
-                                        </button>
-                                        <span class="attempts">({d.attempt_count} attempts)</span>
-                                        {#if retryState.message}
-                                            <span class="retry-status {retryState.messageClass}">
-                                                {retryState.message}
-                                            </span>
-                                        {/if}
+                                <div class="retry-section">
+                                    <button 
+                                        class="retry-btn" 
+                                        on:click={() => onRetry(d)} 
+                                        disabled={retrying.has(d.id) || d.status === 3 || d.status === 5 || d.status === 6 || !retryState.enabled}>
+                                        {#if retrying.has(d.id)}Retrying...{:else}Retry Download{/if}
+                                    </button>
+                                    <span class="attempts">({d.attempt_count} attempts)</span>
+                                    {#if retryState.message}
+                                        <span class="retry-status {retryState.messageClass}">
+                                            {retryState.message}
+                                        </span>
                                     {/if}
                                 </div>
-                                <div class="actions">
-                                    <a href="/" on:click|preventDefault={() => copyToClipboard(d.url)}>Copy URL</a>
-                                    {#if d.output_filename?.Valid}
-                                        <span class="separator">|</span>
-                                        <a href="/" on:click|preventDefault={() => copyToClipboard(d.output_filename.String)}>Copy File Path</a>
-                                    {/if}
-                                </div>
+
                                 {#if d.fail_message?.String}
                                     <div class="error-message">{d.fail_message.String}</div>
                                 {/if}
-                                <div class="timestamp">{formatTimestamp(d.last_attempt)}</div>
+
+                                <div class="meta-section">
+                                    <div class="actions">
+                                        <a href="/" on:click|preventDefault={() => copyToClipboard(d.url)}>Copy URL</a>
+                                        {#if d.output_filename?.Valid}
+                                            <span class="separator">|</span>
+                                            <a href="/" on:click|preventDefault={() => copyToClipboard(d.output_filename.String)}>Copy File Path</a>
+                                        {/if}
+                                    </div>
+                                    <div class="timestamp">{formatTimestamp(d.last_attempt)}</div>
+                                </div>
                             </div>
                         {/if}
                     </div>
@@ -260,10 +263,11 @@
 
     .history-item {
         display: flex;
-        padding: 0.75rem;
+        padding: 1rem;
         gap: 1rem;
         border-bottom: 1px solid #2a2a2a;
         background: #151515;
+        align-items: flex-start;  /* Align items to top */
     }
 
     .history-item:last-child {
@@ -273,31 +277,24 @@
     .status-ico {
         flex-shrink: 0;
         width: 2rem;
-        font-size: 1.25rem;
         display: flex;
         align-items: center;
         justify-content: center;
+        padding-top: 0.2rem;  /* Slight adjustment to align with content */
     }
 
     .content {
         flex: 1;
-        min-width: 0; /* Enables text truncation */
-    }
-
-    .success .content {
+        min-width: 0;
         display: flex;
         flex-direction: column;
-        gap: 0.35rem;
-    }
-
-    .failed .content {
-        display: grid;
         gap: 0.75rem;
     }
 
     .title {
         font-weight: 600;
         word-break: break-word;
+        margin-bottom: 0.25rem;  /* Add space below title */
     }
 
     .actions {
@@ -322,19 +319,11 @@
         margin-top: 0.25rem;
     }
 
-    .url-preview {
-        color: #999;
-        font-size: 0.9rem;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        margin-bottom: 0.5rem;
-    }
-
     .retry-btn {
-        padding: 0.3rem 0.6rem;
+        padding: 0.4rem 0.8rem;
         font-size: 0.9rem;
-        margin-right: 0.5rem;
+        border-radius: 4px;
+        min-width: 120px;
     }
 
     .attempts {
@@ -343,14 +332,15 @@
     }
 
     .error-message {
-        color: #ff6666;
         font-family: monospace;
         font-size: 0.9rem;
         white-space: pre-wrap;
         word-break: break-word;
-        padding: 0.5rem;
-        background: rgba(255, 0, 0, 0.1);
+        padding: 0.75rem;
+        background: rgba(255, 0, 0, 0.07);
         border-radius: 4px;
+        border-left: 3px solid #ff6666;
+        color: #ff6666;
     }
 
     .empty-state {
@@ -417,11 +407,22 @@
         color: #ff6666;
     }
 
-    .retry-row {
+    .retry-section {
         display: flex;
         align-items: center;
         flex-wrap: wrap;
         gap: 0.5rem;
+        margin-bottom: 0.5rem;  /* Space between sections */
+    }
+
+    .meta-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        border-top: 1px solid #2a2a2a;  /* Visual separator */
+        padding-top: 0.5rem;
+        margin-top: auto;  /* Push to bottom */
     }
 
     @media (max-width: 600px) {
