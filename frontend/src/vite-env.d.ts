@@ -38,6 +38,9 @@ declare global {
           ) => Promise<Array<any>>;
           SetManualRetry: (downloadId: number) => Promise<void>;
           RegisterAllFailedForRetryManual: () => Promise<void>;
+          StartDaemon: () => Promise<void>;
+          StopDaemon: () => Promise<void>;
+          IsDaemonRunning: () => Promise<boolean>;
         };
       };
     };

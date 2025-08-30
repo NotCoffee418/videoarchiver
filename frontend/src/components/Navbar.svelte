@@ -4,7 +4,7 @@
       { name: 'Archive', path: '/' },
       { name: 'Direct', path: '/direct' },
       { name: 'History', path: '/history' },
-      { name: 'Logs', path: '/logs' },
+      { name: 'Status', path: '/status' },
       { name: 'Settings', path: '/settings' }
     ];
   

@@ -5,6 +5,7 @@ import (
 	"embed"
 	"fmt"
 	"os"
+	"os/exec"
 	"time"
 	"videoarchiver/backend/daemonsignal"
 	"videoarchiver/backend/domains/db"
@@ -14,13 +15,21 @@ import (
 	"videoarchiver/backend/domains/utils"
 	"videoarchiver/backend/domains/ytdlp"
 
+	goruntime "runtime" // renamed standard library runtime
+
 	"github.com/NotCoffee418/dbmigrator"
 	"github.com/pkg/errors"
-	"github.com/wailsapp/wails/v2/pkg/runtime"
+	"github.com/wailsapp/wails/v2/pkg/runtime" // keep wails runtime as is
 )
 
 //go:embed all:migrations
 var migrationFS embed.FS
+
+const (
+	WindowsServiceName = "VideoArchiver"
+	LinuxServiceName   = "video-archiver.service"
+	ServiceName        = "VideoArchiverDaemon"
+)
 
 // App struct
 type App struct {
@@ -36,13 +45,17 @@ type App struct {
 	DownloadDB          *download.DownloadDB
 	DownloadService     *download.DownloadService
 	StartupProgress     string
+	isDaemonRunning     bool
 }
 
 // NewApp creates a new App application struct
 func NewApp(wailsEnabled bool) *App {
-	return &App{
+	app := &App{
 		WailsEnabled: wailsEnabled,
 	}
+	// Check initial daemon state
+	app.isDaemonRunning = app.IsDaemonRunning()
+	return app
 }
 
 // startup is called when the app starts. The context is saved
@@ -234,4 +247,80 @@ func (a *App) SetManualRetry(downloadId int) error {
 
 func (a *App) RegisterAllFailedForRetryManual() error {
 	return a.DownloadService.RegisterAllFailedForRetryManual()
+}
+
+func (a *App) StartDaemon() error {
+	if a.isDaemonRunning {
+		return nil
+	}
+
+	switch goruntime.GOOS {
+	case "windows":
+		cmd := exec.Command("sc", "start", WindowsServiceName)
+		if err := cmd.Run(); err != nil {
+			// Fallback to direct execution if service not installed
+			cmd = exec.Command(os.Args[0], "--daemon")
+			cmd.Start()
+		}
+	case "linux":
+		cmd := exec.Command("systemctl", "start", LinuxServiceName)
+		if err := cmd.Run(); err != nil {
+			// Fallback to direct execution if service not installed
+			cmd = exec.Command(os.Args[0], "--daemon")
+			cmd.Start()
+		}
+	default:
+		return fmt.Errorf("unsupported operating system: %s", goruntime.GOOS)
+	}
+
+	a.isDaemonRunning = true
+	return nil
+}
+
+func (a *App) StopDaemon() error {
+	if !a.isDaemonRunning {
+		return nil
+	}
+
+	switch goruntime.GOOS {
+	case "windows":
+		cmd := exec.Command("sc", "stop", WindowsServiceName)
+		if err := cmd.Run(); err != nil {
+			// Fallback to finding and killing the process
+			exec.Command("taskkill", "/F", "/FI", "IMAGENAME eq "+WindowsServiceName).Run()
+		}
+	case "linux":
+		cmd := exec.Command("systemctl", "stop", LinuxServiceName)
+		if err := cmd.Run(); err != nil {
+			// Fallback to finding and killing the process
+			exec.Command("pkill", "-f", os.Args[0]).Run()
+		}
+	default:
+		return fmt.Errorf("unsupported operating system: %s", goruntime.GOOS)
+	}
+
+	a.isDaemonRunning = false
+	return nil
+}
+
+func (a *App) IsDaemonRunning() bool {
+	switch goruntime.GOOS {
+	case "windows":
+		cmd := exec.Command("sc", "query", WindowsServiceName)
+		if err := cmd.Run(); err == nil {
+			a.isDaemonRunning = true
+			return true
+		}
+	case "linux":
+		cmd := exec.Command("systemctl", "is-active", LinuxServiceName)
+		if err := cmd.Run(); err == nil {
+			a.isDaemonRunning = true
+			return true
+		}
+	}
+
+	// Check for running process in case of direct execution
+	// This is a simplified check and might need improvement
+	a.isDaemonRunning = false
+	return false
 }

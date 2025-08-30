@@ -7,7 +7,7 @@
   // Import your route components
   import ArchivePage from './routes/ArchivePage.svelte';
   import DirectPage from './routes/DirectPage.svelte';
-  import LogsPage from './routes/LogsPage.svelte';
+  import StatusPage from './routes/StatusPage.svelte';
   import SettingsPage from './routes/SettingsPage.svelte';
   import LoadingSpinner from './components/LoadingSpinner.svelte';
   import HistoryPage from './routes/HistoryPage.svelte';
@@ -16,7 +16,7 @@
     '/': ArchivePage,
     '/direct': DirectPage,
     '/history': HistoryPage,
-    '/logs': LogsPage,
+    '/status': StatusPage,
     '/settings': SettingsPage
   };
 

@@ -30,6 +30,10 @@ export function HandleFatalError(arg1) {
   return window['go']['main']['App']['HandleFatalError'](arg1);
 }
 
+export function IsDaemonRunning() {
+  return window['go']['main']['App']['IsDaemonRunning']();
+}
+
 export function IsStartupComplete() {
   return window['go']['main']['App']['IsStartupComplete']();
 }
@@ -52,6 +56,14 @@ export function SetManualRetry(arg1) {
 
 export function SetSettingPreparsed(arg1, arg2) {
   return window['go']['main']['App']['SetSettingPreparsed'](arg1, arg2);
+}
+
+export function StartDaemon() {
+  return window['go']['main']['App']['StartDaemon']();
+}
+
+export function StopDaemon() {
+  return window['go']['main']['App']['StopDaemon']();
 }
 
 export function UpdatePlaylistDirectory(arg1, arg2) {
