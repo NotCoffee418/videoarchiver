@@ -6,7 +6,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"path/filepath"
 	"time"
 
 	"golang.org/x/sys/windows/svc"
@@ -20,6 +19,55 @@ import (
 
 //go:embed all:frontend/dist
 var assets embed.FS
+
+// Global shutdown channel for service communication
+var serviceShutdown chan struct{}
+
+// Windows service handler
+type windowsService struct {
+	app *App
+}
+
+func (ws *windowsService) Execute(args []string, r <-chan svc.ChangeRequest, changes chan<- svc.Status) (svcSpecificEC bool, exitCode uint32) {
+	const cmdsAccepted = svc.AcceptStop | svc.AcceptShutdown
+	changes <- svc.Status{State: svc.StartPending}
+
+	// Initialize your app
+	ws.app.startup(context.Background())
+
+	changes <- svc.Status{State: svc.Running, Accepts: cmdsAccepted}
+
+	// Start your daemon loop in a goroutine
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		startDaemonLoop(ws.app)
+	}()
+
+loop:
+	for {
+		select {
+		case c := <-r:
+			switch c.Cmd {
+			case svc.Interrogate:
+				changes <- c.CurrentStatus
+			case svc.Stop, svc.Shutdown:
+				changes <- svc.Status{State: svc.StopPending}
+				if serviceShutdown != nil {
+					close(serviceShutdown)
+				}
+				break loop
+			default:
+				// Log unexpected control request
+			}
+		case <-done:
+			break loop
+		}
+	}
+
+	changes <- svc.Status{State: svc.Stopped}
+	return
+}
 
 func main() {
 	mode := flag.String("mode", "", "Startup mode: ui, daemon, install-service, remove-service (defaults to ui)")
@@ -44,7 +92,21 @@ func main() {
 
 	case "daemon":
 		app := NewApp(false)
-		runDaemon(app)
+
+		// Check if we're running as a Windows service
+		isWindowsService, err := svc.IsWindowsService()
+		if err != nil {
+			fmt.Printf("Failed to determine if running as service: %v\n", err)
+			os.Exit(1)
+		}
+
+		if isWindowsService {
+			// Run as Windows service
+			runWindowsService(app)
+		} else {
+			// Run as regular daemon (Linux or manual Windows)
+			runDaemon(app)
+		}
 
 	case "ui", "":
 		app := NewApp(true)
@@ -52,6 +114,14 @@ func main() {
 
 	default:
 		println("Invalid startup mode. Valid modes: ui, daemon, install-service, remove-service")
+		os.Exit(1)
+	}
+}
+
+func runWindowsService(app *App) {
+	err := svc.Run(WindowsServiceName, &windowsService{app: app})
+	if err != nil {
+		fmt.Printf("Service failed: %v\n", err)
 		os.Exit(1)
 	}
 }
@@ -64,7 +134,6 @@ func runDaemon(app *App) {
 }
 
 func runUI(app *App) {
-	// ✅ Create application with options
 	err := wails.Run(&options.App{
 		Title:  "videoarchiver",
 		Width:  1024,
@@ -75,7 +144,7 @@ func runUI(app *App) {
 		BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
 		OnStartup:        app.startup,
 		Bind: []interface{}{
-			app, // ✅ Bind only the App
+			app,
 		},
 	})
 
@@ -97,9 +166,6 @@ func installWindowsService() error {
 		return fmt.Errorf("could not get executable path: %v", err)
 	}
 
-	// Ensure we use the installed location, not the temporary NSIS location
-	targetExe := filepath.Join(filepath.Dir(exe), "videoarchiver.exe")
-
 	config := mgr.Config{
 		DisplayName: "Video Archiver",
 		Description: "Background service for Video Archiver that handles automatic downloads",
@@ -108,7 +174,7 @@ func installWindowsService() error {
 
 	s, err := m.CreateService(
 		WindowsServiceName,
-		targetExe,
+		exe,
 		config,
 		"--mode", "daemon",
 	)
@@ -117,12 +183,11 @@ func installWindowsService() error {
 	}
 	defer s.Close()
 
-	// Setup event logging
 	if err := eventlog.Install(
 		WindowsServiceName,
-		targetExe,
-		false, // Don't support message-file messages
-		eventlog.Error|eventlog.Warning|eventlog.Info, // Support all message types
+		exe,
+		false,
+		eventlog.Error|eventlog.Warning|eventlog.Info,
 	); err != nil {
 		s.Delete()
 		return fmt.Errorf("could not setup event logging: %v", err)
@@ -144,14 +209,11 @@ func removeWindowsService() error {
 	}
 	defer s.Close()
 
-	// First try to stop the service
 	status, err := s.Control(svc.Stop)
 	if err != nil {
 		fmt.Printf("Warning: Could not stop service: %v\n", err)
-		// Continue anyway to try deletion
 	}
 
-	// Wait a bit for the service to stop
 	if status.State != svc.Stopped {
 		fmt.Println("Waiting for service to stop...")
 		time.Sleep(5 * time.Second)
@@ -163,7 +225,6 @@ func removeWindowsService() error {
 
 	if err := eventlog.Remove(WindowsServiceName); err != nil {
 		fmt.Printf("Warning: Could not remove event log: %v\n", err)
-		// Not critical, continue
 	}
 
 	return nil
