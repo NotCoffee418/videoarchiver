@@ -152,6 +152,24 @@
         if (isNaN(n)) return "";
         return new Date(n * 1000).toLocaleString(); // multiply by 1000 to convert seconds to milliseconds
     }
+
+    let retryAllCooldown = false;
+
+    async function onRetryAll() {
+        if (retryAllCooldown) return;
+        
+        retryAllCooldown = true;
+        try {
+            await window.go.main.App.RegisterAllFailedForRetryManual();
+        } catch (err) {
+            console.error("Failed to retry all:", err);
+        }
+        
+        // Cooldown timer
+        setTimeout(() => {
+            retryAllCooldown = false;
+        }, 30000);
+    }
 </script>
 
 <div class="container">
@@ -166,6 +184,16 @@
             <input type="checkbox" bind:checked={showFailed}>
             Show Failed
         </label>
+        <button 
+            class="retry-all-btn" 
+            on:click={onRetryAll} 
+            disabled={retryAllCooldown}>
+            {#if retryAllCooldown}
+                Retry All Cooldown...
+            {:else}
+                Retry All Failed Downloads
+            {/if}
+        </button>
     </div>
 
     {#if loading}
@@ -373,6 +401,7 @@
 
     .filters {
         display: flex;
+        align-items: center;
         gap: 1rem;
         margin-bottom: 1rem;
     }
@@ -423,6 +452,11 @@
         border-top: 1px solid #2a2a2a;  /* Visual separator */
         padding-top: 0.5rem;
         margin-top: auto;  /* Push to bottom */
+    }
+
+    .retry-all-btn {
+        margin-left: auto;  /* Push button to right */
+        min-width: 180px;
     }
 
     @media (max-width: 600px) {

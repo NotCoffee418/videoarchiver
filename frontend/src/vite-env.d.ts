@@ -37,6 +37,7 @@ declare global {
             arg4: boolean
           ) => Promise<Array<any>>;
           SetManualRetry: (downloadId: number) => Promise<void>;
+          RegisterAllFailedForRetryManual: () => Promise<void>;
         };
       };
     };

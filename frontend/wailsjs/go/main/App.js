@@ -38,6 +38,10 @@ export function OpenDirectory(arg1) {
   return window['go']['main']['App']['OpenDirectory'](arg1);
 }
 
+export function RegisterAllFailedForRetryManual() {
+  return window['go']['main']['App']['RegisterAllFailedForRetryManual']();
+}
+
 export function SelectDirectory() {
   return window['go']['main']['App']['SelectDirectory']();
 }

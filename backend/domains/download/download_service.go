@@ -101,3 +101,10 @@ func (d *DownloadService) SetManualRetry(downloadId int) error {
 	}
 	return d.daemonSignalService.TriggerChange()
 }
+
+func (d *DownloadService) RegisterAllFailedForRetryManual() error {
+	if err := d.downloadDB.RegisterAllFailedForRetryManual(); err != nil {
+		return fmt.Errorf("failed to register all failed downloads for retry: %w", err)
+	}
+	return d.daemonSignalService.TriggerChange()
+}

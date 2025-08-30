@@ -231,3 +231,7 @@ func (a *App) GetDownloadHistoryPage(offset int, limit int, showSuccess, showFai
 func (a *App) SetManualRetry(downloadId int) error {
 	return a.DownloadService.SetManualRetry(downloadId)
 }
+
+func (a *App) RegisterAllFailedForRetryManual() error {
+	return a.DownloadService.RegisterAllFailedForRetryManual()
+}

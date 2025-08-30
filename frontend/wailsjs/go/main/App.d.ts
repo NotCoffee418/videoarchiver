@@ -21,6 +21,8 @@ export function IsStartupComplete():Promise<boolean>;
 
 export function OpenDirectory(arg1:string):Promise<void>;
 
+export function RegisterAllFailedForRetryManual():Promise<void>;
+
 export function SelectDirectory():Promise<string>;
 
 export function SetManualRetry(arg1:number):Promise<void>;
