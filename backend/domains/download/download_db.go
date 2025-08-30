@@ -40,7 +40,7 @@ func (d *DownloadDB) GetDownloadHistoryPage(offset, limit int, showSuccess, show
 		statuses = append(statuses, StSuccess)
 	}
 	if showFailed {
-		statuses = append(statuses, StFailedRetry, StFailedGiveUp)
+		statuses = append(statuses, StFailedAutoRetry, StFailedManualRetry, StFailedGiveUp)
 	}
 
 	// Return empty if no filters selected
@@ -105,7 +105,7 @@ func (d *Download) SetFail(dlDB *DownloadDB, failMessage string) error {
 	if d.AttemptCount > MaxRetryCount {
 		d.Status = StFailedGiveUp
 	} else {
-		d.Status = StFailedRetry
+		d.Status = StFailedAutoRetry
 	}
 
 	// Clean fail message

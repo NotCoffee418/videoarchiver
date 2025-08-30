@@ -131,6 +131,14 @@ func processActivePlaylists() {
 		fmt.Printf("Found %d new items and %d retryable items to download for playlist: %s\n",
 			len(undownloadedUrls), len(retryables), pl.Name)
 
+		// Retry any retryable items
+		for _, dl := range retryables {
+			if shouldStopIteration() {
+				return
+			}
+			downloadItem(&dl, &pl)
+		}
+
 		// Download any new items
 		for _, url := range undownloadedUrls {
 			if shouldStopIteration() {
@@ -141,13 +149,6 @@ func processActivePlaylists() {
 			downloadItem(dl, &pl)
 		}
 
-		// Retry any retryable items
-		for _, dl := range retryables {
-			if shouldStopIteration() {
-				return
-			}
-			downloadItem(&dl, &pl)
-		}
 	}
 
 	fmt.Println("Playlist processing complete.")
@@ -166,7 +167,7 @@ func getDownloadables(plInfo *ytdlp.YtdlpPlaylistInfo, existingDls []download.Do
 		existingMap[existintEntry.Url] = true
 
 		// Add redownloadable items to result
-		if existintEntry.Status == download.StFailedRetry && existintEntry.AttemptCount < download.MaxRetryCount {
+		if existintEntry.Status == download.StFailedAutoRetry || existintEntry.Status == download.StFailedManualRetry {
 			retryables = append(retryables, existintEntry)
 		}
 	}
