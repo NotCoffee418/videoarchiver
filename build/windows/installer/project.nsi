@@ -28,7 +28,7 @@ Unicode true
 ## !define PRODUCT_EXECUTABLE  "Application.exe"      # Default "${INFO_PROJECTNAME}.exe"
 ## !define UNINST_KEY_NAME     "UninstKeyInRegistry"  # Default "${INFO_COMPANYNAME}${INFO_PRODUCTNAME}"
 ####
-## !define REQUEST_EXECUTION_LEVEL "admin"            # Default "admin"  see also https://nsis.sourceforge.io/Docs/Chapter4.html
+!define REQUEST_EXECUTION_LEVEL "user"            # Default "admin"  see also https://nsis.sourceforge.io/Docs/Chapter4.html
 ####
 ## Include the wails tools
 ####
@@ -105,6 +105,8 @@ Function LaunchUI
     SetOutPath $INSTDIR
 
     # Launch needs explorer.exe to launch non-admin process from admin installer
+    # Also doesn't work without it in de-elevated installer for whatever reason while daemon does.
+    # Just keep it like this.
     Exec '"$WINDIR\explorer.exe" "$INSTDIR\${PRODUCT_EXECUTABLE}"'
 FunctionEnd
 
@@ -127,6 +129,7 @@ Section
     WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "${INFO_PRODUCTNAME} Daemon" '"$INSTDIR\${PRODUCT_EXECUTABLE}" --mode daemon'
 
     # Start daemon immediately (before the UI, essential)
+    # Does not need explorer.exe for whatever reason
     Exec '"$INSTDIR\${PRODUCT_EXECUTABLE}" --mode daemon'
 
 
