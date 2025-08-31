@@ -98,16 +98,6 @@ func (a *App) startup(ctx context.Context) {
 		}
 	}
 
-	// ✅ Install ytdlp in background channel
-	ytdlpUpdateChan := make(chan error)
-	go func() {
-		defer close(ytdlpUpdateChan)
-		err := ytdlp.InstallOrUpdate(false)
-		if err != nil {
-			ytdlpUpdateChan <- err
-		}
-	}()
-
 	// Create configuration service FIRST
 	configService, err := config.NewConfigService()
 	if err != nil {
@@ -125,7 +115,17 @@ func (a *App) startup(ctx context.Context) {
 	a.DB = dbService
 
 	// Create SettingsService using dbService
-	a.SettingsService = settings.NewSettingsService(dbService)
+	a.SettingsService = settings.NewSettingsService(dbService, a.LogService)
+
+	// ✅ Install ytdlp in background channel (after settings are available)
+	ytdlpUpdateChan := make(chan error)
+	go func() {
+		defer close(ytdlpUpdateChan)
+		err := ytdlp.InstallOrUpdate(false, a.SettingsService, a.LogService)
+		if err != nil {
+			ytdlpUpdateChan <- err
+		}
+	}()
 
 	// Create DaemonTrigger service
 	a.DaemonSignalService = daemonsignal.NewDaemonSignalService(a.SettingsService)
