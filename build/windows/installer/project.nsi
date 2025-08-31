@@ -100,6 +100,7 @@ Function .onInit
 FunctionEnd
 
 Function LaunchUI
+    SetOutPath "$INSTDIR"
     Exec '"$INSTDIR\${PRODUCT_EXECUTABLE}"'
 FunctionEnd
 
