@@ -21,16 +21,22 @@ func main() {
 	mode := flag.String("mode", "", "Startup mode: ui, daemon (defaults to ui)")
 	flag.Parse()
 
+	// Early logging to track startup mode
+	fmt.Printf("Starting application in mode: %s\n", *mode)
+
 	switch *mode {
 	case "daemon":
+		fmt.Println("Initializing daemon mode...")
 		app := NewApp(false, "daemon")
 		runDaemon(app)
 
 	case "ui", "":
+		fmt.Println("Initializing UI mode...")
 		app := NewApp(true, "ui")
 		runUI(app)
 
 	default:
+		fmt.Println("LOG: Application exiting due to invalid startup mode")
 		println("Invalid startup mode. Valid modes: ui, daemon")
 		os.Exit(1)
 	}
@@ -41,48 +47,33 @@ func runDaemon(app *App) {
 	earlyLogger := logging.NewLogService("daemon")
 	defer earlyLogger.Close()
 	
-	// Handle daemon locking before initialization
+	// Handle daemon locking before initialization - but only check, don't create yet
 	earlyLogger.Info("Checking for existing daemon instances...")
 	
 	// Check if lock already exists
 	locked, err := lockfile.IsLocked()
 	if err != nil {
 		earlyLogger.Error(fmt.Sprintf("Failed to check lock status: %v", err))
+		earlyLogger.Error("LOG: Daemon exiting due to lock status check failure")
 		os.Exit(1)
 	}
 
 	if locked {
 		// Another daemon is starting up or running, exit this instance
 		earlyLogger.Info("Another daemon instance is starting up. Exiting...")
+		earlyLogger.Info("LOG: Daemon exiting due to existing daemon lock")
 		os.Exit(0)
 	}
 
-	// Create lock file
-	if err := lockfile.CreateLock(); err != nil {
-		earlyLogger.Error(fmt.Sprintf("Failed to create lock file: %v", err))
-		os.Exit(1)
-	}
-
-	// Ensure lock is removed on exit
-	defer func() {
-		if err := lockfile.RemoveLock(); err != nil {
-			earlyLogger.Warn(fmt.Sprintf("Failed to remove lock file: %v", err))
-		}
-	}()
-
 	earlyLogger.Info("Initializing application")
 	app.startup(context.Background())
-
-	// Remove lock after successful startup
-	if err := lockfile.RemoveLock(); err != nil {
-		app.LogService.Warn(fmt.Sprintf("Failed to remove lock file after startup: %v", err))
-	}
 	
 	app.LogService.Info("Daemon starting")
 	startDaemonLoop(app)
 }
 
 func runUI(app *App) {
+	fmt.Println("Starting Wails UI...")
 	err := wails.Run(&options.App{
 		Title:  "videoarchiver",
 		Width:  1024,
@@ -98,6 +89,7 @@ func runUI(app *App) {
 	})
 
 	if err != nil {
+		fmt.Printf("LOG: UI exiting due to Wails error: %v\n", err)
 		println("Error:", err.Error())
 		os.Exit(1)
 	}
