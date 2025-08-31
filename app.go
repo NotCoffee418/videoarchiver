@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 	"videoarchiver/backend/daemonsignal"
+	"videoarchiver/backend/domains/config"
 	"videoarchiver/backend/domains/db"
 	"videoarchiver/backend/domains/download"
 	"videoarchiver/backend/domains/logging"
@@ -42,6 +43,7 @@ type App struct {
 	WailsEnabled        bool
 	StartupComplete     bool
 	Utils               *utils.Utils
+	ConfigService       *config.ConfigService
 	DB                  *db.DatabaseService
 	PlaylistDB          *playlist.PlaylistDB
 	PlaylistService     *playlist.PlaylistService
@@ -103,8 +105,18 @@ func (a *App) startup(ctx context.Context) {
 		}
 	}()
 
-	// Create database service ONCE
-	dbService, err := db.NewDatabaseService()
+	// Create configuration service FIRST
+	configService, err := config.NewConfigService()
+	if err != nil {
+		a.HandleFatalError("Failed to create configuration service: " + err.Error())
+	}
+	a.ConfigService = configService
+
+	// Create logging services EARLY so database service can use it
+	a.LogService = logging.NewLogService(a.mode)
+
+	// Create database service using configuration
+	dbService, err := db.NewDatabaseService(configService, a.LogService)
 	if err != nil {
 		a.HandleFatalError("Failed to create database service: " + err.Error())
 	}
@@ -112,9 +124,6 @@ func (a *App) startup(ctx context.Context) {
 
 	// Create SettingsService using dbService
 	a.SettingsService = settings.NewSettingsService(dbService)
-
-	// Create logging services
-	a.LogService = logging.NewLogService(a.mode)
 
 	// Create DaemonTrigger service
 	a.DaemonSignalService = daemonsignal.NewDaemonSignalService(a.SettingsService)
