@@ -11,12 +11,40 @@ A simple tool for archiving videos from playlists. Add videos to a playlist, and
 
 ## Installation
 
+### Linux
+
+**Quick Install (Recommended)**
+
+Run the installation script with a single command:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/NotCoffee418/videoarchiver/refs/heads/main/install.sh | bash
+```
+
+This will:
+- Download and install the latest Video Archiver binary
+- Set up a systemd daemon service for automatic playlist monitoring
+- Create a desktop menu entry
+- Automatically start the daemon and launch the UI
+
+**Manual Installation**
+
+Download the latest release for your platform from the [Releases page](https://github.com/NotCoffee418/videoarchiver/releases):
+
+- **Linux (amd64)**: `videoarchiver-linux-amd64` - For x86_64 systems
+
+### Windows
+
+Download the latest Windows installer from the [Releases page](https://github.com/NotCoffee418/videoarchiver/releases):
+
+- **Windows**: `videoarchiver-windows-installer.exe` - Full installer with NSIS
+
 ### Pre-built Binaries
 
 Download the latest release for your platform from the [Releases page](https://github.com/NotCoffee418/videoarchiver/releases):
 
-- **Windows**: `videoarchiver-vX.X.X-windows-installer.exe` - Full installer with NSIS
-- **Linux (amd64)**: `videoarchiver-vX.X.X-linux-amd64.tar.gz` - For x86_64 systems
+- **Windows**: `videoarchiver-windows-installer.exe` - Full installer with NSIS
+- **Linux (amd64)**: `videoarchiver-linux-amd64` - For x86_64 systems
 
 ### Building from Source
 

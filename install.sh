@@ -107,36 +107,12 @@ check_dependencies() {
     print_success "All required dependencies found."
 }
 
-# Get latest release version
-get_latest_version() {
-    print_info "Fetching latest release information..."
+# Get latest release information
+get_latest_release() {
+    print_info "Getting latest release information..."
     
-    # Use GitHub API to get latest release
-    LATEST_RELEASE=$(curl -s -w "%{http_code}" "https://api.github.com/repos/NotCoffee418/videoarchiver/releases/latest")
-    HTTP_CODE=$(echo "$LATEST_RELEASE" | tail -c 4)
-    RELEASE_DATA=$(echo "$LATEST_RELEASE" | sed '$ d')
-    
-    if [[ "$HTTP_CODE" != "200" ]]; then
-        print_error "Failed to fetch release information from GitHub (HTTP $HTTP_CODE)."
-        print_info "Falling back to latest known version..."
-        VERSION="v1.0.0"
-        print_warning "Using fallback version: $VERSION"
-    else
-        # Try multiple parsing methods
-        VERSION=$(echo "$RELEASE_DATA" | grep -o '"tag_name":"[^"]*"' | cut -d'"' -f4)
-        if [[ -z "$VERSION" ]]; then
-            VERSION=$(echo "$RELEASE_DATA" | sed -n 's/.*"tag_name":"\([^"]*\)".*/\1/p')
-        fi
-        
-        if [[ -z "$VERSION" ]]; then
-            print_error "Failed to parse version information."
-            print_info "Falling back to latest known version..."
-            VERSION="v1.0.0"
-            print_warning "Using fallback version: $VERSION"
-        else
-            print_info "Latest version: $VERSION"
-        fi
-    fi
+    # We don't need to parse version anymore, just download the latest assets
+    print_info "Using latest available release assets."
 }
 
 # Create installation directory
@@ -156,8 +132,8 @@ create_install_dir() {
 
 # Download binary
 download_binary() {
-    BINARY_NAME="videoarchiver-${VERSION}-linux-${ARCH_SUFFIX}"
-    DOWNLOAD_URL="https://github.com/NotCoffee418/videoarchiver/releases/download/${VERSION}/${BINARY_NAME}"
+    BINARY_NAME="videoarchiver-linux-${ARCH_SUFFIX}"
+    DOWNLOAD_URL="https://github.com/NotCoffee418/videoarchiver/releases/latest/download/${BINARY_NAME}"
     BINARY_PATH="$INSTALL_DIR/videoarchiver"
     
     print_info "Downloading Video Archiver binary..."
@@ -377,7 +353,7 @@ main() {
     detect_arch
     check_desktop_environment
     check_dependencies
-    get_latest_version
+    get_latest_release
     create_install_dir
     download_binary
     download_icon

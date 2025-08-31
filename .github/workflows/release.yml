@@ -60,7 +60,7 @@ jobs:
         run: |
           mkdir -p dist
           cd build/bin
-          cp videoarchiver ../../dist/videoarchiver-${{ steps.get_version.outputs.VERSION }}-linux-amd64
+          cp videoarchiver ../../dist/videoarchiver-linux-amd64
 
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
@@ -125,11 +125,11 @@ jobs:
           mkdir -p release-assets
           
           # Copy Linux binary
-          cp artifacts/linux-amd64-binary/videoarchiver-${{ steps.get_version.outputs.VERSION }}-linux-amd64 release-assets/
+          cp artifacts/linux-amd64-binary/videoarchiver-linux-amd64 release-assets/
           
           # Find and copy Windows installer (specifically look for -installer.exe)
           INSTALLER_PATH=$(find artifacts/windows-installer -name "*-installer.exe" | head -1)
-          cp "$INSTALLER_PATH" "release-assets/videoarchiver-${{ steps.get_version.outputs.VERSION }}-windows-installer.exe"
+          cp "$INSTALLER_PATH" "release-assets/videoarchiver-windows-installer.exe"
 
       - name: Create Release
         env:
