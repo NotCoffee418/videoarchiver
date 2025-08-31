@@ -65,6 +65,7 @@ VIAddVersionKey "ProductName"     "${INFO_PRODUCTNAME}"
 ManifestDPIAware true
 
 !include "MUI.nsh"
+!include "FileFunc.nsh"
 
 !define MUI_ICON "..\icon.ico"
 !define MUI_UNICON "..\icon.ico"
@@ -100,7 +101,62 @@ Function .onInit
 FunctionEnd
 
 Function LaunchUI
-    Exec '"$INSTDIR\${PRODUCT_EXECUTABLE}" --mode ui'
+    # Create a debug log to help diagnose the launch issue
+    SetOutPath $INSTDIR
+    
+    # Log the launch attempt
+    FileOpen $0 "$INSTDIR\launcher_debug.log" a
+    FileWrite $0 "LaunchUI called$\r$\n"
+    FileWrite $0 "Executable path: $INSTDIR\${PRODUCT_EXECUTABLE}$\r$\n"
+    FileWrite $0 "Working directory: $INSTDIR$\r$\n"
+    
+    # Check if executable exists
+    IfFileExists "$INSTDIR\${PRODUCT_EXECUTABLE}" file_exists file_missing
+    
+    file_exists:
+        FileWrite $0 "Executable file exists$\r$\n"
+        # Check if daemon is running by looking for lock file
+        IfFileExists "$INSTDIR\.lock" daemon_locked daemon_not_locked
+        
+        daemon_locked:
+            FileWrite $0 "Daemon lock file exists - waiting 5 seconds$\r$\n"
+            FileClose $0
+            Sleep 5000
+            FileOpen $0 "$INSTDIR\launcher_debug.log" a
+            FileWrite $0 "Wait completed, attempting launch$\r$\n"
+            Goto try_launch
+            
+        daemon_not_locked:
+            FileWrite $0 "No daemon lock found$\r$\n"
+            Goto try_launch
+            
+        try_launch:
+            # Try to launch with ExecWait to capture exit code
+            FileWrite $0 "Attempting to launch UI mode...$\r$\n"
+            ExecWait '"$INSTDIR\${PRODUCT_EXECUTABLE}" --mode ui' $R0
+            FileWrite $0 "Launch completed with exit code: $R0$\r$\n"
+            
+            # Also try regular Exec as backup if ExecWait fails
+            StrCmp $R0 "0" launch_success launch_failed
+            
+            launch_failed:
+                FileWrite $0 "ExecWait failed, trying regular Exec$\r$\n"
+                Exec '"$INSTDIR\${PRODUCT_EXECUTABLE}" --mode ui'
+                FileWrite $0 "Regular Exec attempted$\r$\n"
+                Goto done
+                
+            launch_success:
+                FileWrite $0 "Launch appears successful$\r$\n"
+                Goto done
+        
+    file_missing:
+        FileWrite $0 "ERROR: Executable file does not exist!$\r$\n"
+        Goto done
+        
+    done:
+        FileWrite $0 "LaunchUI function completed$\r$\n"
+        FileWrite $0 "---$\r$\n"
+        FileClose $0
 FunctionEnd
 
 Section
