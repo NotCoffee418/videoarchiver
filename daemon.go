@@ -206,43 +206,25 @@ func shouldStopIteration() bool {
 
 func downloadItem(dl *download.Download, pl *playlist.Playlist) {
 	fmt.Printf("Downloading new item: %s\n", dl.Url)
-	outputFilePath, err := app.DownloadService.DownloadFile(
+	downloadResult, err := app.DownloadService.DownloadFileWithDuplicateCheck(
 		dl.Url, pl.SaveDirectory, pl.OutputFormat)
 	if err != nil {
 		fmt.Printf("Error: Failed to download item %s: %v\n", dl.Url, err)
 		dl.SetFail(app.DownloadDB, err.Error())
 	} else {
-		// Calculate MD5 of downloaded file
-		md5, err := download.CalculateMD5(outputFilePath)
+		// Calculate MD5 of the file
+		md5, err := download.CalculateMD5(downloadResult.FilePath)
 		if err != nil {
 			fmt.Printf("Error: Failed to calculate MD5 for item %s: %v\n", dl.Url, err)
 			err = dl.SetFail(app.DownloadDB, fmt.Sprintf("Failed to calculate MD5: %v", err))
-			// Optionally delete the file if MD5 calculation fails
-			os.Remove(outputFilePath)
 		} else {
-			fmt.Printf("Download successful for item %s, saved to %s\n", dl.Url, outputFilePath)
-			fileName := filepath.Base(outputFilePath)
+			fileName := filepath.Base(downloadResult.FilePath)
 			
-			// Check for duplicate by MD5 hash
-			existingDownload, err := app.DownloadDB.CheckDuplicateByMD5(md5, fileName, dl.PlaylistID)
-			if err != nil {
-				fmt.Printf("Error checking for duplicates for item %s: %v\n", dl.Url, err)
-				err = dl.SetSuccess(app.DownloadDB, fileName, md5)
-			} else if existingDownload != nil {
-				// Check if the existing file still exists on disk
-				existingFilePath := filepath.Join(pl.SaveDirectory, existingDownload.OutputFilename.String)
-				if _, err := os.Stat(existingFilePath); err == nil {
-					fmt.Printf("Duplicate detected for item %s (matches existing file: %s)\n", dl.Url, existingDownload.OutputFilename.String)
-					// Remove the newly downloaded duplicate file
-					os.Remove(outputFilePath)
-					err = dl.SetSuccessDuplicate(app.DownloadDB, fileName, md5)
-				} else {
-					// Existing file no longer exists, proceed as normal download
-					fmt.Printf("Existing file %s no longer exists, proceeding as new download\n", existingFilePath)
-					err = dl.SetSuccess(app.DownloadDB, fileName, md5)
-				}
+			if downloadResult.IsDuplicate {
+				fmt.Printf("Duplicate detected for item %s (matches existing file: %s)\n", dl.Url, downloadResult.DuplicateOf)
+				err = dl.SetSuccessDuplicate(app.DownloadDB, downloadResult.DuplicateOf, md5)
 			} else {
-				// No duplicate found, proceed as normal
+				fmt.Printf("Download successful for item %s, saved to %s\n", dl.Url, downloadResult.FilePath)
 				err = dl.SetSuccess(app.DownloadDB, fileName, md5)
 			}
 		}
