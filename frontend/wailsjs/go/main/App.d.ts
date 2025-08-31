@@ -3,6 +3,8 @@
 import {playlist} from '../models';
 import {download} from '../models';
 
+export function CloseApplication():Promise<void>;
+
 export function DeletePlaylist(arg1:number):Promise<void>;
 
 export function DirectDownload(arg1:string,arg2:string,arg3:string):Promise<string>;
@@ -14,6 +16,8 @@ export function GetClipboard():Promise<string>;
 export function GetDaemonLogLines(arg1:number):Promise<Array<string>>;
 
 export function GetDownloadHistoryPage(arg1:number,arg2:number,arg3:boolean,arg4:boolean):Promise<Array<download.Download>>;
+
+export function GetLegalDisclaimerAccepted():Promise<boolean>;
 
 export function GetRecentLogs():Promise<Array<any>>;
 
@@ -32,6 +36,8 @@ export function OpenDirectory(arg1:string):Promise<void>;
 export function RegisterAllFailedForRetryManual():Promise<void>;
 
 export function SelectDirectory():Promise<string>;
+
+export function SetLegalDisclaimerAccepted(arg1:boolean):Promise<void>;
 
 export function SetManualRetry(arg1:number):Promise<void>;
 
