@@ -3,9 +3,8 @@ package utils
 import (
 	"context"
 	"fmt"
-	"os/exec"
 	"runtime"
-	"syscall"
+	"videoarchiver/backend/domains/runner"
 
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -36,18 +35,11 @@ func (u *Utils) SelectDirectory() (string, error) {
 func (u *Utils) OpenDirectory(path string) error {
 	switch runtime.GOOS {
 	case "windows":
-		cmd := exec.Command("explorer", path)
-		cmd.SysProcAttr = &syscall.SysProcAttr{
-			HideWindow: true,
-		}
-		return cmd.Start()
-
+		return runner.StartDetached("explorer", path)
 	case "darwin":
-		cmd := exec.Command("open", path) // macOS Finder
-		return cmd.Start()
+		return runner.StartDetached("open", path) // macOS Finder
 	case "linux":
-		cmd := exec.Command("xdg-open", path) // Linux file manager
-		return cmd.Start()
+		return runner.StartDetached("xdg-open", path) // Linux file manager
 	default:
 		return fmt.Errorf("unsupported platform")
 	}
