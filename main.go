@@ -41,7 +41,7 @@ func runDaemon(app *App) {
 	earlyLogger := logging.NewLogService("daemon")
 	defer earlyLogger.Close()
 	
-	// Handle daemon locking before initialization
+	// Handle daemon locking before initialization - but only check, don't create yet
 	earlyLogger.Info("Checking for existing daemon instances...")
 	
 	// Check if lock already exists
@@ -57,26 +57,8 @@ func runDaemon(app *App) {
 		os.Exit(0)
 	}
 
-	// Create lock file
-	if err := lockfile.CreateLock(); err != nil {
-		earlyLogger.Error(fmt.Sprintf("Failed to create lock file: %v", err))
-		os.Exit(1)
-	}
-
-	// Ensure lock is removed on exit
-	defer func() {
-		if err := lockfile.RemoveLock(); err != nil {
-			earlyLogger.Warn(fmt.Sprintf("Failed to remove lock file: %v", err))
-		}
-	}()
-
 	earlyLogger.Info("Initializing application")
 	app.startup(context.Background())
-
-	// Remove lock after successful startup
-	if err := lockfile.RemoveLock(); err != nil {
-		app.LogService.Warn(fmt.Sprintf("Failed to remove lock file after startup: %v", err))
-	}
 	
 	app.LogService.Info("Daemon starting")
 	startDaemonLoop(app)
