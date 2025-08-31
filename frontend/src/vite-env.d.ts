@@ -36,6 +36,9 @@ declare global {
             arg3: boolean,
             arg4: boolean
           ) => Promise<Array<any>>;
+          GetRecentLogs: () => Promise<Array<any>>;
+          GetDaemonLogLines: (arg1: number) => Promise<Array<string>>;
+          GetUILogLines: (arg1: number) => Promise<Array<string>>;
           SetManualRetry: (downloadId: number) => Promise<void>;
           RegisterAllFailedForRetryManual: () => Promise<void>;
           StartDaemon: () => Promise<void>;
