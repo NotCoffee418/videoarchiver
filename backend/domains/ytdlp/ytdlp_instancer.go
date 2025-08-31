@@ -1,19 +1,17 @@
 package ytdlp
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
-	"syscall"
 	"time"
 	"videoarchiver/backend/domains/pathing"
+	"videoarchiver/backend/domains/runner"
 
 	"github.com/mholt/archives"
 )
@@ -52,26 +50,14 @@ func runCommand(args ...string) (string, error) {
 
 	// print command
 	fmt.Println("Running command:", ytdlpPath, strings.Join(args, " "))
-	cmd := exec.Command(ytdlpPath, args...)
-
-	// Hide console window on Windows
-	if runtime.GOOS == "windows" {
-		cmd.SysProcAttr = &syscall.SysProcAttr{
-			HideWindow: true,
-		}
-	}
-
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-
-	err = cmd.Run()
+	
+	stdout, stderr, err := runner.RunWithOutput(ytdlpPath, args...)
 	if err != nil {
-		return stdout.String(), fmt.Errorf("%s: %s", err, stderr.String())
+		return stdout, fmt.Errorf("%s: %s", err, stderr)
 	}
 
-	stdoutStr := strings.TrimSpace(stdout.String())
-	stderrStr := strings.TrimSpace(stderr.String())
+	stdoutStr := strings.TrimSpace(stdout)
+	stderrStr := strings.TrimSpace(stderr)
 
 	if stderrStr != "" {
 		return stdoutStr, fmt.Errorf("ytdlp command failed: %s", stderrStr)
@@ -369,18 +355,8 @@ func fileExists(path string) bool {
 }
 
 func ffmpegCorruptionCheck(ffmpegPath string) error {
-	// Create the command
-	cmd := exec.Command(ffmpegPath, "-version")
-
-	// Hide console window on Windows
-	if runtime.GOOS == "windows" {
-		cmd.SysProcAttr = &syscall.SysProcAttr{
-			HideWindow: true,
-		}
-	}
-
 	// Run the command and capture output
-	_, err := cmd.CombinedOutput()
+	_, err := runner.RunCombinedOutput(ffmpegPath, "-version")
 	if err != nil {
 		return fmt.Errorf("ffmpeg corruption check failed, reinstalling: %v", err)
 	}
@@ -388,18 +364,8 @@ func ffmpegCorruptionCheck(ffmpegPath string) error {
 }
 
 func ffprobeCorruptionCheck(ffprobePath string) error {
-	// Create the command
-	cmd := exec.Command(ffprobePath, "-version")
-
-	// Hide console window on Windows
-	if runtime.GOOS == "windows" {
-		cmd.SysProcAttr = &syscall.SysProcAttr{
-			HideWindow: true,
-		}
-	}
-
 	// Run the command and capture output
-	_, err := cmd.CombinedOutput()
+	_, err := runner.RunCombinedOutput(ffprobePath, "-version")
 	if err != nil {
 		return fmt.Errorf("ffprobe corruption check failed, reinstalling: %v", err)
 	}
