@@ -22,6 +22,7 @@
             case 4: return "Failed (Given Up)";
             case 5: return "Success (Playlist Removed)";
             case 6: return "Failed (Playlist Removed)";
+            case 7: return "Duplicate";
             default: return "Unknown";
         }
     }
@@ -51,6 +52,11 @@
             case 6: return {
                 enabled: false,
                 message: "Download failed and playlist was removed",
+                messageClass: "passive"
+            };
+            case 7: return {
+                enabled: false,
+                message: "Duplicate",
                 messageClass: "passive"
             };
             default: return { 
@@ -206,17 +212,19 @@
                 <div class="empty-state">No history</div>
             {:else}
                 {#each downloads as d}
-                    <div class="history-item {d.status === 1 || d.status === 5 ? 'success' : 'failed'}">
+                    <div class="history-item {d.status === 1 || d.status === 5 || d.status === 7 ? 'success' : 'failed'}">
                         <div class="status-ico" title={statusLabel(d.status)}>
-                            {#if d.status === 1 || d.status === 5}✅{:else}❌{/if}
+                            {#if d.status === 1 || d.status === 5 || d.status === 7}✅{:else}❌{/if}
                         </div>
 
-                        {#if d.status === 1 || d.status === 5}
+                        {#if d.status === 1 || d.status === 5 || d.status === 7}
                             <!-- Success layout -->
                             <div class="content">
                                 <div class="title">{displayTitle(d)}</div>
                                 {#if d.status === 5}
                                     <div class="retry-status passive">Download succeeded but playlist was removed</div>
+                                {:else if d.status === 7}
+                                    <div class="retry-status passive">Duplicate</div>
                                 {/if}
                                 <div class="meta-section">
                                     <div class="actions">

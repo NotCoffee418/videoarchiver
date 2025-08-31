@@ -206,23 +206,27 @@ func shouldStopIteration() bool {
 
 func downloadItem(dl *download.Download, pl *playlist.Playlist) {
 	app.LogService.Info(fmt.Sprintf("Downloading new item: %s", dl.Url))
-	outputFilePath, err := app.DownloadService.DownloadFile(
+	downloadResult, err := app.DownloadService.DownloadFileWithDuplicateCheck(
 		dl.Url, pl.SaveDirectory, pl.OutputFormat)
 	if err != nil {
 		app.LogService.Error(fmt.Sprintf("Failed to download item %s: %v", dl.Url, err))
 		dl.SetFail(app.DownloadDB, err.Error())
 	} else {
-		// Calculate MD5 of downloaded file
-		md5, err := download.CalculateMD5(outputFilePath)
+		// Calculate MD5 of the file
+		md5, err := download.CalculateMD5(downloadResult.FilePath)
 		if err != nil {
 			app.LogService.Error(fmt.Sprintf("Failed to calculate MD5 for item %s: %v", dl.Url, err))
 			err = dl.SetFail(app.DownloadDB, fmt.Sprintf("Failed to calculate MD5: %v", err))
-			// Optionally delete the file if MD5 calculation fails
-			os.Remove(outputFilePath)
 		} else {
-			app.LogService.Info(fmt.Sprintf("Download successful for item %s, saved to %s", dl.Url, outputFilePath))
-			fileName := filepath.Base(outputFilePath)
-			err = dl.SetSuccess(app.DownloadDB, fileName, md5)
+			fileName := filepath.Base(downloadResult.FilePath)
+			
+			if downloadResult.IsDuplicate {
+				fmt.Printf("Duplicate detected for item %s (matches existing file: %s)\n", dl.Url, downloadResult.DuplicateOf)
+				err = dl.SetSuccessDuplicate(app.DownloadDB, downloadResult.DuplicateOf, md5)
+			} else {
+				fmt.Printf("Download successful for item %s, saved to %s\n", dl.Url, downloadResult.FilePath)
+				err = dl.SetSuccess(app.DownloadDB, fileName, md5)
+			}
 		}
 
 		// Handle DB errors

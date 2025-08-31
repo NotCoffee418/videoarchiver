@@ -37,7 +37,7 @@ func (d *DownloadDB) GetDownloadsForPlaylist(playlistId int) ([]Download, error)
 func (d *DownloadDB) GetDownloadHistoryPage(offset, limit int, showSuccess, showFailed bool) ([]Download, error) {
 	var statuses []int
 	if showSuccess {
-		statuses = append(statuses, StSuccess, StSuccessPlaylistRemoved)
+		statuses = append(statuses, StSuccess, StSuccessPlaylistRemoved, StSuccessDuplicate)
 	}
 	if showFailed {
 		statuses = append(statuses, StFailedAutoRetry, StFailedManualRetry, StFailedGiveUp, StFailedPlaylistRemoved)
@@ -85,6 +85,23 @@ func (d *DownloadDB) scanRows(rows *sql.Rows) ([]Download, error) {
 
 func (d *Download) SetSuccess(dlDB *DownloadDB, outputFilename string, md5 string) error {
 	d.Status = StSuccess
+	d.MD5 = sql.NullString{String: md5, Valid: true}
+	d.OutputFilename = sql.NullString{String: outputFilename, Valid: true}
+	d.FailMessage = sql.NullString{String: "", Valid: false}
+	d.AttemptCount += 1
+	d.LastAttempt = time.Now().Unix()
+
+	var err error
+	if d.ID == 0 {
+		err = d.insertDownload(dlDB)
+	} else {
+		err = d.updateDownload(dlDB)
+	}
+	return err
+}
+
+func (d *Download) SetSuccessDuplicate(dlDB *DownloadDB, outputFilename string, md5 string) error {
+	d.Status = StSuccessDuplicate
 	d.MD5 = sql.NullString{String: md5, Valid: true}
 	d.OutputFilename = sql.NullString{String: outputFilename, Valid: true}
 	d.FailMessage = sql.NullString{String: "", Valid: false}
