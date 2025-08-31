@@ -148,7 +148,7 @@ RequestExecutionLevel "${REQUEST_EXECUTION_LEVEL}"
     # Force close any running instances of the application
     # Use /F to force and /T to terminate child processes  
     # Ignore errors (process might not be running)
-    ExecWait 'taskkill /F /IM "${PRODUCT_EXECUTABLE}" /T' $0
+    ExecWait 'taskkill /F /IM "${PRODUCT_EXECUTABLE}" /T'
     
     # Small delay to let processes close cleanly
     Sleep 2000
