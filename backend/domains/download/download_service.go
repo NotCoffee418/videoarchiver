@@ -15,11 +15,20 @@ import (
 	"videoarchiver/backend/domains/ytdlp"
 )
 
+// LogServiceInterface defines the logging interface to avoid circular imports
+type LogServiceInterface interface {
+	Debug(message string)
+	Info(message string)
+	Warn(message string)
+	Error(message string)
+}
+
 type DownloadService struct {
 	ctx                 context.Context
 	settingsService     *settings.SettingsService
 	downloadDB          *DownloadDB
 	daemonSignalService *daemonsignal.DaemonSignalService
+	logService          LogServiceInterface
 }
 
 const (
@@ -32,12 +41,14 @@ func NewDownloadService(
 	settingsService *settings.SettingsService,
 	downloadDB *DownloadDB,
 	daemonSignalService *daemonsignal.DaemonSignalService,
+	logService LogServiceInterface,
 ) *DownloadService {
 	return &DownloadService{
 		ctx:                 ctx,
 		settingsService:     settingsService,
 		downloadDB:          downloadDB,
 		daemonSignalService: daemonSignalService,
+		logService:          logService,
 	}
 }
 
@@ -64,7 +75,7 @@ func (d *DownloadService) DownloadFileWithDuplicateCheck(url, directory, format 
 	defer os.Remove(tmpFile)
 
 	// Download to temp path
-	outputString, err := ytdlp.DownloadFile(d.settingsService, url, tmpFile, format)
+	outputString, err := ytdlp.DownloadFile(d.settingsService, url, tmpFile, format, d.logService)
 	if err != nil {
 		return nil, fmt.Errorf("%s%w", ErrDownloadErrorBase, err)
 	}

@@ -130,6 +130,7 @@ func (a *App) startup(ctx context.Context) {
 		a.SettingsService,
 		a.DownloadDB,
 		a.DaemonSignalService,
+		a.LogService,
 	)
 
 	// Init utils with context
