@@ -34,6 +34,8 @@ Unicode true
 ####
 !include "wails_tools.nsh"
 
+
+
 ## Define custom macro for closing running processes
 ####
 !macro wails.closeRunningProcesses
@@ -79,6 +81,7 @@ ManifestDPIAware true
 !insertmacro MUI_PAGE_INSTFILES # Installing page.
 !insertmacro MUI_PAGE_FINISH # Finished installation page.
 
+!insertmacro MUI_UNPAGE_COMPONENTS # Uninstall components page
 !insertmacro MUI_UNPAGE_INSTFILES # Uinstalling page
 
 !insertmacro MUI_LANGUAGE "English" # Set the Language of the installer
@@ -128,14 +131,19 @@ Section
     !insertmacro wails.writeUninstaller
 SectionEnd
 
-Section "uninstall"
+# Uninstall sections
+Section "un.Uninstall Application" SEC_REMOVE_APP
+    SectionIn RO # This section is mandatory
+    
     !insertmacro wails.setShellContext
 
     !insertmacro wails.closeRunningProcesses
 
     RMDir /r "$AppData\${PRODUCT_EXECUTABLE}" # Remove the WebView2 DataPath
 
-    RMDir /r $INSTDIR
+    # Remove application files, but preserve data files if user chose to keep them
+    Push $INSTDIR
+    Call un.RemoveApplicationFiles
 
     Delete "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk"
     Delete "$DESKTOP\${INFO_PRODUCTNAME}.lnk"
@@ -147,3 +155,57 @@ Section "uninstall"
 
     !insertmacro wails.deleteUninstaller
 SectionEnd
+
+Section /o "un.Remove User Data (config.json and *.sqlite files)" SEC_REMOVE_DATA
+    # This section removes user data files (config.json and *.sqlite)
+    Delete "$INSTDIR\config.json"
+    Delete "$INSTDIR\*.sqlite"
+    
+    # Remove the installation directory if it's empty now
+    RMDir $INSTDIR
+SectionEnd
+
+# Function to remove application files while preserving user data
+Function un.RemoveApplicationFiles
+    Pop $R0 # Installation directory
+    
+    # Check if user chose to keep data
+    SectionGetFlags ${SEC_REMOVE_DATA} $R1
+    IntOp $R1 $R1 & ${SF_SELECTED}
+    
+    # If user data removal is NOT selected, preserve data files
+    IntCmp $R1 0 preserve_data remove_all preserve_data
+    
+    remove_all:
+        # Remove everything
+        RMDir /r "$R0"
+        Goto done
+    
+    preserve_data:
+        # Remove all files except config.json and *.sqlite
+        Push "$R0"
+        Call un.RemoveAllExceptData
+    
+    done:
+FunctionEnd
+
+# Function to remove all files except data files
+Function un.RemoveAllExceptData
+    Pop $R0 # Directory path
+    
+    # Remove the executable and other application files
+    Delete "$R0\${PRODUCT_EXECUTABLE}"
+    Delete "$R0\uninstall.exe"
+    
+    # Remove any subdirectories that are not user data
+    # Note: We preserve the root directory and any user data files (*.sqlite, config.json)
+    # This conservative approach only removes known application files
+    
+    # The directory will remain with user data files intact
+FunctionEnd
+
+# Set default selections for uninstall components
+Function un.onInit
+    # By default, keep user data (don't select the remove data section)
+    # The remove application section is always selected (RO)
+FunctionEnd
