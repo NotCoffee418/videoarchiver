@@ -1,0 +1,3 @@
+{"level":"info","mode":"ui","msg":"Application startup completed successfully","time":"2025-08-31T11:07:21Z","timestamp":"2025-08-31T11:07:21Z","verbosity":"info"}
+{"level":"debug","mode":"ui","msg":"Debug logging system test","time":"2025-08-31T11:07:21Z","timestamp":"2025-08-31T11:07:21Z","verbosity":"debug"}
+{"level":"warning","mode":"ui","msg":"Warning logging system test","time":"2025-08-31T11:07:21Z","timestamp":"2025-08-31T11:07:21Z","verbosity":"warning"}

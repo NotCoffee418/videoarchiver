@@ -3,6 +3,7 @@ package logging
 import (
 	"io"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -12,6 +13,8 @@ type LogService struct {
 	logDB  *LogDB
 	logger *logrus.Logger
 	mode   string
+	file   *os.File
+	mu     sync.Mutex
 }
 
 // NewLogService creates a new log service with mode-specific log files
@@ -29,26 +32,37 @@ func NewLogService(logDB *LogDB, mode string) *LogService {
 
 	// Write logs to both file and stdout
 	file, err := os.OpenFile(logFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	var multiWriter io.Writer
 	if err == nil {
 		// Multi-writer to write to both file and stdout
-		multiWriter := io.MultiWriter(file, os.Stdout)
+		multiWriter = io.MultiWriter(file, os.Stdout)
 		logger.SetOutput(multiWriter)
 	} else {
 		logger.SetOutput(os.Stdout)
+		file = nil
 	}
 
 	logger.SetFormatter(&logrus.JSONFormatter{}) // Structured logs
 	logger.SetLevel(logrus.DebugLevel)           // Default level
 
-	return &LogService{
+	service := &LogService{
 		logDB:  logDB,
 		logger: logger,
 		mode:   mode,
+		file:   file,
 	}
+
+	// Test log entry to verify logging is working
+	service.Info("LogService initialized for mode: " + mode)
+	
+	return service
 }
 
 // Logs to database, stdout, and file (if enabled)
 func (l *LogService) Log(verbosity logrus.Level, message string) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	
 	timestamp := time.Now()
 	logEntry := l.logger.WithFields(logrus.Fields{
 		"verbosity": verbosity,
@@ -58,10 +72,26 @@ func (l *LogService) Log(verbosity logrus.Level, message string) {
 
 	logEntry.Log(verbosity, message)
 
+	// Force sync to disk if file is available
+	if l.file != nil {
+		l.file.Sync()
+	}
+
 	// Store in database if logDB is available
 	if l.logDB != nil {
 		l.logDB.AddLog(int(verbosity), message)
 	}
+}
+
+// Close closes the log file
+func (l *LogService) Close() error {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	
+	if l.file != nil {
+		return l.file.Close()
+	}
+	return nil
 }
 
 // Info logs an info level message
