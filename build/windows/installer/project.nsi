@@ -100,8 +100,7 @@ Function .onInit
 FunctionEnd
 
 Function LaunchUI
-    SetOutPath "$INSTDIR"
-    ExecShell "" '"$INSTDIR\${PRODUCT_EXECUTABLE}"'
+    Exec '"$INSTDIR\${PRODUCT_EXECUTABLE}" --mode ui'
 FunctionEnd
 
 Section
