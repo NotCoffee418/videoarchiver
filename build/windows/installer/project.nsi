@@ -21,7 +21,7 @@ Unicode true
 ####
 ## !define INFO_PROJECTNAME    "MyProject" # Default "{{.Name}}"
 ## !define INFO_COMPANYNAME    "MyCompany" # Default "{{.Info.CompanyName}}"
-## !define INFO_PRODUCTNAME    "MyProduct" # Default "{{.Info.ProductName}}"
+!define INFO_PRODUCTNAME    "Video Archiver" # Override default to use proper display name
 ## !define INFO_PRODUCTVERSION "1.0.0"     # Default "{{.Info.ProductVersion}}"
 ## !define INFO_COPYRIGHT      "Copyright" # Default "{{.Info.Copyright}}"
 ###
@@ -101,6 +101,9 @@ Function .onInit
 FunctionEnd
 
 Function LaunchUI
+    # Wait a moment for daemon to complete startup before launching UI
+    # The daemon was started immediately after installation, so we need to give it time
+    Sleep 3000
     Exec '"$INSTDIR\${PRODUCT_EXECUTABLE}" --mode ui'
 FunctionEnd
 
