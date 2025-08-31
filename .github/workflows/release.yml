@@ -101,7 +101,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-installer
-          path: build/bin/*.exe
+          path: build/bin/*-installer.exe
 
   create-release:
     needs: [build-linux, build-windows]
@@ -127,8 +127,8 @@ jobs:
           # Copy Linux binary
           cp artifacts/linux-amd64-binary/videoarchiver-${{ steps.get_version.outputs.VERSION }}-linux-amd64 release-assets/
           
-          # Find and copy Windows installer with proper name
-          INSTALLER_PATH=$(find artifacts/windows-installer -name "*.exe" | head -1)
+          # Find and copy Windows installer (specifically look for -installer.exe)
+          INSTALLER_PATH=$(find artifacts/windows-installer -name "*-installer.exe" | head -1)
           cp "$INSTALLER_PATH" "release-assets/videoarchiver-${{ steps.get_version.outputs.VERSION }}-windows-installer.exe"
 
       - name: Create Release
