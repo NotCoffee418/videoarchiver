@@ -1,0 +1,34 @@
+# Copilot Coding Agent Configuration
+
+instructions:
+  pull_request:
+    title:
+      style: concise
+      description: "Titles should clearly describe the main change."
+    description:
+      style: detailed
+      description: "Explain why the change is needed and reference related issues if possible."
+    labels:
+      required: ["copilot"]
+      optional: ["enhancement", "bugfix"]
+    reviewers:
+      default: ["NotCoffee418"]
+
+  coding:
+    commit_message:
+      style: conventional
+      description: "Use Conventional Commits format (e.g., feat:, fix:, chore:)."
+    branch_naming:
+      pattern: "copilot/*"
+      description: "Branches created by Copilot should be prefixed with 'copilot/'."
+
+constraints:
+  changes:
+    prohibited_paths:
+      - ".env"
+    respect_gitignore: true
+
+preferences:
+  ai_model: "claude"
+
+# End of configuration
