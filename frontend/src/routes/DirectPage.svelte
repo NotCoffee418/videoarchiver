@@ -2,11 +2,11 @@
     import LoadingSpinner from "../components/LoadingSpinner.svelte";
     import SelectDirectoryButton from "../components/SelectDirectoryButton.svelte";
 
-    let format = "mp3";
-    let url = "";
-    let directory = "";
-    let isDownloading = false;
-    let error = "";
+    let format = $state("mp3");
+    let url = $state("");
+    let directory = $state("");
+    let isDownloading = $state(false);
+    let error = $state("");
 
     async function selectDirectory(path) {
         directory = path;

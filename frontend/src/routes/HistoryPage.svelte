@@ -2,17 +2,17 @@
     import { onMount, onDestroy } from "svelte";
     import LoadingSpinner from "../components/LoadingSpinner.svelte";
 
-    let downloads = [];
-    let offset = 0;
-    let limit = 10; // Changed from 10 to 2 for testing
-    let loading = false;
-    let error = "";
+    let downloads = $state([]);
+    let offset = $state(0);
+    let limit = $state(10); // Changed from 10 to 2 for testing
+    let loading = $state(false);
+    let error = $state("");
 
     // ids currently retrying
-    let retrying = new Set();
+    let retrying = $state(new Set());
 
-    let showFailed = true;
-    let showSuccessful = true;
+    let showFailed = $state(true);
+    let showSuccessful = $state(true);
 
     function statusLabel(s) {
         switch (s) {
@@ -141,12 +141,14 @@
         }
     });
 
-    $: nextDisabled = downloads.length < limit;
-    $: pageNumber = Math.floor(offset / limit) + 1;
+    let nextDisabled = $derived(downloads.length < limit);
+    let pageNumber = $derived(Math.floor(offset / limit) + 1);
 
-    $: if (showFailed !== undefined && showSuccessful !== undefined) {
-        onFilterChange();
-    }
+    $effect(() => {
+        if (showFailed !== undefined && showSuccessful !== undefined) {
+            onFilterChange();
+        }
+    });
 
     function displayTitle(d) {
         return d.output_filename?.String ?? (d.url?.split?.("/").pop() ?? "Untitled");
@@ -159,7 +161,7 @@
         return new Date(n * 1000).toLocaleString(); // multiply by 1000 to convert seconds to milliseconds
     }
 
-    let retryAllCooldown = false;
+    let retryAllCooldown = $state(false);
 
     async function onRetryAll() {
         if (retryAllCooldown) return;
@@ -192,7 +194,7 @@
         </label>
         <button 
             class="retry-all-btn" 
-            on:click={onRetryAll} 
+            onclick={onRetryAll} 
             disabled={retryAllCooldown}>
             {#if retryAllCooldown}
                 Retry All Cooldown...
@@ -228,9 +230,9 @@
                                 {/if}
                                 <div class="meta-section">
                                     <div class="actions">
-                                        <a href="/" on:click|preventDefault={() => copyToClipboard(d.url)}>Copy URL</a>
+                                        <a href="/" onclick={(e) => { e.preventDefault(); copyToClipboard(d.url); }}>Copy URL</a>
                                         <span class="separator">|</span>
-                                        <a href="/" on:click|preventDefault={() => copyToClipboard(d.output_filename.String)}>Copy File Path</a>
+                                        <a href="/" onclick={(e) => { e.preventDefault(); copyToClipboard(d.output_filename.String); }}>Copy File Path</a>
                                     </div>
                                     <div class="timestamp">{formatTimestamp(d.last_attempt)}</div>
                                 </div>
@@ -242,7 +244,7 @@
                                 <div class="retry-section">
                                     <button 
                                         class="retry-btn" 
-                                        on:click={() => onRetry(d)} 
+                                        onclick={() => onRetry(d)} 
                                         disabled={retrying.has(d.id) || d.status === 3 || d.status === 5 || d.status === 6 || !retryState.enabled}>
                                         {#if retrying.has(d.id)}Retrying...{:else}Retry Download{/if}
                                     </button>
@@ -260,10 +262,10 @@
 
                                 <div class="meta-section">
                                     <div class="actions">
-                                        <a href="/" on:click|preventDefault={() => copyToClipboard(d.url)}>Copy URL</a>
+                                        <a href="/" onclick={(e) => { e.preventDefault(); copyToClipboard(d.url); }}>Copy URL</a>
                                         {#if d.output_filename?.Valid}
                                             <span class="separator">|</span>
-                                            <a href="/" on:click|preventDefault={() => copyToClipboard(d.output_filename.String)}>Copy File Path</a>
+                                            <a href="/" onclick={(e) => { e.preventDefault(); copyToClipboard(d.output_filename.String); }}>Copy File Path</a>
                                         {/if}
                                     </div>
                                     <div class="timestamp">{formatTimestamp(d.last_attempt)}</div>
@@ -276,9 +278,9 @@
         </div>
 
         <div class="pagination">
-            <button on:click={prevPage} disabled={offset === 0}>Previous</button>
+            <button onclick={prevPage} disabled={offset === 0}>Previous</button>
             <div class="page-info">Page {pageNumber}</div>
-            <button on:click={nextPage} disabled={nextDisabled}>Next</button>
+            <button onclick={nextPage} disabled={nextDisabled}>Next</button>
         </div>
     {/if}
 </div>
