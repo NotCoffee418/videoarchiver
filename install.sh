@@ -83,23 +83,7 @@ detect_arch() {
     esac
 }
 
-# Check for desktop environment
-check_desktop_environment() {
-    if [[ -z "$DISPLAY" && -z "$WAYLAND_DISPLAY" ]]; then
-        print_warning "No desktop environment detected."
-        print_warning "The application requires a desktop environment to run in UI mode."
-        print_warning "You can still use daemon mode, but UI features will not be available."
-        
-        read -p "Continue anyway? (y/N): " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            print_info "Installation cancelled."
-            exit 0
-        fi
-    else
-        print_info "Desktop environment detected."
-    fi
-}
+
 
 # Check for required dependencies and install WebKit if needed
 check_dependencies() {
@@ -271,6 +255,27 @@ download_binary() {
     
     print_info "Downloading Video Archiver binary..."
     print_info "URL: $DOWNLOAD_URL"
+    
+    # Check if service exists and stop it before updating binary
+    SERVICE_FILE="$HOME/.config/systemd/user/video-archiver.service"
+    if [[ -f "$SERVICE_FILE" ]]; then
+        print_info "Existing installation detected. Stopping service before update..."
+        
+        # Check if service is active and stop it
+        if systemctl --user is-active --quiet video-archiver.service 2>/dev/null; then
+            print_info "Stopping video-archiver service..."
+            systemctl --user stop video-archiver.service
+            
+            if [[ $? -eq 0 ]]; then
+                print_success "Service stopped successfully."
+            else
+                print_warning "Failed to stop service, but continuing with update..."
+            fi
+        fi
+        
+        # Wait a moment for the service to fully stop
+        sleep 1
+    fi
     
     # Download with better error handling
     HTTP_CODE=$(curl -L -w "%{http_code}" -o "$BINARY_PATH" "$DOWNLOAD_URL")
@@ -484,7 +489,6 @@ main() {
     check_root
     detect_os
     detect_arch
-    check_desktop_environment
     check_dependencies
     get_latest_release
     create_install_dir
