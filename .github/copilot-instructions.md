@@ -62,6 +62,38 @@ Key components:
 - `wails dev` - Development mode (set 30+ minute timeout)
 - `wails build` - Production build (15-20 minutes)
 
+## Frontend-Backend Interop
+
+**TypeScript Definitions for Wails Bindings:**
+
+When adding new exported functions to `app.go` that will be called from the frontend, you must also add corresponding TypeScript definitions to `frontend/src/vite-env.d.ts`.
+
+**Process:**
+1. Add your public function to `app.go` (functions that start with capital letters are automatically bound by Wails)
+2. Add the corresponding TypeScript definition to `vite-env.d.ts` in the `App` interface
+
+**TypeScript Mapping Patterns:**
+- Go `func() error` → TypeScript `() => Promise<void>`
+- Go `func() (string, error)` → TypeScript `() => Promise<string>`
+- Go `func() ([]Type, error)` → TypeScript `() => Promise<Array<any>>` (or specific type if available)
+- Go `func(param string) error` → TypeScript `(arg1: string) => Promise<void>`
+- Go `func(id int, name string) error` → TypeScript `(arg1: number, arg2: string) => Promise<void>`
+
+**Example:**
+```go
+// In app.go
+func (a *App) GetUserName(id int) (string, error) {
+    // implementation
+}
+```
+
+```typescript
+// In frontend/src/vite-env.d.ts
+GetUserName: (arg1: number) => Promise<string>;
+```
+
+This ensures proper TypeScript support and IDE autocompletion for Wails backend calls from the Svelte frontend.
+
 ## No Testing Available
 
 - No unit tests exist in this repository
