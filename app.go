@@ -322,6 +322,22 @@ func (a *App) SetSettingPreparsed(key string, value string) error {
 
 }
 
+func (a *App) GetLegalDisclaimerAccepted() (bool, error) {
+	value, err := a.SettingsService.GetSettingString("legal_disclaimer_accepted")
+	if err != nil {
+		return false, err
+	}
+	return value == "true", nil
+}
+
+func (a *App) SetLegalDisclaimerAccepted(accepted bool) error {
+	value := "false"
+	if accepted {
+		value = "true"
+	}
+	return a.SettingsService.SetPreparsed("legal_disclaimer_accepted", value)
+}
+
 func (a *App) DirectDownload(url, directory, format string) (string, error) {
 	return a.DownloadService.DownloadFile(url, directory, format)
 }
