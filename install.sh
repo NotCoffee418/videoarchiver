@@ -42,10 +42,25 @@ check_root() {
     fi
 }
 
-# Detect operating system
+# Detect operating system and distribution
 detect_os() {
     if [[ "$OSTYPE" == "linux-gnu"* ]]; then
         OS="linux"
+        
+        # Detect Linux distribution
+        if [[ -f /etc/os-release ]]; then
+            . /etc/os-release
+            DISTRO=$ID
+            DISTRO_VERSION=$VERSION_ID
+        elif [[ -f /etc/redhat-release ]]; then
+            DISTRO="rhel"
+        elif [[ -f /etc/debian_version ]]; then
+            DISTRO="debian"
+        else
+            DISTRO="unknown"
+        fi
+        
+        print_info "Detected Linux distribution: $DISTRO"
     else
         print_error "Unsupported operating system: $OSTYPE"
         print_error "This installer only supports Linux systems."
@@ -86,7 +101,7 @@ check_desktop_environment() {
     fi
 }
 
-# Check for required dependencies
+# Check for required dependencies and install WebKit if needed
 check_dependencies() {
     print_info "Checking for required dependencies..."
     
@@ -104,7 +119,125 @@ check_dependencies() {
         exit 1
     fi
     
-    print_success "All required dependencies found."
+    print_success "Basic dependencies found."
+    
+    # Check and install WebKit dependencies based on distribution
+    install_webkit_dependencies
+}
+
+# Install WebKit dependencies based on distribution
+install_webkit_dependencies() {
+    print_info "Checking WebKit dependencies..."
+    
+    case "$DISTRO" in
+        ubuntu|debian)
+            install_webkit_ubuntu_debian
+            ;;
+        fedora)
+            install_webkit_fedora
+            ;;
+        rhel|centos|rocky|almalinux)
+            install_webkit_rhel
+            ;;
+        *)
+            print_warning "Unknown distribution '$DISTRO'. WebKit dependencies may need to be installed manually."
+            print_warning "Required packages: webkit2gtk development libraries"
+            read -p "Continue anyway? (y/N): " -n 1 -r
+            echo
+            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                print_info "Installation cancelled."
+                exit 0
+            fi
+            ;;
+    esac
+}
+
+# Install WebKit for Ubuntu/Debian
+install_webkit_ubuntu_debian() {
+    # Check if we already have webkit installed
+    if pkg-config --exists webkit2gtk-4.1 2>/dev/null; then
+        print_success "WebKit 4.1 already installed."
+        return 0
+    elif pkg-config --exists webkit2gtk-4.0 2>/dev/null; then
+        print_success "WebKit 4.0 already installed."
+        return 0
+    fi
+    
+    print_info "WebKit libraries not found. Installing..."
+    
+    # Update package list
+    print_info "Updating package list..."
+    if ! sudo apt-get update; then
+        print_warning "Failed to update package list. Continuing..."
+    fi
+    
+    # Try webkit2gtk-4.1 first (for newer Ubuntu versions like 24.04)
+    print_info "Attempting to install libwebkit2gtk-4.1-dev..."
+    if sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev build-essential pkg-config; then
+        print_success "Successfully installed WebKit 4.1 dependencies."
+        return 0
+    fi
+    
+    # Fallback to webkit2gtk-4.0
+    print_warning "WebKit 4.1 not available, trying WebKit 4.0..."
+    if sudo apt-get install -y libwebkit2gtk-4.0-dev libgtk-3-dev build-essential pkg-config; then
+        print_success "Successfully installed WebKit 4.0 dependencies."
+        return 0
+    fi
+    
+    print_error "Failed to install WebKit dependencies."
+    print_error "Please install manually:"
+    print_error "  Ubuntu 24.04+: sudo apt install libwebkit2gtk-4.1-dev libgtk-3-dev"
+    print_error "  Ubuntu 22.04-: sudo apt install libwebkit2gtk-4.0-dev libgtk-3-dev"
+    exit 1
+}
+
+# Install WebKit for Fedora
+install_webkit_fedora() {
+    # Check if we already have webkit installed
+    if pkg-config --exists webkit2gtk-4.1 2>/dev/null || pkg-config --exists webkit2gtk-4.0 2>/dev/null; then
+        print_success "WebKit libraries already installed."
+        return 0
+    fi
+    
+    print_info "WebKit libraries not found. Installing..."
+    
+    # Install WebKit and development tools
+    if sudo dnf install -y webkit2gtk4.1-devel gtk3-devel gcc gcc-c++ pkg-config; then
+        print_success "Successfully installed WebKit dependencies."
+        return 0
+    fi
+    
+    print_error "Failed to install WebKit dependencies."
+    print_error "Please install manually: sudo dnf install webkit2gtk4.1-devel gtk3-devel"
+    exit 1
+}
+
+# Install WebKit for RHEL/CentOS/Rocky/AlmaLinux
+install_webkit_rhel() {
+    # Check if we already have webkit installed
+    if pkg-config --exists webkit2gtk-4.1 2>/dev/null || pkg-config --exists webkit2gtk-4.0 2>/dev/null; then
+        print_success "WebKit libraries already installed."
+        return 0
+    fi
+    
+    print_info "WebKit libraries not found. Installing..."
+    
+    # Enable EPEL for additional packages
+    if ! rpm -q epel-release &>/dev/null; then
+        print_info "Enabling EPEL repository..."
+        sudo dnf install -y epel-release || sudo yum install -y epel-release
+    fi
+    
+    # Install WebKit and development tools
+    if sudo dnf install -y webkit2gtk3-devel gtk3-devel gcc gcc-c++ pkg-config || sudo yum install -y webkit2gtk3-devel gtk3-devel gcc gcc-c++ pkg-config; then
+        print_success "Successfully installed WebKit dependencies."
+        return 0
+    fi
+    
+    print_error "Failed to install WebKit dependencies."
+    print_error "Please install manually with: sudo dnf install webkit2gtk3-devel gtk3-devel"
+    exit 1
 }
 
 # Get latest release information
