@@ -34,6 +34,20 @@ Unicode true
 ####
 !include "wails_tools.nsh"
 
+## Define custom macro for closing running processes
+####
+!macro wails.closeRunningProcesses
+    DetailPrint "Closing running ${INFO_PRODUCTNAME} processes..."
+    
+    # Force close any running instances of the application
+    # Use /F to force and /T to terminate child processes  
+    # Ignore errors (process might not be running)
+    ExecWait 'taskkill /F /IM "${PRODUCT_EXECUTABLE}" /T' $0
+    
+    # Small delay to let processes close cleanly
+    Sleep 2000
+!macroend
+
 # The version information for this two must consist of 4 parts
 VIProductVersion "${INFO_PRODUCTVERSION}.0"
 VIFileVersion    "${INFO_PRODUCTVERSION}.0"
@@ -90,6 +104,8 @@ FunctionEnd
 Section
     !insertmacro wails.setShellContext
 
+    !insertmacro wails.closeRunningProcesses
+
     !insertmacro wails.webview2runtime
 
     SetOutPath $INSTDIR
@@ -114,6 +130,8 @@ SectionEnd
 
 Section "uninstall"
     !insertmacro wails.setShellContext
+
+    !insertmacro wails.closeRunningProcesses
 
     RMDir /r "$AppData\${PRODUCT_EXECUTABLE}" # Remove the WebView2 DataPath
 
