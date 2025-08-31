@@ -74,6 +74,9 @@ func NewApp(wailsEnabled bool, mode string) *App {
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 
+	// Initialize logging service early so it can be used throughout startup
+	a.LogService = logging.NewLogService(a.mode)
+
 	// Start thread for spamming startup progress early
 	// We need this because desync between js/backend
 	if a.WailsEnabled {
@@ -112,8 +115,7 @@ func (a *App) startup(ctx context.Context) {
 	}
 	a.ConfigService = configService
 
-	// Create logging services EARLY so database service can use it
-	a.LogService = logging.NewLogService(a.mode)
+	// LogService already initialized early in startup function
 
 	// Create database service using configuration
 	dbService, err := db.NewDatabaseService(configService, a.LogService)
