@@ -4,6 +4,7 @@ import (
 	"context"
 	"embed"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"time"
@@ -165,6 +166,11 @@ func (a *App) startup(ctx context.Context) {
 		a.HandleFatalError("Failed to install ytdlp: " + err.Error())
 	}
 	ytdlpUpdateDone = true
+
+	// Test the logging system with sample entries
+	a.LogService.Info("Application startup completed successfully")
+	a.LogService.Debug("Debug logging system test")
+	a.LogService.Warn("Warning logging system test")
 
 	// Emit startup complete event in background
 	a.StartupProgress = "Startup complete"
@@ -428,6 +434,59 @@ func (a *App) GetRecentLogs() ([]logging.Log, error) {
 	}
 	
 	return logs, nil
+}
+
+// GetDaemonLogLines returns the last N lines from daemon.log file
+func (a *App) GetDaemonLogLines(lines int) ([]string, error) {
+	return a.getLogLinesFromFile("daemon.log", lines)
+}
+
+// GetUILogLines returns the last N lines from ui.log file
+func (a *App) GetUILogLines(lines int) ([]string, error) {
+	return a.getLogLinesFromFile("ui.log", lines)
+}
+
+// getLogLinesFromFile reads the last N lines from a log file
+func (a *App) getLogLinesFromFile(filename string, lines int) ([]string, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return []string{"Log file does not exist yet"}, nil
+		}
+		return nil, fmt.Errorf("failed to open log file %s: %v", filename, err)
+	}
+	defer file.Close()
+
+	// Read all content
+	content, err := io.ReadAll(file)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read log file %s: %v", filename, err)
+	}
+
+	if len(content) == 0 {
+		return []string{"Log file is empty"}, nil
+	}
+
+	// Split into lines and get the last N lines
+	allLines := strings.Split(string(content), "\n")
+	
+	// Remove empty last line if it exists
+	if len(allLines) > 0 && allLines[len(allLines)-1] == "" {
+		allLines = allLines[:len(allLines)-1]
+	}
+
+	// Get last N lines
+	startIndex := 0
+	if len(allLines) > lines {
+		startIndex = len(allLines) - lines
+	}
+
+	result := allLines[startIndex:]
+	if len(result) == 0 {
+		return []string{"No log entries found"}, nil
+	}
+
+	return result, nil
 }
 
 func (a *App) IsDaemonRunning() bool {

@@ -5,8 +5,7 @@
       { name: 'Direct', path: '/direct' },
       { name: 'History', path: '/history' },
       { name: 'Status', path: '/status' },
-      { name: 'Settings', path: '/settings' },
-      { name: 'Logs', path: '/logs' }
+      { name: 'Settings', path: '/settings' }
     ];
   
     let currentRoute = $state('/');

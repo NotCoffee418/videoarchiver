@@ -11,15 +11,13 @@
   import SettingsPage from './routes/SettingsPage.svelte';
   import LoadingSpinner from './components/LoadingSpinner.svelte';
   import HistoryPage from './routes/HistoryPage.svelte';
-  import LogsPage from './routes/LogsPage.svelte';
 
   const routes = {
     '/': ArchivePage,
     '/direct': DirectPage,
     '/history': HistoryPage,
     '/status': StatusPage,
-    '/settings': SettingsPage,
-    '/logs': LogsPage
+    '/settings': SettingsPage
   };
 
   let isRuntimeReady = $state(false);
