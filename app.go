@@ -193,19 +193,6 @@ func (a *App) startup(ctx context.Context) {
 			a.LogService.Info("Waiting for legal disclaimer acceptance before proceeding...")
 			time.Sleep(5 * time.Second)
 		}
-
-		// Now that disclaimer is accepted, create lock file to signal UI to wait
-		a.LogService.Info("Creating lock file to coordinate with UI...")
-		if err := lockfile.CreateLock(); err != nil {
-			a.HandleFatalError("Failed to create lock file: " + err.Error())
-		}
-
-		// Ensure lock is removed on exit
-		defer func() {
-			if err := lockfile.RemoveLock(); err != nil {
-				a.LogService.Warn(fmt.Sprintf("Failed to remove lock file: %v", err))
-			}
-		}()
 	}
 
 	// ✅ Install ytdlp in background channel (after legal disclaimer is accepted)
@@ -241,15 +228,6 @@ func (a *App) startup(ctx context.Context) {
 	ytdlpUpdateDone = true
 
 	a.LogService.Info("Application startup completed successfully")
-	
-	// For daemon mode, remove lock file after successful startup
-	if !a.WailsEnabled {
-		if err := lockfile.RemoveLock(); err != nil {
-			a.LogService.Warn(fmt.Sprintf("Failed to remove lock file after startup: %v", err))
-		} else {
-			a.LogService.Info("Lock file removed, daemon ready for normal operation")
-		}
-	}
 	
 	// Emit startup complete event in background
 	a.StartupProgress = "Startup complete"

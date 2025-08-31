@@ -47,11 +47,6 @@
     try {
       await window.go?.main?.App?.SetLegalDisclaimerAccepted(true);
       disclaimerAccepted = true;
-      
-      // Wait 5 seconds before proceeding to allow daemon to create lock file
-      loadingText = "Waiting for initialization to begin...";
-      await new Promise(resolve => setTimeout(resolve, 5000));
-      
     } catch (error) {
       console.error('Failed to save disclaimer acceptance:', error);
     }
