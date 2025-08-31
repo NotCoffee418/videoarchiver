@@ -1,18 +1,10 @@
 <script>
     import { onMount, onDestroy } from "svelte";
     import LoadingSpinner from "../components/LoadingSpinner.svelte";
+    import { historyState, updateHistoryState } from "../stores/historyStore.js";
 
-    let downloads = [];
-    let offset = 0;
-    let limit = 10; // Changed from 10 to 2 for testing
-    let loading = false;
-    let error = "";
-
-    // ids currently retrying
-    let retrying = new Set();
-
-    let showFailed = true;
-    let showSuccessful = true;
+    // Reactive state from store
+    $: ({ downloads, offset, limit, loading, error, retrying, showFailed, showSuccessful, retryAllCooldown } = $historyState);
 
     function statusLabel(s) {
         switch (s) {
@@ -76,7 +68,7 @@
     // Update the onRetry function
     async function onRetry(d) {
         if (retrying.has(d.id)) return;
-        retrying = new Set([...retrying, d.id]);
+        updateHistoryState({ retrying: new Set([...retrying, d.id]) });
         
         try {
             await window.go.main.App.SetManualRetry(d.id);
@@ -84,46 +76,48 @@
             setTimeout(() => {
                 const s = new Set(retrying);
                 s.delete(d.id);
-                retrying = s;
+                updateHistoryState({ retrying: s });
             }, 1500);
         } catch (err) {
             console.error("Retry failed:", err);
             // Remove from retrying state immediately on error
-            retrying = new Set([...retrying].filter(id => id !== d.id));
+            updateHistoryState({ retrying: new Set([...retrying].filter(id => id !== d.id)) });
         }
     }
 
     async function fetchPage(showLoading = true) {
-        if (showLoading) loading = true;
-        error = "";
+        if (showLoading) updateHistoryState({ loading: true });
+        updateHistoryState({ error: "" });
         try {
             if (window?.go?.main?.App?.GetDownloadHistoryPage) {
                 const res = await window.go.main.App.GetDownloadHistoryPage(offset, limit, showSuccessful, showFailed);
-                downloads = Array.isArray(res) ? res : [];
+                updateHistoryState({ downloads: Array.isArray(res) ? res : [] });
             } else {
-                downloads = [];
+                updateHistoryState({ downloads: [] });
             }
         } catch (err) {
-            error = String(err ?? "Unknown error");
-            downloads = [];
+            updateHistoryState({ 
+                error: String(err ?? "Unknown error"),
+                downloads: []
+            });
         } finally {
-            if (showLoading) loading = false;
+            if (showLoading) updateHistoryState({ loading: false });
         }
     }
 
     function onFilterChange() {
-        offset = 0; // Reset to first page
+        updateHistoryState({ offset: 0 }); // Reset to first page
         fetchPage(true);
     }
 
     function prevPage() {
         if (offset === 0) return;
-        offset = Math.max(0, offset - limit);
+        updateHistoryState({ offset: Math.max(0, offset - limit) });
         fetchPage(true); // Show loading on manual navigation
     }
 
     function nextPage() {
-        offset += limit;
+        updateHistoryState({ offset: offset + limit });
         fetchPage(true); // Show loading on manual navigation
     }
 
@@ -159,12 +153,10 @@
         return new Date(n * 1000).toLocaleString(); // multiply by 1000 to convert seconds to milliseconds
     }
 
-    let retryAllCooldown = false;
-
     async function onRetryAll() {
         if (retryAllCooldown) return;
         
-        retryAllCooldown = true;
+        updateHistoryState({ retryAllCooldown: true });
         try {
             await window.go.main.App.RegisterAllFailedForRetryManual();
         } catch (err) {
@@ -173,7 +165,7 @@
         
         // Cooldown timer
         setTimeout(() => {
-            retryAllCooldown = false;
+            updateHistoryState({ retryAllCooldown: false });
         }, 30000);
     }
 </script>
@@ -183,16 +175,16 @@
 
     <div class="filters">
         <label>
-            <input type="checkbox" bind:checked={showSuccessful}>
+            <input type="checkbox" checked={showSuccessful} onchange={(e) => updateHistoryState({ showSuccessful: e.target.checked })}>
             Show Successful
         </label>
         <label>
-            <input type="checkbox" bind:checked={showFailed}>
+            <input type="checkbox" checked={showFailed} onchange={(e) => updateHistoryState({ showFailed: e.target.checked })}>
             Show Failed
         </label>
         <button 
             class="retry-all-btn" 
-            on:click={onRetryAll} 
+            onclick={onRetryAll} 
             disabled={retryAllCooldown}>
             {#if retryAllCooldown}
                 Retry All Cooldown...
@@ -228,9 +220,9 @@
                                 {/if}
                                 <div class="meta-section">
                                     <div class="actions">
-                                        <a href="/" on:click|preventDefault={() => copyToClipboard(d.url)}>Copy URL</a>
+                                        <a href="/" onclick={(e) => { e.preventDefault(); copyToClipboard(d.url); }}>Copy URL</a>
                                         <span class="separator">|</span>
-                                        <a href="/" on:click|preventDefault={() => copyToClipboard(d.output_filename.String)}>Copy File Path</a>
+                                        <a href="/" onclick={(e) => { e.preventDefault(); copyToClipboard(d.output_filename.String); }}>Copy File Path</a>
                                     </div>
                                     <div class="timestamp">{formatTimestamp(d.last_attempt)}</div>
                                 </div>
@@ -242,7 +234,7 @@
                                 <div class="retry-section">
                                     <button 
                                         class="retry-btn" 
-                                        on:click={() => onRetry(d)} 
+                                        onclick={() => onRetry(d)} 
                                         disabled={retrying.has(d.id) || d.status === 3 || d.status === 5 || d.status === 6 || !retryState.enabled}>
                                         {#if retrying.has(d.id)}Retrying...{:else}Retry Download{/if}
                                     </button>
@@ -260,10 +252,10 @@
 
                                 <div class="meta-section">
                                     <div class="actions">
-                                        <a href="/" on:click|preventDefault={() => copyToClipboard(d.url)}>Copy URL</a>
+                                        <a href="/" onclick={(e) => { e.preventDefault(); copyToClipboard(d.url); }}>Copy URL</a>
                                         {#if d.output_filename?.Valid}
                                             <span class="separator">|</span>
-                                            <a href="/" on:click|preventDefault={() => copyToClipboard(d.output_filename.String)}>Copy File Path</a>
+                                            <a href="/" onclick={(e) => { e.preventDefault(); copyToClipboard(d.output_filename.String); }}>Copy File Path</a>
                                         {/if}
                                     </div>
                                     <div class="timestamp">{formatTimestamp(d.last_attempt)}</div>
@@ -276,9 +268,9 @@
         </div>
 
         <div class="pagination">
-            <button on:click={prevPage} disabled={offset === 0}>Previous</button>
+            <button onclick={prevPage} disabled={offset === 0}>Previous</button>
             <div class="page-info">Page {pageNumber}</div>
-            <button on:click={nextPage} disabled={nextDisabled}>Next</button>
+            <button onclick={nextPage} disabled={nextDisabled}>Next</button>
         </div>
     {/if}
 </div>
