@@ -7,6 +7,7 @@
     let activeTab = $state('daemon');
     let loading = $state(false);
     let error = $state('');
+    let minLogLevel = $state('info'); // Default to INFO level
 
     onMount(() => {
         loadLogs();
@@ -20,10 +21,10 @@
             loading = true;
             error = '';
             
-            // Load both daemon and UI logs
+            // Load both daemon and UI logs with level filtering
             const [daemonResult, uiResult] = await Promise.all([
-                window.go.main.App.GetDaemonLogLines(100),
-                window.go.main.App.GetUILogLines(100)
+                window.go.main.App.GetDaemonLogLinesWithLevel(100, minLogLevel),
+                window.go.main.App.GetUILogLinesWithLevel(100, minLogLevel)
             ]);
             
             daemonLogs = daemonResult || [];
@@ -38,6 +39,11 @@
 
     function selectTab(tab) {
         activeTab = tab;
+    }
+
+    function onLogLevelChange(newLevel) {
+        minLogLevel = newLevel;
+        loadLogs(); // Reload logs with new level
     }
 
     function formatLogLine(line) {
@@ -112,6 +118,53 @@
                     Refresh Logs
                 {/if}
             </button>
+            
+            <div class="log-level-controls">
+                <span class="log-level-label">Minimum Log Level:</span>
+                <div class="log-level-radios">
+                    <label class="radio-label">
+                        <input 
+                            type="radio" 
+                            name="minLogLevel" 
+                            value="debug" 
+                            checked={minLogLevel === 'debug'}
+                            onchange={() => onLogLevelChange('debug')}
+                        />
+                        DEBUG
+                    </label>
+                    <label class="radio-label">
+                        <input 
+                            type="radio" 
+                            name="minLogLevel" 
+                            value="info" 
+                            checked={minLogLevel === 'info'}
+                            onchange={() => onLogLevelChange('info')}
+                        />
+                        INFO
+                    </label>
+                    <label class="radio-label">
+                        <input 
+                            type="radio" 
+                            name="minLogLevel" 
+                            value="warn" 
+                            checked={minLogLevel === 'warn'}
+                            onchange={() => onLogLevelChange('warn')}
+                        />
+                        WARN
+                    </label>
+                    <label class="radio-label">
+                        <input 
+                            type="radio" 
+                            name="minLogLevel" 
+                            value="error" 
+                            checked={minLogLevel === 'error'}
+                            onchange={() => onLogLevelChange('error')}
+                        />
+                        ERROR
+                    </label>
+                </div>
+            </div>
+            
             <div class="info">
                 Showing last 100 lines • Auto-refreshes every 10 seconds
             </div>
@@ -217,8 +270,8 @@
 
     .controls {
         display: flex;
-        align-items: center;
-        gap: 1rem;
+        flex-direction: column;
+        gap: 0.75rem;
         margin-bottom: 1rem;
         padding: 0.75rem;
         background: #1a1a1a;
@@ -234,6 +287,7 @@
         border-radius: 4px;
         cursor: pointer;
         transition: background-color 0.2s;
+        align-self: flex-start;
     }
 
     .controls button:hover:not(:disabled) {
@@ -243,6 +297,38 @@
     .controls button:disabled {
         opacity: 0.6;
         cursor: not-allowed;
+    }
+
+    .log-level-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .log-level-label {
+        color: #fff;
+        font-weight: bold;
+        font-size: 0.9rem;
+    }
+
+    .log-level-radios {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .radio-label {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        color: #ccc;
+        font-size: 0.85rem;
+        font-weight: normal;
+        cursor: pointer;
+    }
+
+    .radio-label input[type="radio"] {
+        margin: 0;
+        cursor: pointer;
     }
 
     .info {

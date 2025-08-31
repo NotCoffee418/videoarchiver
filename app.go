@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"embed"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -25,6 +26,7 @@ import (
 
 	"github.com/NotCoffee418/dbmigrator"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/shirou/gopsutil/v3/process"
 	"github.com/wailsapp/wails/v2/pkg/runtime" // keep wails runtime as is
 )
@@ -555,6 +557,16 @@ func (a *App) GetUILogLines(lines int) ([]string, error) {
 	return a.getLogLinesFromFile("ui.log", lines)
 }
 
+// GetDaemonLogLinesWithLevel returns the last N lines from daemon.log file filtered by minimum log level
+func (a *App) GetDaemonLogLinesWithLevel(lines int, minLevel string) ([]string, error) {
+	return a.getLogLinesFromFileWithLevel("daemon.log", lines, minLevel)
+}
+
+// GetUILogLinesWithLevel returns the last N lines from ui.log file filtered by minimum log level
+func (a *App) GetUILogLinesWithLevel(lines int, minLevel string) ([]string, error) {
+	return a.getLogLinesFromFileWithLevel("ui.log", lines, minLevel)
+}
+
 // getLogLinesFromFile reads the last N lines from a log file using proper pathing
 func (a *App) getLogLinesFromFile(filename string, lines int) ([]string, error) {
 	// Get proper log file path using pathing system
@@ -599,6 +611,110 @@ func (a *App) getLogLinesFromFile(filename string, lines int) ([]string, error) 
 	result := allLines[startIndex:]
 	if len(result) == 0 {
 		return []string{"No log entries found"}, nil
+	}
+
+	return result, nil
+}
+
+// getLogLinesFromFileWithLevel reads the last N lines from a log file and filters by minimum log level
+func (a *App) getLogLinesFromFileWithLevel(filename string, lines int, minLevelStr string) ([]string, error) {
+	// Parse minimum log level
+	var minLevel logrus.Level
+	switch strings.ToLower(minLevelStr) {
+	case "debug":
+		minLevel = logrus.DebugLevel
+	case "info":
+		minLevel = logrus.InfoLevel
+	case "warn", "warning":
+		minLevel = logrus.WarnLevel
+	case "error":
+		minLevel = logrus.ErrorLevel
+	default:
+		minLevel = logrus.InfoLevel // Default to info
+	}
+
+	// Get proper log file path using pathing system
+	logFilePath, err := pathing.GetWorkingFile(filename)
+	if err != nil {
+		return []string{fmt.Sprintf("Error getting log file path: %v", err)}, nil
+	}
+
+	file, err := os.Open(logFilePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return []string{"Log file does not exist yet"}, nil
+		}
+		return nil, fmt.Errorf("failed to open log file %s: %v", logFilePath, err)
+	}
+	defer file.Close()
+
+	// Read all content
+	content, err := io.ReadAll(file)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read log file %s: %v", logFilePath, err)
+	}
+
+	if len(content) == 0 {
+		return []string{"Log file is empty"}, nil
+	}
+
+	// Split into lines
+	allLines := strings.Split(string(content), "\n")
+
+	// Remove empty last line if it exists
+	if len(allLines) > 0 && allLines[len(allLines)-1] == "" {
+		allLines = allLines[:len(allLines)-1]
+	}
+
+	// Filter lines by log level
+	var filteredLines []string
+	for _, line := range allLines {
+		if line == "" {
+			continue
+		}
+
+		// Try to parse JSON log entry
+		var logEntry struct {
+			Level string `json:"level"`
+		}
+		
+		if err := json.Unmarshal([]byte(line), &logEntry); err != nil {
+			// If not JSON, include the line (could be plain text log)
+			filteredLines = append(filteredLines, line)
+			continue
+		}
+
+		// Parse log level from JSON
+		var logLevel logrus.Level
+		switch strings.ToLower(logEntry.Level) {
+		case "debug":
+			logLevel = logrus.DebugLevel
+		case "info":
+			logLevel = logrus.InfoLevel
+		case "warn", "warning":
+			logLevel = logrus.WarnLevel
+		case "error":
+			logLevel = logrus.ErrorLevel
+		default:
+			logLevel = logrus.InfoLevel
+		}
+
+		// Include line if it meets minimum level requirement
+		// In logrus, lower numbers = higher severity, so check <=
+		if logLevel <= minLevel {
+			filteredLines = append(filteredLines, line)
+		}
+	}
+
+	// Get last N filtered lines
+	startIndex := 0
+	if len(filteredLines) > lines {
+		startIndex = len(filteredLines) - lines
+	}
+
+	result := filteredLines[startIndex:]
+	if len(result) == 0 {
+		return []string{"No log entries found matching the specified level"}, nil
 	}
 
 	return result, nil

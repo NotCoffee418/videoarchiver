@@ -41,6 +41,8 @@ declare global {
           GetRecentLogs: () => Promise<Array<any>>;
           GetDaemonLogLines: (arg1: number) => Promise<Array<string>>;
           GetUILogLines: (arg1: number) => Promise<Array<string>>;
+          GetDaemonLogLinesWithLevel: (arg1: number, arg2: string) => Promise<Array<string>>;
+          GetUILogLinesWithLevel: (arg1: number, arg2: string) => Promise<Array<string>>;
           SetManualRetry: (downloadId: number) => Promise<void>;
           RegisterAllFailedForRetryManual: () => Promise<void>;
           StartDaemon: () => Promise<void>;
