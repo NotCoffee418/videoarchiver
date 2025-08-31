@@ -193,8 +193,8 @@ func (a *App) handleUILocking() error {
 	}
 
 	// Lock exists, wait for daemon to complete startup
-	a.StartupProgress = "Waiting for daemon to complete startup..."
-	fmt.Println("Waiting for daemon to complete startup...")
+	a.StartupProgress = "Waiting for daemon initialization..."
+	fmt.Println("Waiting for daemon initialization...")
 
 	// Wait up to 10 minutes for the lock to be released
 	released, err := lockfile.WaitForLockRelease(10 * time.Minute)
@@ -213,7 +213,7 @@ func (a *App) handleUILocking() error {
 				return fmt.Errorf("failed to start daemon: %w", err)
 			}
 			// Wait again for daemon to complete startup
-			a.StartupProgress = "Waiting for daemon to complete startup..."
+			a.StartupProgress = "Waiting for daemon initialization..."
 			released, err := lockfile.WaitForLockRelease(5 * time.Minute)
 			if err != nil {
 				return fmt.Errorf("error while waiting for daemon startup: %w", err)
