@@ -41,8 +41,24 @@ func NewDownloadService(
 	}
 }
 
+// DownloadResult contains information about a download
+type DownloadResult struct {
+	FilePath    string
+	IsDuplicate bool
+	DuplicateOf string // filename of the original file if it's a duplicate
+}
+
 // Download a file via Ytdlp
 func (d *DownloadService) DownloadFile(url, directory, format string) (string, error) {
+	result, err := d.DownloadFileWithDuplicateCheck(url, directory, format)
+	if err != nil {
+		return "", err
+	}
+	return result.FilePath, nil
+}
+
+// DownloadFileWithDuplicateCheck downloads a file and checks for duplicates
+func (d *DownloadService) DownloadFileWithDuplicateCheck(url, directory, format string) (*DownloadResult, error) {
 	// Set temp path for the file
 	tmpFile := filepath.Join(os.TempDir(), fmt.Sprintf("videoarchiver-download-%d.%s", time.Now().UnixNano(), format))
 	defer os.Remove(tmpFile)
@@ -50,29 +66,60 @@ func (d *DownloadService) DownloadFile(url, directory, format string) (string, e
 	// Download to temp path
 	outputString, err := ytdlp.DownloadFile(d.settingsService, url, tmpFile, format)
 	if err != nil {
-		return "", fmt.Errorf("%s%w", ErrDownloadErrorBase, err)
+		return nil, fmt.Errorf("%s%w", ErrDownloadErrorBase, err)
 	}
 
-	// Extract video title from ytdlp outpuit
+	// Extract video title from ytdlp output
 	videoTitle, err := ytdlp.GetString(outputString, "fulltitle")
 	if err != nil {
-		return "", fmt.Errorf("download service: failed to get title: %w", err)
+		return nil, fmt.Errorf("download service: failed to get title: %w", err)
 	}
 
-	savePath := filepath.Join(directory, filepath.Base(videoTitle+"."+strings.ToLower(format)))
+	baseFilename := filepath.Base(videoTitle + "." + strings.ToLower(format))
+	
+	// Calculate MD5 of the downloaded file
+	fileMD5, err := CalculateMD5(tmpFile)
+	if err != nil {
+		return nil, fmt.Errorf("download service: failed to calculate MD5: %w", err)
+	}
+
+	// Check for duplicate in target directory
+	duplicateFilename, err := d.CheckForDuplicateInDirectory(fileMD5, directory, baseFilename)
+	if err != nil {
+		return nil, fmt.Errorf("download service: failed to check for duplicates: %w", err)
+	}
+
+	if duplicateFilename != "" {
+		// Duplicate found - don't move the file, just return the duplicate info
+		duplicatePath := filepath.Join(directory, duplicateFilename)
+		return &DownloadResult{
+			FilePath:    duplicatePath,
+			IsDuplicate: true,
+			DuplicateOf: duplicateFilename,
+		}, nil
+	}
+
+	// No duplicate found - proceed with normal file placement and suffix logic
+	savePath := filepath.Join(directory, baseFilename)
 	fileNum := 0
 	for d.fileExists(savePath) {
 		fileNum++
-		savePath = filepath.Join(directory, filepath.Base(videoTitle+"-"+strconv.Itoa(fileNum)+"."+strings.ToLower(format)))
+		baseName := strings.TrimSuffix(baseFilename, filepath.Ext(baseFilename))
+		ext := filepath.Ext(baseFilename)
+		savePath = filepath.Join(directory, baseName+"-"+strconv.Itoa(fileNum)+ext)
 	}
 
 	// Move file to directory
 	err = os.Rename(tmpFile, savePath)
 	if err != nil {
-		return "", fmt.Errorf("download service: failed to move file: %w", err)
+		return nil, fmt.Errorf("download service: failed to move file: %w", err)
 	}
 
-	return savePath, nil
+	return &DownloadResult{
+		FilePath:    savePath,
+		IsDuplicate: false,
+		DuplicateOf: "",
+	}, nil
 }
 
 func CalculateMD5(path string) (string, error) {
@@ -88,6 +135,43 @@ func CalculateMD5(path string) (string, error) {
 	}
 
 	return fmt.Sprintf("%x", hash.Sum(nil)), nil
+}
+
+// CheckForDuplicateInDirectory checks if any existing file in the directory has the same MD5
+// It looks for files with the base name and numbered suffixes (filename.ext, filename-1.ext, etc.)
+func (d *DownloadService) CheckForDuplicateInDirectory(fileMD5, targetDir, baseFilename string) (string, error) {
+	// Extract base name and extension
+	baseName := strings.TrimSuffix(baseFilename, filepath.Ext(baseFilename))
+	ext := filepath.Ext(baseFilename)
+	
+	// Check base filename and numbered variations
+	for i := 0; i < 100; i++ { // reasonable limit to avoid infinite loops
+		var checkFilename string
+		if i == 0 {
+			checkFilename = baseFilename
+		} else {
+			checkFilename = baseName + "-" + strconv.Itoa(i) + ext
+		}
+		
+		checkPath := filepath.Join(targetDir, checkFilename)
+		
+		// Check if file exists
+		if d.fileExists(checkPath) {
+			// Calculate MD5 of existing file
+			existingMD5, err := CalculateMD5(checkPath)
+			if err != nil {
+				// Skip files we can't read
+				continue
+			}
+			
+			// If MD5 matches, we found a duplicate
+			if existingMD5 == fileMD5 {
+				return checkFilename, nil
+			}
+		}
+	}
+	
+	return "", nil // No duplicate found
 }
 
 func (d *DownloadService) fileExists(path string) bool {
