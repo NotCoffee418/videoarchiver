@@ -5,6 +5,7 @@ import (
 	"os"
 	"sync"
 	"time"
+	"videoarchiver/backend/domains/pathing"
 
 	"github.com/sirupsen/logrus"
 )
@@ -22,7 +23,7 @@ type LogService struct {
 func NewLogService(logDB *LogDB, mode string) *LogService {
 	logger := logrus.New()
 
-	// Create mode-specific log file
+	// Create mode-specific log file using proper pathing
 	var logFileName string
 	if mode == "daemon" {
 		logFileName = "daemon.log"
@@ -30,8 +31,26 @@ func NewLogService(logDB *LogDB, mode string) *LogService {
 		logFileName = "ui.log"
 	}
 
+	// Get proper log file path using pathing system
+	logFilePath, err := pathing.GetWorkingFile(logFileName)
+	if err != nil {
+		// Fallback to stdout only if pathing fails
+		logger.SetOutput(os.Stdout)
+		logger.SetFormatter(&logrus.JSONFormatter{})
+		logger.SetLevel(logrus.DebugLevel)
+		
+		service := &LogService{
+			logDB:  logDB,
+			logger: logger,
+			mode:   mode,
+			file:   nil,
+		}
+		service.Info("LogService initialized for mode: " + mode + " (file logging disabled due to pathing error)")
+		return service
+	}
+
 	// Write logs to both file and stdout
-	file, err := os.OpenFile(logFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	file, err := os.OpenFile(logFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
 	var multiWriter io.Writer
 	if err == nil {
 		// Multi-writer to write to both file and stdout

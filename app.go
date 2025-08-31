@@ -13,6 +13,7 @@ import (
 	"videoarchiver/backend/domains/download"
 	"videoarchiver/backend/domains/logging"
 	"videoarchiver/backend/domains/lockfile"
+	"videoarchiver/backend/domains/pathing"
 	"videoarchiver/backend/domains/playlist"
 	"videoarchiver/backend/domains/runner"
 	"videoarchiver/backend/domains/settings"
@@ -446,21 +447,27 @@ func (a *App) GetUILogLines(lines int) ([]string, error) {
 	return a.getLogLinesFromFile("ui.log", lines)
 }
 
-// getLogLinesFromFile reads the last N lines from a log file
+// getLogLinesFromFile reads the last N lines from a log file using proper pathing
 func (a *App) getLogLinesFromFile(filename string, lines int) ([]string, error) {
-	file, err := os.Open(filename)
+	// Get proper log file path using pathing system
+	logFilePath, err := pathing.GetWorkingFile(filename)
+	if err != nil {
+		return []string{fmt.Sprintf("Error getting log file path: %v", err)}, nil
+	}
+
+	file, err := os.Open(logFilePath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return []string{"Log file does not exist yet"}, nil
 		}
-		return nil, fmt.Errorf("failed to open log file %s: %v", filename, err)
+		return nil, fmt.Errorf("failed to open log file %s: %v", logFilePath, err)
 	}
 	defer file.Close()
 
 	// Read all content
 	content, err := io.ReadAll(file)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read log file %s: %v", filename, err)
+		return nil, fmt.Errorf("failed to read log file %s: %v", logFilePath, err)
 	}
 
 	if len(content) == 0 {
