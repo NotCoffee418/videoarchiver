@@ -34,9 +34,7 @@ Unicode true
 ####
 !include "wails_tools.nsh"
 
-# Section flags constants
-!define SF_SELECTED   1
-!define SF_RO         16
+
 
 ## Define custom macro for closing running processes
 ####
