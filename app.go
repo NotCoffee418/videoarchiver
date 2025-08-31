@@ -11,6 +11,7 @@ import (
 	"videoarchiver/backend/domains/db"
 	"videoarchiver/backend/domains/download"
 	"videoarchiver/backend/domains/logging"
+	"videoarchiver/backend/domains/lockfile"
 	"videoarchiver/backend/domains/playlist"
 	"videoarchiver/backend/domains/runner"
 	"videoarchiver/backend/domains/settings"
@@ -70,6 +71,27 @@ func NewApp(wailsEnabled bool, mode string) *App {
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 
+	// Start thread for spamming startup progress early
+	// We need this because desync between js/backend
+	if a.WailsEnabled {
+		go func() {
+			for !a.StartupComplete {
+				if a.StartupProgress != "" {
+					runtime.EventsEmit(a.ctx, "startup-progress", a.StartupProgress)
+				}
+				time.Sleep(100 * time.Millisecond)
+			}
+		}()
+	}
+
+	// Handle locking mechanism for UI mode only
+	if a.WailsEnabled {
+		// UI mode (slave) - wait for daemon lock if present
+		if err := a.handleUILocking(); err != nil {
+			a.HandleFatalError("Failed to handle UI locking: " + err.Error())
+		}
+	}
+
 	// ✅ Install ytdlp in background channel
 	ytdlpUpdateChan := make(chan error)
 	go func() {
@@ -112,19 +134,6 @@ func (a *App) startup(ctx context.Context) {
 
 	// Init utils with context
 	a.Utils = utils.NewUtils(ctx)
-
-	// Start thread for spamming startup progress
-	// We need this because desync between js/backend
-	if a.WailsEnabled {
-		go func() {
-			for !a.StartupComplete {
-				if a.StartupProgress != "" {
-					runtime.EventsEmit(a.ctx, "startup-progress", a.StartupProgress)
-				}
-				time.Sleep(100 * time.Millisecond)
-			}
-		}()
-	}
 
 	// Apply database migrations (AFTER setting up DB)
 	a.StartupProgress = "Applying database updates..."
@@ -178,6 +187,57 @@ func (a *App) startup(ctx context.Context) {
 			}
 		}()
 	}
+}
+
+// handleUILocking handles locking for UI mode (slave)
+func (a *App) handleUILocking() error {
+	// Check if daemon lock exists
+	locked, err := lockfile.IsLocked()
+	if err != nil {
+		return fmt.Errorf("failed to check lock status: %w", err)
+	}
+
+	if !locked {
+		// No daemon lock, proceed normally
+		return nil
+	}
+
+	// Lock exists, wait for daemon to complete startup
+	a.StartupProgress = "Waiting for daemon initialization..."
+	fmt.Println("Waiting for daemon initialization...")
+
+	// Wait up to 10 minutes for the lock to be released
+	released, err := lockfile.WaitForLockRelease(10 * time.Minute)
+	if err != nil {
+		return fmt.Errorf("error while waiting for lock release: %w", err)
+	}
+
+	if !released {
+		// Timeout reached, check if daemon is actually running
+		fmt.Println("Timeout waiting for daemon startup, checking if daemon is running...")
+		if !a.IsDaemonRunning() {
+			// Daemon not running but lock exists, try to start daemon
+			fmt.Println("Daemon not running, attempting to start daemon...")
+			a.StartupProgress = "Starting daemon..."
+			if err := a.StartDaemon(); err != nil {
+				return fmt.Errorf("failed to start daemon: %w", err)
+			}
+			// Wait again for daemon to complete startup
+			a.StartupProgress = "Waiting for daemon initialization..."
+			released, err := lockfile.WaitForLockRelease(5 * time.Minute)
+			if err != nil {
+				return fmt.Errorf("error while waiting for daemon startup: %w", err)
+			}
+			if !released {
+				return fmt.Errorf("timeout waiting for daemon startup after starting daemon")
+			}
+		} else {
+			return fmt.Errorf("timeout waiting for daemon startup, but daemon is running")
+		}
+	}
+
+	fmt.Println("Daemon startup complete, proceeding with UI startup...")
+	return nil
 }
 
 // Centralized error handling
