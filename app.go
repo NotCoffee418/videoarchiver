@@ -59,12 +59,15 @@ type App struct {
 
 // NewApp creates a new App application struct
 func NewApp(wailsEnabled bool, mode string) *App {
+	fmt.Printf("NewApp called: wailsEnabled=%v, mode=%s\n", wailsEnabled, mode)
 	app := &App{
 		WailsEnabled: wailsEnabled,
 		mode:         mode,
 	}
 	// Check initial daemon state
+	fmt.Printf("Checking if daemon is running...\n")
 	app.isDaemonRunning = app.IsDaemonRunning()
+	fmt.Printf("Daemon running status: %v\n", app.isDaemonRunning)
 
 	return app
 }
@@ -72,14 +75,17 @@ func NewApp(wailsEnabled bool, mode string) *App {
 // startup is called when the app starts. The context is saved
 // so we can call the runtime methods
 func (a *App) startup(ctx context.Context) {
+	fmt.Printf("startup() called for mode: %s, WailsEnabled: %v\n", a.mode, a.WailsEnabled)
 	a.ctx = ctx
 
 	// Initialize logging service early so it can be used throughout startup
 	a.LogService = logging.NewLogService(a.mode)
+	a.LogService.Info(fmt.Sprintf("Starting application startup for mode: %s", a.mode))
 
 	// Start thread for spamming startup progress early
 	// We need this because desync between js/backend
 	if a.WailsEnabled {
+		a.LogService.Info("Starting startup progress thread for UI mode")
 		go func() {
 			for !a.StartupComplete {
 				if a.StartupProgress != "" {
@@ -92,10 +98,13 @@ func (a *App) startup(ctx context.Context) {
 
 	// Handle locking mechanism for UI mode only
 	if a.WailsEnabled {
+		a.LogService.Info("UI mode detected, checking for daemon locking...")
 		// UI mode (slave) - wait for daemon lock if present
 		if err := a.handleUILocking(); err != nil {
+			a.LogService.Error(fmt.Sprintf("LOG: UI about to exit due to locking error: %v", err))
 			a.HandleFatalError("Failed to handle UI locking: " + err.Error())
 		}
+		a.LogService.Info("UI locking check completed successfully")
 	}
 
 	// Create configuration service FIRST
@@ -246,47 +255,84 @@ func (a *App) startup(ctx context.Context) {
 
 // handleUILocking handles locking for UI mode (slave)
 func (a *App) handleUILocking() error {
+	a.LogService.Info("Starting handleUILocking check...")
+	
 	// Check if daemon lock exists
 	locked, err := lockfile.IsLocked()
 	if err != nil {
+		a.LogService.Error(fmt.Sprintf("Failed to check lock status: %v", err))
 		return fmt.Errorf("failed to check lock status: %w", err)
 	}
 
+	a.LogService.Info(fmt.Sprintf("Lock file check result: locked=%v", locked))
+
 	if !locked {
 		// No daemon lock, proceed normally
+		a.LogService.Info("No daemon lock found, proceeding normally")
+		return nil
+	}
+
+	// Lock exists - check if daemon is already running
+	isDaemonAlreadyRunning := a.IsDaemonRunning()
+	a.LogService.Info(fmt.Sprintf("Daemon running status while lock exists: %v", isDaemonAlreadyRunning))
+	
+	if isDaemonAlreadyRunning {
+		// Daemon is running but lock exists - this suggests a stale lock file
+		a.LogService.Warn("Daemon is running but lock file exists - removing stale lock file")
+		if err := lockfile.RemoveLock(); err != nil {
+			a.LogService.Error(fmt.Sprintf("Failed to remove stale lock file: %v", err))
+			return fmt.Errorf("failed to remove stale lock file: %w", err)
+		}
+		a.LogService.Info("Stale lock file removed, proceeding with UI startup")
 		return nil
 	}
 
 	// Lock exists, wait for daemon to complete startup
+	a.LogService.Info("Daemon lock found, waiting for daemon initialization to complete...")
 	a.StartupProgress = "Waiting for daemon initialization..."
 	a.LogService.Info("Waiting for daemon initialization...")
 
 	// Wait up to 10 minutes for the lock to be released
+	a.LogService.Info("Starting 10-minute wait for lock release...")
 	released, err := lockfile.WaitForLockRelease(10 * time.Minute)
 	if err != nil {
+		a.LogService.Error(fmt.Sprintf("Error while waiting for lock release: %v", err))
 		return fmt.Errorf("error while waiting for lock release: %w", err)
 	}
+
+	a.LogService.Info(fmt.Sprintf("Lock release wait completed: released=%v", released))
 
 	if !released {
 		// Timeout reached, check if daemon is actually running
 		a.LogService.Warn("Timeout waiting for daemon startup, checking if daemon is running...")
-		if !a.IsDaemonRunning() {
+		isDaemonRunning := a.IsDaemonRunning()
+		a.LogService.Info(fmt.Sprintf("Daemon running check result: %v", isDaemonRunning))
+		
+		if !isDaemonRunning {
 			// Daemon not running but lock exists, try to start daemon
 			a.LogService.Info("Daemon not running, attempting to start daemon...")
 			a.StartupProgress = "Starting daemon..."
 			if err := a.StartDaemon(); err != nil {
+				a.LogService.Error(fmt.Sprintf("Failed to start daemon: %v", err))
 				return fmt.Errorf("failed to start daemon: %w", err)
 			}
 			// Wait again for daemon to complete startup
+			a.LogService.Info("Daemon started, waiting for startup completion...")
 			a.StartupProgress = "Waiting for daemon initialization..."
 			released, err := lockfile.WaitForLockRelease(5 * time.Minute)
 			if err != nil {
+				a.LogService.Error(fmt.Sprintf("Error while waiting for daemon startup: %v", err))
 				return fmt.Errorf("error while waiting for daemon startup: %w", err)
 			}
 			if !released {
+				a.LogService.Error("Timeout waiting for daemon startup after starting daemon")
 				return fmt.Errorf("timeout waiting for daemon startup after starting daemon")
 			}
 		} else {
+			a.LogService.Error("LOG: UI about to exit - daemon is running but lock file is not being released")
+			a.LogService.Error(fmt.Sprintf("This suggests daemon (PID unknown) has a stale lock file"))
+			a.LogService.Error("Possible causes: daemon didn't remove lock properly, race condition, or multiple daemon instances")
+			a.LogService.Error("LOG: UI exiting due to: timeout waiting for daemon startup, but daemon is running")
 			return fmt.Errorf("timeout waiting for daemon startup, but daemon is running")
 		}
 	}
@@ -298,6 +344,9 @@ func (a *App) handleUILocking() error {
 // Centralized error handling
 func (a *App) HandleFatalError(message string) {
 	if a.WailsEnabled {
+		if a.LogService != nil {
+			a.LogService.Error("LOG: HandleFatalError called in UI mode: " + message)
+		}
 		runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
 			Type:    runtime.ErrorDialog,
 			Title:   "Application Error",
@@ -306,11 +355,14 @@ func (a *App) HandleFatalError(message string) {
 		if a.LogService != nil {
 			a.LogService.Error("Fatal error: " + message)
 		}
+		fmt.Printf("LOG: UI exiting due to fatal error: %s\n", message)
 		os.Exit(1)
 	} else {
 		if a.LogService != nil {
+			a.LogService.Error("LOG: HandleFatalError called in daemon mode: " + message)
 			a.LogService.Error("Fatal error: " + message)
 		} else {
+			fmt.Println("LOG: Daemon exiting due to fatal error: " + message)
 			fmt.Println("Fatal error: " + message)
 		}
 		os.Exit(1)
@@ -543,21 +595,30 @@ func (a *App) getLogLinesFromFile(filename string, lines int) ([]string, error) 
 }
 
 func (a *App) IsDaemonRunning() bool {
+	fmt.Printf("IsDaemonRunning called for mode: %s\n", a.mode)
 	switch goruntime.GOOS {
 	case "windows":
 		selfPid := os.Getpid()
+		fmt.Printf("Current process PID: %d\n", selfPid)
 		processes, err := process.Processes()
 		if err != nil {
-			a.LogService.Error(fmt.Sprintf("Error getting process list: %v", err))
+			if a.LogService != nil {
+				a.LogService.Error(fmt.Sprintf("Error getting process list: %v", err))
+			}
+			fmt.Printf("Error getting process list: %v\n", err)
 			return false
 		}
 
 		selfExe, err := os.Executable()
 		if err != nil {
-			a.LogService.Error(fmt.Sprintf("Error getting executable path: %v", err))
+			if a.LogService != nil {
+				a.LogService.Error(fmt.Sprintf("Error getting executable path: %v", err))
+			}
+			fmt.Printf("Error getting executable path: %v\n", err)
 			return false
 		}
 		selfExe = strings.ToLower(selfExe)
+		fmt.Printf("Current executable path: %s\n", selfExe)
 
 		for _, p := range processes {
 			if int32(selfPid) == p.Pid {
@@ -574,10 +635,14 @@ func (a *App) IsDaemonRunning() bool {
 
 			// Check if it's our executable AND it's running in daemon mode
 			if exe == selfExe && strings.Contains(cmdline, "--mode daemon") {
-				a.LogService.Debug(fmt.Sprintf("Found daemon process: PID=%d CMD=%s", p.Pid, cmdline))
+				fmt.Printf("Found daemon process: PID=%d CMD=%s\n", p.Pid, cmdline)
+				if a.LogService != nil {
+					a.LogService.Debug(fmt.Sprintf("Found daemon process: PID=%d CMD=%s", p.Pid, cmdline))
+				}
 				return true
 			}
 		}
+		fmt.Printf("No daemon processes found\n")
 		return false
 
 	case "linux":
