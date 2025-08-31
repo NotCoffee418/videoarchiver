@@ -16,6 +16,7 @@ Video Archiver is a desktop application built with Wails v2 that downloads and a
 **Frontend (works everywhere):**
 
 - `cd frontend && npm run build` -- Creates dist/ assets (2 seconds)
+  Note that `wails build` and `wails dev` will automatically run this command.
 
 **Full Application:**
 
@@ -36,7 +37,7 @@ This is a known issue that may be fixed in issue #22.
 
 ## Application Modes
 
-**UI Mode (default):** `go run .` or `go run . --mode ui`
+**UI Mode (default):** `go run .` or `go run . --mode ui` or `wails dev` (preferred)
 
 - Opens desktop application with Svelte frontend
 
@@ -49,8 +50,8 @@ This is a known issue that may be fixed in issue #22.
 Key components:
 
 - `main.go` - Entry point with mode selection (`ui` or `daemon`)
-- `app.go` - Main application struct and startup logic
-- `daemon.go` - Background playlist monitoring service
+- `app.go` - Main application struct and startup logic as well as wails bindings.
+- `daemon.go` - Background playlist monitoring service, runs seperately and is the logic for `--daemon` mode.
 - `frontend/` - Svelte UI components
 - `backend/domains/` - Core services (database, download, playlist management)
 
