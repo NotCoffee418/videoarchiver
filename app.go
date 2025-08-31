@@ -155,6 +155,25 @@ func (a *App) startup(ctx context.Context) {
 		"migrations",
 	)
 
+	// For daemon mode, wait for legal disclaimer acceptance before installing dependencies
+	if !a.WailsEnabled {
+		a.StartupProgress = "Waiting for legal disclaimer acceptance..."
+		for {
+			accepted, err := a.GetLegalDisclaimerAccepted()
+			if err != nil {
+				a.LogService.Error(fmt.Sprintf("Failed to check legal disclaimer status: %v", err))
+				time.Sleep(5 * time.Second)
+				continue
+			}
+			if accepted {
+				a.LogService.Info("Legal disclaimer accepted, proceeding with dependency installation")
+				break
+			}
+			a.LogService.Info("Waiting for legal disclaimer acceptance before proceeding...")
+			time.Sleep(5 * time.Second)
+		}
+	}
+
 	// Prepare message for ytdlp update if it needs to do a full install/update
 	a.StartupProgress = "Checking dependencies..."
 	ytdlpUpdateDone := false
@@ -548,4 +567,28 @@ func (a *App) IsDaemonRunning() bool {
 	// This is a simplified check and might need improvement
 	a.isDaemonRunning = false
 	return false
+}
+
+func (a *App) GetLegalDisclaimerAccepted() (bool, error) {
+	value, err := a.SettingsService.GetSettingString("legal_disclaimer_accepted")
+	if err != nil {
+		return false, err
+	}
+	return value == "true", nil
+}
+
+func (a *App) SetLegalDisclaimerAccepted(accepted bool) error {
+	value := "false"
+	if accepted {
+		value = "true"
+	}
+	return a.SettingsService.SetPreparsed("legal_disclaimer_accepted", value)
+}
+
+func (a *App) CloseApplication() {
+	if a.WailsEnabled {
+		runtime.Quit(a.ctx)
+	} else {
+		os.Exit(0)
+	}
 }

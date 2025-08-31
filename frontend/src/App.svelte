@@ -11,6 +11,7 @@
   import SettingsPage from './routes/SettingsPage.svelte';
   import LoadingSpinner from './components/LoadingSpinner.svelte';
   import HistoryPage from './routes/HistoryPage.svelte';
+  import LegalDisclaimer from './components/LegalDisclaimer.svelte';
 
   const routes = {
     '/': ArchivePage,
@@ -24,6 +25,29 @@
   let hasError = $state(false);
   let startupComplete = $state(false);
   let loadingText = $state("Initializing Application...");
+  let disclaimerAccepted = $state(null); // null = checking, false = not accepted, true = accepted
+
+  // Check disclaimer acceptance status
+  async function checkDisclaimerAcceptance() {
+    try {
+      const accepted = await window.go?.main?.App?.GetLegalDisclaimerAccepted();
+      disclaimerAccepted = accepted;
+    } catch (error) {
+      console.error('Failed to check disclaimer acceptance:', error);
+      // Default to false if we can't check
+      disclaimerAccepted = false;
+    }
+  }
+
+  // Handle disclaimer acceptance
+  async function handleDisclaimerAccept() {
+    try {
+      await window.go?.main?.App?.SetLegalDisclaimerAccepted(true);
+      disclaimerAccepted = true;
+    } catch (error) {
+      console.error('Failed to save disclaimer acceptance:', error);
+    }
+  }
 
   // Listen for wails ready event
   onMount(async () => {
@@ -38,12 +62,16 @@
       // On refresh
       isRuntimeReady = true;
       startupComplete = await window.go?.main?.App?.IsStartupComplete();
+      // Check disclaimer after runtime is ready
+      await checkDisclaimerAcceptance();
     } else {
       // On startup
       // If not, wait for the 'wails:ready' event
-      const wailsReadyHandler = () => {
+      const wailsReadyHandler = async () => {
         isRuntimeReady = true;
         document.removeEventListener('wails:ready', wailsReadyHandler);
+        // Check disclaimer after wails is ready
+        await checkDisclaimerAcceptance();
       };
       document.addEventListener('wails:ready', wailsReadyHandler);
 
@@ -87,7 +115,16 @@
     <h2>Runtime Initialization Error</h2>
     <p>Something went wrong starting the application. Please restart the application.</p>
   </div>
-{:else if !isRuntimeReady || !startupComplete}
+{:else if !isRuntimeReady || disclaimerAccepted === null}
+  <div class="app">
+    <div class="loader">
+      <LoadingSpinner />
+      <p class="loading-text">Initializing Application...</p>
+    </div>
+  </div>
+{:else if disclaimerAccepted === false}
+  <LegalDisclaimer onAccept={handleDisclaimerAccept} />
+{:else if !startupComplete}
   <div class="app">
     <div class="loader">
       <LoadingSpinner />
