@@ -21,7 +21,7 @@ Unicode true
 ####
 ## !define INFO_PROJECTNAME    "MyProject" # Default "{{.Name}}"
 ## !define INFO_COMPANYNAME    "MyCompany" # Default "{{.Info.CompanyName}}"
-## !define INFO_PRODUCTNAME    "MyProduct" # Default "{{.Info.ProductName}}"
+!define INFO_PRODUCTNAME    "Video Archiver" # Override default to use proper display name
 ## !define INFO_PRODUCTVERSION "1.0.0"     # Default "{{.Info.ProductVersion}}"
 ## !define INFO_COPYRIGHT      "Copyright" # Default "{{.Info.Copyright}}"
 ###
@@ -65,6 +65,7 @@ VIAddVersionKey "ProductName"     "${INFO_PRODUCTNAME}"
 ManifestDPIAware true
 
 !include "MUI.nsh"
+!include "FileFunc.nsh"
 
 !define MUI_ICON "..\icon.ico"
 !define MUI_UNICON "..\icon.ico"
@@ -77,7 +78,6 @@ ManifestDPIAware true
 
 !insertmacro MUI_PAGE_WELCOME # Welcome to the installer page.
 # !insertmacro MUI_PAGE_LICENSE "resources\eula.txt" # Adds a EULA page to the installer
-!insertmacro MUI_PAGE_DIRECTORY # In which folder install page.
 !insertmacro MUI_PAGE_INSTFILES # Installing page.
 !insertmacro MUI_PAGE_FINISH # Finished installation page.
 
@@ -93,7 +93,7 @@ ManifestDPIAware true
 Name "${INFO_PRODUCTNAME}"
 OutFile "..\..\bin\${INFO_PROJECTNAME}-${ARCH}-installer.exe" # Name of the installer's file.
 # Define installation directory
-InstallDir "$LOCALAPPDATA\${INFO_PRODUCTNAME}" # Install to local app data folder
+InstallDir "$LOCALAPPDATA\videoarchiver" # Install to hardcoded app data folder to match app expectations
 ShowInstDetails show # This will always show the installation details.
 
 Function .onInit
@@ -101,7 +101,11 @@ Function .onInit
 FunctionEnd
 
 Function LaunchUI
-    Exec '"$INSTDIR\${PRODUCT_EXECUTABLE}" --mode ui'
+    # Launch as current user, not admin
+    SetOutPath $INSTDIR
+
+    # Launch needs explorer.exe to launch non-admin process from admin installer
+    Exec '"$WINDIR\explorer.exe" "$INSTDIR\${PRODUCT_EXECUTABLE}"'
 FunctionEnd
 
 Section
@@ -122,8 +126,9 @@ Section
     # Registry key to start daemon on startup
     WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "${INFO_PRODUCTNAME} Daemon" '"$INSTDIR\${PRODUCT_EXECUTABLE}" --mode daemon'
 
-    # Start daemon immediately
+    # Start daemon immediately (before the UI, essential)
     Exec '"$INSTDIR\${PRODUCT_EXECUTABLE}" --mode daemon'
+
 
     !insertmacro wails.associateFiles
     !insertmacro wails.associateCustomProtocols
