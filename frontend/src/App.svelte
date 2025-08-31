@@ -1,7 +1,6 @@
 <script>
   import './style.css';
   import Navbar from './components/Navbar.svelte';
-  import Router from 'svelte-spa-router';
   import { onMount } from 'svelte';
   
   // Import your route components
@@ -12,18 +11,18 @@
   import LoadingSpinner from './components/LoadingSpinner.svelte';
   import HistoryPage from './routes/HistoryPage.svelte';
 
-  const routes = {
-    '/': ArchivePage,
-    '/direct': DirectPage,
-    '/history': HistoryPage,
-    '/status': StatusPage,
-    '/settings': SettingsPage
-  };
+  // State management for current page
+  let currentPage = $state('/');
 
   let isRuntimeReady = $state(false);
   let hasError = $state(false);
   let startupComplete = $state(false);
   let loadingText = $state("Initializing Application...");
+
+  // Function to handle page navigation
+  function navigateToPage(page) {
+    currentPage = page;
+  }
 
   // Listen for wails ready event
   onMount(async () => {
@@ -96,9 +95,19 @@
   </div>
 {:else}
   <div class="app">
-    <Navbar />
+    <Navbar {currentPage} {navigateToPage} />
     <main>
-      <Router {routes} />
+      {#if currentPage === '/'}
+        <ArchivePage />
+      {:else if currentPage === '/direct'}
+        <DirectPage />
+      {:else if currentPage === '/history'}
+        <HistoryPage />
+      {:else if currentPage === '/status'}
+        <StatusPage />
+      {:else if currentPage === '/settings'}
+        <SettingsPage />
+      {/if}
     </main>
   </div>
 {/if}

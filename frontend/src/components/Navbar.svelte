@@ -1,33 +1,29 @@
 <script>  
-    // Also update router in App.svelte
-    let links = [
-      { name: 'Archive', path: '/' },
-      { name: 'Direct', path: '/direct' },
-      { name: 'History', path: '/history' },
-      { name: 'Status', path: '/status' },
-      { name: 'Settings', path: '/settings' }
-    ];
+  // Props from parent
+  let { currentPage = '/', navigateToPage } = $props();
   
-    let currentRoute = $state('/');
+  let links = [
+    { name: 'Archive', path: '/' },
+    { name: 'Direct', path: '/direct' },
+    { name: 'History', path: '/history' },
+    { name: 'Status', path: '/status' },
+    { name: 'Settings', path: '/settings' }
+  ];
   
-    // Listen for hash change to update active state
-    function updateRoute() {
-      currentRoute = window.location.hash.replace('#', '') || '/';
-    }
-  
-    // Ensure active route updates on hash change
-    window.addEventListener('hashchange', updateRoute);
-    updateRoute(); // Call on load
-  </script>
+  function handleNavigation(path) {
+    navigateToPage(path);
+  }
+</script>
   
   <nav class="navbar">
     {#each links as link}
-    <a
-        href={`#${link.path}`}
-        class:active={currentRoute === link.path}
+    <button
+        class="nav-button"
+        class:active={currentPage === link.path}
+        onclick={() => handleNavigation(link.path)}
     >
         {link.name}
-    </a>
+    </button>
     {/each}
   </nav>
   
@@ -39,15 +35,19 @@
       padding: 1rem;
     }
 
-    a {
+    .nav-button {
         color: white;
-        text-decoration: none;
+        background: none;
+        border: none;
         padding: 0.5rem 1rem;
         transition: background-color 0.2s ease;
         border-radius: 4px;
+        cursor: pointer;
+        font-size: inherit;
+        font-family: inherit;
     }
 
-    a:hover {
+    .nav-button:hover {
         background-color: rgba(255, 255, 255, 0.1);
     }
 

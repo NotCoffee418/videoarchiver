@@ -1,27 +1,31 @@
 <script>
     import LoadingSpinner from "../components/LoadingSpinner.svelte";
     import SelectDirectoryButton from "../components/SelectDirectoryButton.svelte";
-    import { directState, updateDirectState } from "../stores/directStore.js";
 
-    // Reactive state from store
-    $: ({ format, url, directory, isDownloading, error } = $directState);
+    let format = "mp3";
+    let url = "";
+    let directory = "";
+    let isDownloading = false;
+    let error = "";
 
     async function selectDirectory(path) {
-        updateDirectState({ directory: path });
+        directory = path;
     }
 
     function pasteUrl() {
         window.go.main.App.GetClipboard().then(text => {
-            updateDirectState({ url: text });
+            url = text;
         });
     }
 
     function directDownload() {
-        updateDirectState({ isDownloading: true, error: "" });
+        isDownloading = true;
+        error = "";
         window.go.main.App.DirectDownload(url, directory, format).then(() => {
-            updateDirectState({ isDownloading: false });
+            isDownloading = false;
         }).catch(err => {
-            updateDirectState({ isDownloading: false, error: err.toString() });
+            isDownloading = false;
+            error = err.toString();
         }).then(path => {
             //window.go.main.App.OpenDirectory(path);
         });
@@ -34,7 +38,7 @@
     <div class="form-group">
         <label for="url">URL</label>
         <div class="input-group">
-            <input type="text" id="url" placeholder="Enter URL" value={url} oninput={(e) => updateDirectState({ url: e.target.value })} />
+            <input type="text" id="url" placeholder="Enter URL" bind:value={url} />
             <button class="paste-button" onclick={pasteUrl}>Paste URL</button>
         </div>
     </div>
@@ -42,7 +46,7 @@
     <div class="form-group">
         <label for="directory">Directory</label>
         <div class="input-group">
-            <input type="text" id="directory" placeholder="Enter directory" value={directory} oninput={(e) => updateDirectState({ directory: e.target.value })} />
+            <input type="text" id="directory" placeholder="Enter directory" bind:value={directory} />
             <SelectDirectoryButton text="Select Directory" clickHandlerAsync={selectDirectory} />
         </div>
     </div>
@@ -50,7 +54,7 @@
     <div class="form-group">
         <label for="format">Format</label>
         <div class="input-group">
-            <select id="format" value={format} onchange={(e) => updateDirectState({ format: e.target.value })}>
+            <select id="format" bind:value={format}>
                 <option value="mp3">MP3</option>
                 <option value="mp4">MP4</option>
             </select>
