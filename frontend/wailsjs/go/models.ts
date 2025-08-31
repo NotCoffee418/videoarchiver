@@ -51,6 +51,29 @@ export namespace download {
 
 }
 
+export namespace logging {
+	
+	export class Log {
+	    id: number;
+	    verbosity: number;
+	    timestamp: number;
+	    message: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new Log(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.verbosity = source["verbosity"];
+	        this.timestamp = source["timestamp"];
+	        this.message = source["message"];
+	    }
+	}
+
+}
+
 export namespace playlist {
 	
 	export class Playlist {

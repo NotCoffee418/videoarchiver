@@ -22,11 +22,11 @@ func main() {
 
 	switch *mode {
 	case "daemon":
-		app := NewApp(false)
+		app := NewApp(false, "daemon")
 		runDaemon(app)
 
 	case "ui", "":
-		app := NewApp(true)
+		app := NewApp(true, "ui")
 		runUI(app)
 
 	default:
@@ -67,13 +67,13 @@ func runDaemon(app *App) {
 
 	fmt.Println("Initializing application")
 	app.startup(context.Background())
-	
+
 	// Remove lock after successful startup
 	if err := lockfile.RemoveLock(); err != nil {
 		fmt.Printf("Warning: Failed to remove lock file after startup: %v\n", err)
 	}
 	
-	fmt.Println("Daemon starting")
+	app.LogService.Info("Daemon starting")
 	startDaemonLoop(app)
 }
 
