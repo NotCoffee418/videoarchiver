@@ -70,6 +70,8 @@ func (d *DownloadService) DownloadFile(url, directory, format string) (string, e
 
 // DownloadFileWithDuplicateCheck downloads a file and checks for duplicates
 func (d *DownloadService) DownloadFileWithDuplicateCheck(url, directory, format string) (*DownloadResult, error) {
+	d.logService.Debug(fmt.Sprintf("Starting download: %s (format: %s, directory: %s)", url, format, directory))
+	
 	// Set temp path for the file
 	tmpFile := filepath.Join(os.TempDir(), fmt.Sprintf("videoarchiver-download-%d.%s", time.Now().UnixNano(), format))
 	defer os.Remove(tmpFile)
@@ -103,6 +105,7 @@ func (d *DownloadService) DownloadFileWithDuplicateCheck(url, directory, format 
 	if duplicateFilename != "" {
 		// Duplicate found - don't move the file, just return the duplicate info
 		duplicatePath := filepath.Join(directory, duplicateFilename)
+		d.logService.Info(fmt.Sprintf("Download skipped: duplicate found - %s", duplicateFilename))
 		return &DownloadResult{
 			FilePath:    duplicatePath,
 			IsDuplicate: true,
@@ -126,6 +129,7 @@ func (d *DownloadService) DownloadFileWithDuplicateCheck(url, directory, format 
 		return nil, fmt.Errorf("download service: failed to move file: %w", err)
 	}
 
+	d.logService.Info(fmt.Sprintf("Download completed successfully: %s", filepath.Base(savePath)))
 	return &DownloadResult{
 		FilePath:    savePath,
 		IsDuplicate: false,
