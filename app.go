@@ -5,14 +5,13 @@ import (
 	"embed"
 	"fmt"
 	"os"
-	"os/exec"
 	"strings"
-	"syscall"
 	"time"
 	"videoarchiver/backend/daemonsignal"
 	"videoarchiver/backend/domains/db"
 	"videoarchiver/backend/domains/download"
 	"videoarchiver/backend/domains/playlist"
+	"videoarchiver/backend/domains/runner"
 	"videoarchiver/backend/domains/settings"
 	"videoarchiver/backend/domains/utils"
 	"videoarchiver/backend/domains/ytdlp"
@@ -263,12 +262,7 @@ func (a *App) StartDaemon() error {
 			return fmt.Errorf("failed to get executable path: %v", err)
 		}
 
-		cmd := exec.Command(exePath, "--mode", "daemon")
-		cmd.SysProcAttr = &syscall.SysProcAttr{
-			CreationFlags: 0x00000200 | 0x00000008, // CREATE_NEW_PROCESS_GROUP (0x200) | DETACHED_PROCESS (0x8)
-		}
-
-		err = cmd.Start()
+		err = runner.StartDetachedWithFlags(exePath, 0x00000200|0x00000008, "--mode", "daemon")
 		if err != nil {
 			return fmt.Errorf("failed to start daemon: %v", err)
 		}
@@ -280,11 +274,13 @@ func (a *App) StartDaemon() error {
 		}
 
 	case "linux":
-		cmd := exec.Command("systemctl", "start", LinuxServiceName)
-		if err := cmd.Run(); err != nil {
+		err := runner.RunAndWait("systemctl", "start", LinuxServiceName)
+		if err != nil {
 			// Fallback to direct execution if service not installed
-			cmd = exec.Command(os.Args[0], "--daemon")
-			cmd.Start()
+			err = runner.StartDetached(os.Args[0], "--daemon")
+			if err != nil {
+				return fmt.Errorf("failed to start daemon: %v", err)
+			}
 		}
 	default:
 		return fmt.Errorf("unsupported operating system: %s", goruntime.GOOS)
@@ -336,10 +332,10 @@ func (a *App) StopDaemon() error {
 		}
 
 	case "linux":
-		cmd := exec.Command("systemctl", "stop", LinuxServiceName)
-		if err := cmd.Run(); err != nil {
+		err := runner.RunAndWait("systemctl", "stop", LinuxServiceName)
+		if err != nil {
 			// Fallback to finding and killing the process
-			exec.Command("pkill", "-f", os.Args[0]).Run()
+			runner.RunAndWait("pkill", "-f", os.Args[0])
 		}
 	default:
 		return fmt.Errorf("unsupported operating system: %s", goruntime.GOOS)
@@ -389,8 +385,8 @@ func (a *App) IsDaemonRunning() bool {
 		return false
 
 	case "linux":
-		cmd := exec.Command("systemctl", "is-active", LinuxServiceName)
-		if err := cmd.Run(); err == nil {
+		err := runner.RunAndWait("systemctl", "is-active", LinuxServiceName)
+		if err == nil {
 			a.isDaemonRunning = true
 			return true
 		}
