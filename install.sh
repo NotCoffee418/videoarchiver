@@ -442,8 +442,8 @@ launch_app() {
     
     # Only launch if we have a desktop environment
     if [[ -n "$DISPLAY" || -n "$WAYLAND_DISPLAY" ]]; then
-        # Give the daemon service a moment to fully start
-        sleep 1
+        # Give the daemon service a moment to fully start and create lockfile
+        sleep 5
         
         nohup "$INSTALL_DIR/videoarchiver" --mode ui > /dev/null 2>&1 &
         
