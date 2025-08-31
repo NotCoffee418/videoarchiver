@@ -1,4 +1,7 @@
 <script>  
+    // Props from parent
+    let { currentRoute } = $props();
+    
     // Also update router in App.svelte
     let links = [
       { name: 'Archive', path: '/' },
@@ -7,17 +10,6 @@
       { name: 'Status', path: '/status' },
       { name: 'Settings', path: '/settings' }
     ];
-  
-    let currentRoute = $state('/');
-  
-    // Listen for hash change to update active state
-    function updateRoute() {
-      currentRoute = window.location.hash.replace('#', '') || '/';
-    }
-  
-    // Ensure active route updates on hash change
-    window.addEventListener('hashchange', updateRoute);
-    updateRoute(); // Call on load
   </script>
   
   <nav class="navbar">

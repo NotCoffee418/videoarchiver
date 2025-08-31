@@ -92,20 +92,20 @@
         <div class="tabs">
             <button 
                 class="tab {activeTab === 'daemon' ? 'active' : ''}"
-                on:click={() => selectTab('daemon')}
+                onclick={() => selectTab('daemon')}
             >
                 Daemon Logs
             </button>
             <button 
                 class="tab {activeTab === 'ui' ? 'active' : ''}"
-                on:click={() => selectTab('ui')}
+                onclick={() => selectTab('ui')}
             >
                 UI Logs
             </button>
         </div>
 
         <div class="controls">
-            <button on:click={loadLogs} disabled={loading}>
+            <button onclick={loadLogs} disabled={loading}>
                 {#if loading}
                     Refreshing...
                 {:else}

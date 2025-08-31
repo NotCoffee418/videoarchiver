@@ -1,7 +1,6 @@
 <script>
   import './style.css';
   import Navbar from './components/Navbar.svelte';
-  import Router from 'svelte-spa-router';
   import { onMount } from 'svelte';
   
   // Import your route components
@@ -13,12 +12,16 @@
   import HistoryPage from './routes/HistoryPage.svelte';
   import LegalDisclaimer from './components/LegalDisclaimer.svelte';
 
-  const routes = {
-    '/': ArchivePage,
-    '/direct': DirectPage,
-    '/history': HistoryPage,
-    '/status': StatusPage,
-    '/settings': SettingsPage
+  // Simple hash-based routing that maintains component state
+  let currentRoute = $state('/');
+
+  // Components are rendered once and kept alive
+  const components = {
+    '/': { component: ArchivePage, instance: null },
+    '/direct': { component: DirectPage, instance: null },
+    '/history': { component: HistoryPage, instance: null },
+    '/status': { component: StatusPage, instance: null },
+    '/settings': { component: SettingsPage, instance: null }
   };
 
   let isRuntimeReady = $state(false);
@@ -49,6 +52,14 @@
     }
   }
 
+  // Hash-based routing
+  function updateRoute() {
+    const hash = window.location.hash.replace('#', '') || '/';
+    if (components[hash]) {
+      currentRoute = hash;
+    }
+  }
+
   // Listen for wails ready event
   onMount(async () => {
     // Check if we're in a Wails context
@@ -57,6 +68,10 @@
       hasError = true;
       return;
     }
+
+    // Setup hash routing
+    updateRoute();
+    window.addEventListener('hashchange', updateRoute);
 
     if (window.runtime) {
       // On refresh
@@ -133,9 +148,13 @@
   </div>
 {:else}
   <div class="app">
-    <Navbar />
+    <Navbar {currentRoute} />
     <main>
-      <Router {routes} />
+      {#each Object.entries(components) as [path, { component: Component }]}
+        <div class="route-container" class:active={currentRoute === path}>
+          <Component />
+        </div>
+      {/each}
     </main>
   </div>
 {/if}
@@ -152,6 +171,15 @@
     padding: 1.5rem;
     background-color: #121212;
     color: #fff;
+    position: relative;
+  }
+
+  .route-container {
+    display: none;
+  }
+
+  .route-container.active {
+    display: block;
   }
 
   .error-container {

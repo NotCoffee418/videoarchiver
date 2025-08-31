@@ -85,14 +85,14 @@
 <div class="daemon-row">
     <button 
         class="control-btn" 
-        on:click={onStart} 
+        onclick={onStart} 
         disabled={isProcessing || isDaemonRunning}>
         {#if isProcessing && !isDaemonRunning}Starting...{:else}Start Daemon{/if}
     </button>
 
     <button 
         class="control-btn" 
-        on:click={onStop} 
+        onclick={onStop} 
         disabled={isProcessing || !isDaemonRunning}>
         {#if isProcessing && isDaemonRunning}Stopping...{:else}Stop Daemon{/if}
     </button>
