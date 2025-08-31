@@ -1,0 +1,131 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+env:
+  GO_VERSION: '1.25'
+  NODE_VERSION: '20'
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install Wails
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+      - name: Install frontend dependencies
+        run: cd frontend && npm install
+
+      - name: Build Linux binary
+        run: wails build --platform linux/${{ matrix.arch }}
+
+      - name: Get version
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Package Linux binary
+        run: |
+          mkdir -p dist
+          cd build/bin
+          if [ "${{ matrix.arch }}" == "amd64" ]; then
+            tar -czf ../../dist/videoarchiver-${{ steps.get_version.outputs.VERSION }}-linux-amd64.tar.gz videoarchiver
+          else
+            tar -czf ../../dist/videoarchiver-${{ steps.get_version.outputs.VERSION }}-linux-arm64.tar.gz videoarchiver
+          fi
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-${{ matrix.arch }}-binary
+          path: dist/
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install Wails
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+      - name: Install frontend dependencies
+        run: cd frontend && npm install
+
+      - name: Build Windows installer
+        run: wails build -nsis
+
+      - name: Get version
+        id: get_version
+        shell: bash
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: build/bin/*.exe
+
+  create-release:
+    needs: [build-linux, build-windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get version
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release-assets
+          
+          # Copy and rename Linux binaries
+          cp artifacts/linux-amd64-binary/videoarchiver-${{ steps.get_version.outputs.VERSION }}-linux-amd64.tar.gz release-assets/
+          cp artifacts/linux-arm64-binary/videoarchiver-${{ steps.get_version.outputs.VERSION }}-linux-arm64.tar.gz release-assets/
+          
+          # Find and copy Windows installer with proper name
+          INSTALLER_PATH=$(find artifacts/windows-installer -name "*.exe" | head -1)
+          cp "$INSTALLER_PATH" "release-assets/videoarchiver-${{ steps.get_version.outputs.VERSION }}-windows-installer.exe"
+
+      - name: Create Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create ${{ github.ref_name }} \
+            --title "Video Archiver ${{ steps.get_version.outputs.VERSION }}" \
+            --notes "Release ${{ steps.get_version.outputs.VERSION }}" \
+            release-assets/*
