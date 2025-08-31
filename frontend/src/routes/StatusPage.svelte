@@ -126,7 +126,7 @@
                         <div class="empty-state">No daemon log entries found</div>
                     {:else}
                         <div class="logs-list">
-                            {#each daemonLogs as logLine}
+                            {#each [...daemonLogs].reverse() as logLine}
                                 {@const formatted = formatLogLine(logLine)}
                                 <div class="log-entry {getLogLevelClass(formatted.level)}">
                                     <div class="log-header">
@@ -145,7 +145,7 @@
                         <div class="empty-state">No UI log entries found</div>
                     {:else}
                         <div class="logs-list">
-                            {#each uiLogs as logLine}
+                            {#each [...uiLogs].reverse() as logLine}
                                 {@const formatted = formatLogLine(logLine)}
                                 <div class="log-entry {getLogLevelClass(formatted.level)}">
                                     <div class="log-header">
