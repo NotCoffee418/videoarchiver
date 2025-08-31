@@ -9,7 +9,7 @@
 
   function handleDecline() {
     // Close the application on decline
-    window.close();
+    window.go.main.App.CloseApplication();
   }
 </script>
 
@@ -19,13 +19,14 @@
     <div class="disclaimer-text">
       <p>By using this application, you agree to the following terms:</p>
       <ul>
-        <li>You will only use this application for <strong>legal purposes</strong> in accordance with the laws of your country and jurisdiction.</li>
-        <li>You are responsible for ensuring that any content you download is legally obtained and that you have the right to download and store such content.</li>
-        <li>This application is provided as-is, and the developers are not responsible for any misuse of the software.</li>
-        <li>You understand that downloading copyrighted content without permission may violate copyright laws in your jurisdiction.</li>
-        <li>It is your responsibility to comply with all applicable laws, including but not limited to copyright laws, privacy laws, and terms of service of third-party platforms.</li>
+        <li>You will only use this application for <strong>legal purposes</strong> in accordance with your local laws and jurisdiction.</li>
+        <li>You are responsible for ensuring any downloaded content is legally obtained and you have the right to download and store it.</li>
+        <li>You understand that downloading copyrighted content without permission may violate copyright laws.</li>
+        <li>You agree to comply with all applicable laws and terms of service of third-party platforms.</li>
+        <li>This application uses <a href="https://github.com/yt-dlp/yt-dlp/blob/master/LICENSE" target="_blank">yt-dlp (Unlicense)</a> and <a href="https://github.com/FFmpeg/FFmpeg/blob/master/COPYING.LGPLv2.1" target="_blank">FFmpeg (LGPL v2.1)</a> - you agree to their respective licenses.</li>
+        <li>This application is provided as-is, and developers are not responsible for any misuse.</li>
       </ul>
-      <p>By clicking "I Agree", you acknowledge that you have read, understood, and agree to these terms and will use this application only for legal purposes.</p>
+      <p>By clicking "I Agree", you acknowledge understanding these terms and will use this application only for legal purposes.</p>
     </div>
     <div class="button-container">
       <button class="decline-btn" onclick={handleDecline}>I Decline</button>
@@ -53,8 +54,8 @@
     color: #ffffff;
     padding: 2rem;
     border-radius: 12px;
-    max-width: 600px;
-    max-height: 80vh;
+    max-width: 800px;
+    max-height: 85vh;
     overflow-y: auto;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
     border: 1px solid #333;
@@ -87,6 +88,16 @@
 
   .disclaimer-text strong {
     color: #ff6b6b;
+  }
+
+  .disclaimer-text a {
+    color: #4dabf7;
+    text-decoration: none;
+  }
+
+  .disclaimer-text a:hover {
+    color: #74c0fc;
+    text-decoration: underline;
   }
 
   .button-container {

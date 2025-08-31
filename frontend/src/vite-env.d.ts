@@ -46,6 +46,7 @@ declare global {
           StartDaemon: () => Promise<void>;
           StopDaemon: () => Promise<void>;
           IsDaemonRunning: () => Promise<boolean>;
+          CloseApplication: () => Promise<void>;
         };
       };
     };
