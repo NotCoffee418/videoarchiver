@@ -2,17 +2,17 @@
     import { onMount, onDestroy } from "svelte";
     import LoadingSpinner from "../components/LoadingSpinner.svelte";
 
-    let downloads = $state([]);
-    let offset = $state(0);
-    let limit = $state(10); // Changed from 10 to 2 for testing
-    let loading = $state(false);
-    let error = $state("");
+    let downloads = [];
+    let offset = 0;
+    let limit = 10; // Changed from 10 to 2 for testing
+    let loading = false;
+    let error = "";
 
     // ids currently retrying
-    let retrying = $state(new Set());
+    let retrying = new Set();
 
-    let showFailed = $state(true);
-    let showSuccessful = $state(true);
+    let showFailed = true;
+    let showSuccessful = true;
 
     function statusLabel(s) {
         switch (s) {
@@ -67,7 +67,8 @@
         }
     }
 
-    async function copyToClipboard(text) {
+    async function copyToClipboard(text, e) {
+        if (e) e.preventDefault();
         if (!text) return;
         try { await navigator.clipboard.writeText(text); }
         catch (e) { console.error("copy failed", e); }
@@ -141,14 +142,12 @@
         }
     });
 
-    let nextDisabled = $derived(downloads.length < limit);
-    let pageNumber = $derived(Math.floor(offset / limit) + 1);
+    $: nextDisabled = downloads.length < limit;
+    $: pageNumber = Math.floor(offset / limit) + 1;
 
-    $effect(() => {
-        if (showFailed !== undefined && showSuccessful !== undefined) {
-            onFilterChange();
-        }
-    });
+    $: if (showFailed !== undefined && showSuccessful !== undefined) {
+        onFilterChange();
+    }
 
     function displayTitle(d) {
         return d.output_filename?.String ?? (d.url?.split?.("/").pop() ?? "Untitled");
@@ -161,7 +160,7 @@
         return new Date(n * 1000).toLocaleString(); // multiply by 1000 to convert seconds to milliseconds
     }
 
-    let retryAllCooldown = $state(false);
+    let retryAllCooldown = false;
 
     async function onRetryAll() {
         if (retryAllCooldown) return;
@@ -230,9 +229,9 @@
                                 {/if}
                                 <div class="meta-section">
                                     <div class="actions">
-                                        <a href="/" onclick={(e) => { e.preventDefault(); copyToClipboard(d.url); }}>Copy URL</a>
+                                        <a href="/" onclick={(e) => copyToClipboard(d.url, e)}>Copy URL</a>
                                         <span class="separator">|</span>
-                                        <a href="/" onclick={(e) => { e.preventDefault(); copyToClipboard(d.output_filename.String); }}>Copy File Path</a>
+                                        <a href="/" onclick={(e) => copyToClipboard(d.output_filename.String, e)}>Copy File Path</a>
                                     </div>
                                     <div class="timestamp">{formatTimestamp(d.last_attempt)}</div>
                                 </div>
@@ -262,10 +261,10 @@
 
                                 <div class="meta-section">
                                     <div class="actions">
-                                        <a href="/" onclick={(e) => { e.preventDefault(); copyToClipboard(d.url); }}>Copy URL</a>
+                                        <a href="/" onclick={(e) => copyToClipboard(d.url, e)}>Copy URL</a>
                                         {#if d.output_filename?.Valid}
                                             <span class="separator">|</span>
-                                            <a href="/" onclick={(e) => { e.preventDefault(); copyToClipboard(d.output_filename.String); }}>Copy File Path</a>
+                                            <a href="/" onclick={(e) => copyToClipboard(d.output_filename.String, e)}>Copy File Path</a>
                                         {/if}
                                     </div>
                                     <div class="timestamp">{formatTimestamp(d.last_attempt)}</div>

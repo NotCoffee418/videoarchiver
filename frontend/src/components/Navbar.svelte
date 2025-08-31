@@ -1,29 +1,25 @@
 <script>  
-  // Props from parent
-  let { currentPage = '/', navigateToPage } = $props();
-  
-  let links = [
-    { name: 'Archive', path: '/' },
-    { name: 'Direct', path: '/direct' },
-    { name: 'History', path: '/history' },
-    { name: 'Status', path: '/status' },
-    { name: 'Settings', path: '/settings' }
-  ];
-  
-  function handleNavigation(path) {
-    navigateToPage(path);
-  }
-</script>
+    // Props from parent
+    let { currentRoute } = $props();
+    
+    // Also update router in App.svelte
+    let links = [
+      { name: 'Archive', path: '/' },
+      { name: 'Direct', path: '/direct' },
+      { name: 'History', path: '/history' },
+      { name: 'Status', path: '/status' },
+      { name: 'Settings', path: '/settings' }
+    ];
+  </script>
   
   <nav class="navbar">
     {#each links as link}
-    <button
-        class="nav-button"
-        class:active={currentPage === link.path}
-        onclick={() => handleNavigation(link.path)}
+    <a
+        href={`#${link.path}`}
+        class:active={currentRoute === link.path}
     >
         {link.name}
-    </button>
+    </a>
     {/each}
   </nav>
   
@@ -35,19 +31,15 @@
       padding: 1rem;
     }
 
-    .nav-button {
+    a {
         color: white;
-        background: none;
-        border: none;
+        text-decoration: none;
         padding: 0.5rem 1rem;
         transition: background-color 0.2s ease;
         border-radius: 4px;
-        cursor: pointer;
-        font-size: inherit;
-        font-family: inherit;
     }
 
-    .nav-button:hover {
+    a:hover {
         background-color: rgba(255, 255, 255, 0.1);
     }
 

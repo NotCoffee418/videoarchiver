@@ -11,17 +11,29 @@
   import LoadingSpinner from './components/LoadingSpinner.svelte';
   import HistoryPage from './routes/HistoryPage.svelte';
 
-  // State management for current page
-  let currentPage = $state('/');
+  // Simple hash-based routing that maintains component state
+  let currentRoute = $state('/');
+
+  // Components are rendered once and kept alive
+  const components = {
+    '/': { component: ArchivePage, instance: null },
+    '/direct': { component: DirectPage, instance: null },
+    '/history': { component: HistoryPage, instance: null },
+    '/status': { component: StatusPage, instance: null },
+    '/settings': { component: SettingsPage, instance: null }
+  };
 
   let isRuntimeReady = $state(false);
   let hasError = $state(false);
   let startupComplete = $state(false);
   let loadingText = $state("Initializing Application...");
 
-  // Function to handle page navigation
-  function navigateToPage(page) {
-    currentPage = page;
+  // Hash-based routing
+  function updateRoute() {
+    const hash = window.location.hash.replace('#', '') || '/';
+    if (components[hash]) {
+      currentRoute = hash;
+    }
   }
 
   // Listen for wails ready event
@@ -32,6 +44,10 @@
       hasError = true;
       return;
     }
+
+    // Setup hash routing
+    updateRoute();
+    window.addEventListener('hashchange', updateRoute);
 
     if (window.runtime) {
       // On refresh
@@ -95,19 +111,13 @@
   </div>
 {:else}
   <div class="app">
-    <Navbar {currentPage} {navigateToPage} />
+    <Navbar {currentRoute} />
     <main>
-      {#if currentPage === '/'}
-        <ArchivePage />
-      {:else if currentPage === '/direct'}
-        <DirectPage />
-      {:else if currentPage === '/history'}
-        <HistoryPage />
-      {:else if currentPage === '/status'}
-        <StatusPage />
-      {:else if currentPage === '/settings'}
-        <SettingsPage />
-      {/if}
+      {#each Object.entries(components) as [path, { component: Component }]}
+        <div class="route-container" class:active={currentRoute === path}>
+          <Component />
+        </div>
+      {/each}
     </main>
   </div>
 {/if}
@@ -124,6 +134,15 @@
     padding: 1.5rem;
     background-color: #121212;
     color: #fff;
+    position: relative;
+  }
+
+  .route-container {
+    display: none;
+  }
+
+  .route-container.active {
+    display: block;
   }
 
   .error-container {
