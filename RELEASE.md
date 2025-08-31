@@ -21,13 +21,12 @@ This document explains how to create releases for Video Archiver using the autom
 3. **Monitor the workflow**:
    - Go to the [Actions tab](https://github.com/NotCoffee418/videoarchiver/actions)
    - Watch the "Release" workflow progress
-   - The workflow will build for Linux (amd64 + arm64) and Windows
+   - The workflow will build for Linux (amd64) and Windows
 
 4. **Release artifacts**:
    - Upon successful completion, check the [Releases page](https://github.com/NotCoffee418/videoarchiver/releases)
    - The following files will be automatically uploaded:
      - `videoarchiver-vX.X.X-linux-amd64.tar.gz`
-     - `videoarchiver-vX.X.X-linux-arm64.tar.gz` 
      - `videoarchiver-vX.X.X-windows-installer.exe`
 
 ## Tag Format
@@ -48,11 +47,12 @@ Examples of invalid tags (won't trigger):
 
 The workflow performs the following steps:
 
-1. **Linux builds** (parallel):
+1. **Linux builds**:
    - Sets up Go 1.25 and Node.js 20
+   - Installs required GTK and WebKit dependencies
    - Installs Wails v2
-   - Builds for amd64 and arm64 architectures
-   - Creates compressed tarballs
+   - Builds for amd64 architecture
+   - Creates compressed tarball
 
 2. **Windows build**:
    - Sets up Go 1.25 and Node.js 20 on Windows runner
@@ -74,6 +74,7 @@ If the workflow fails:
    - **Frontend build fails**: Check Node.js/npm dependencies in `frontend/package.json`
    - **Go build fails**: Verify Go version compatibility in `go.mod`
    - **Wails build fails**: Check `wails.json` configuration
+   - **Linux dependencies**: The workflow automatically handles GTK/WebKit dependencies and newer webkit2gtk-4.1 compatibility
    - **NSIS build fails**: Verify Windows installer configuration in `build/windows/`
 
 3. Fix issues and create a new tag to retry the release

@@ -17,7 +17,6 @@ Download the latest release for your platform from the [Releases page](https://g
 
 - **Windows**: `videoarchiver-vX.X.X-windows-installer.exe` - Full installer with NSIS
 - **Linux (amd64)**: `videoarchiver-vX.X.X-linux-amd64.tar.gz` - For x86_64 systems
-- **Linux (arm64)**: `videoarchiver-vX.X.X-linux-arm64.tar.gz` - For ARM64 systems
 
 ### Building from Source
 

@@ -12,9 +12,6 @@ env:
 jobs:
   build-linux:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        arch: [amd64, arm64]
     steps:
       - uses: actions/checkout@v4
 
@@ -28,6 +25,17 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config
+          # Try installing webkit2gtk-4.0 first, fallback to 4.1 if needed
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev || {
+            echo "webkit2gtk-4.0 not found, trying webkit2gtk-4.1"
+            sudo apt-get install -y libwebkit2gtk-4.1-dev
+            echo "WEBKIT_TAG=webkit2_41" >> $GITHUB_ENV
+          }
+
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
 
@@ -35,7 +43,14 @@ jobs:
         run: cd frontend && npm install
 
       - name: Build Linux binary
-        run: wails build --platform linux/${{ matrix.arch }}
+        run: |
+          if [ "$WEBKIT_TAG" == "webkit2_41" ]; then
+            echo "Building with webkit2_41 tag"
+            wails build --platform linux/amd64 -tags webkit2_41
+          else
+            echo "Building with default webkit"
+            wails build --platform linux/amd64
+          fi
 
       - name: Get version
         id: get_version
@@ -45,16 +60,12 @@ jobs:
         run: |
           mkdir -p dist
           cd build/bin
-          if [ "${{ matrix.arch }}" == "amd64" ]; then
-            tar -czf ../../dist/videoarchiver-${{ steps.get_version.outputs.VERSION }}-linux-amd64.tar.gz videoarchiver
-          else
-            tar -czf ../../dist/videoarchiver-${{ steps.get_version.outputs.VERSION }}-linux-arm64.tar.gz videoarchiver
-          fi
+          tar -czf ../../dist/videoarchiver-${{ steps.get_version.outputs.VERSION }}-linux-amd64.tar.gz videoarchiver
 
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: linux-${{ matrix.arch }}-binary
+          name: linux-amd64-binary
           path: dist/
 
   build-windows:
@@ -113,9 +124,8 @@ jobs:
         run: |
           mkdir -p release-assets
           
-          # Copy and rename Linux binaries
+          # Copy Linux binary
           cp artifacts/linux-amd64-binary/videoarchiver-${{ steps.get_version.outputs.VERSION }}-linux-amd64.tar.gz release-assets/
-          cp artifacts/linux-arm64-binary/videoarchiver-${{ steps.get_version.outputs.VERSION }}-linux-arm64.tar.gz release-assets/
           
           # Find and copy Windows installer with proper name
           INSTALLER_PATH=$(find artifacts/windows-installer -name "*.exe" | head -1)
