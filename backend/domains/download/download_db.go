@@ -85,7 +85,7 @@ func (d *DownloadDB) scanRows(rows *sql.Rows) ([]Download, error) {
 }
 
 // CheckDuplicateByMD5 checks if a file with the same MD5 exists in the database
-// It looks for files with similar names (base name with or without "-1", "-2", etc.)
+// It looks for files with similar names across all playlists that share the same save directory
 func (d *DownloadDB) CheckDuplicateByMD5(md5 string, baseFilename string, playlistId int) (*Download, error) {
 	if md5 == "" {
 		return nil, nil
@@ -96,15 +96,18 @@ func (d *DownloadDB) CheckDuplicateByMD5(md5 string, baseFilename string, playli
 	ext := filepath.Ext(baseFilename)
 	
 	// Query for existing downloads with same MD5 and similar filename pattern
-	query := `SELECT * FROM downloads 
-	         WHERE md5 = ? AND playlist_id = ? AND status IN (?, ?) 
-	         AND (output_filename = ? OR output_filename LIKE ? OR output_filename LIKE ?)`
+	// Check across all playlists that share the same save directory
+	query := `SELECT d.* FROM downloads d
+	          JOIN playlists p1 ON d.playlist_id = p1.id
+	          JOIN playlists p2 ON p2.id = ?
+	          WHERE d.md5 = ? AND p1.save_directory = p2.save_directory AND d.status IN (?, ?) 
+	          AND (d.output_filename = ? OR d.output_filename LIKE ? OR d.output_filename LIKE ?)`
 	
 	// Pattern matching for "-1", "-2", etc. variations
 	pattern1 := baseName + "-%" + ext  // matches "filename-1.ext", "filename-10.ext" etc
 	pattern2 := baseName + "-%"        // matches "filename-1", "filename-10" etc (if extension is missing)
 	
-	rows, err := d.db.Query(query, md5, playlistId, StSuccess, StSuccessDuplicate, baseFilename, pattern1, pattern2)
+	rows, err := d.db.Query(query, playlistId, md5, StSuccess, StSuccessDuplicate, baseFilename, pattern1, pattern2)
 	if err != nil {
 		return nil, err
 	}
