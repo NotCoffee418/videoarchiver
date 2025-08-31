@@ -142,18 +142,6 @@ RequestExecutionLevel "${REQUEST_EXECUTION_LEVEL}"
     ${EndIf}
 !macroend
 
-!macro wails.closeRunningProcesses
-    DetailPrint "Closing running ${INFO_PRODUCTNAME} processes..."
-    
-    # Force close any running instances of the application
-    # Use /F to force and /T to terminate child processes  
-    # Ignore errors (process might not be running)
-    ExecWait 'taskkill /F /IM "${PRODUCT_EXECUTABLE}" /T'
-    
-    # Small delay to let processes close cleanly
-    Sleep 2000
-!macroend
-
 # Install webview2 by launching the bootstrapper
 # See https://docs.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution#online-only-deployment
 !macro wails.webview2runtime
