@@ -222,7 +222,29 @@ func downloadItem(dl *download.Download, pl *playlist.Playlist) {
 		} else {
 			fmt.Printf("Download successful for item %s, saved to %s\n", dl.Url, outputFilePath)
 			fileName := filepath.Base(outputFilePath)
-			err = dl.SetSuccess(app.DownloadDB, fileName, md5)
+			
+			// Check for duplicate by MD5 hash
+			existingDownload, err := app.DownloadDB.CheckDuplicateByMD5(md5, fileName, dl.PlaylistID)
+			if err != nil {
+				fmt.Printf("Error checking for duplicates for item %s: %v\n", dl.Url, err)
+				err = dl.SetSuccess(app.DownloadDB, fileName, md5)
+			} else if existingDownload != nil {
+				// Check if the existing file still exists on disk
+				existingFilePath := filepath.Join(pl.SaveDirectory, existingDownload.OutputFilename.String)
+				if _, err := os.Stat(existingFilePath); err == nil {
+					fmt.Printf("Duplicate detected for item %s (matches existing file: %s)\n", dl.Url, existingDownload.OutputFilename.String)
+					// Remove the newly downloaded duplicate file
+					os.Remove(outputFilePath)
+					err = dl.SetSuccessDuplicate(app.DownloadDB, fileName, md5)
+				} else {
+					// Existing file no longer exists, proceed as normal download
+					fmt.Printf("Existing file %s no longer exists, proceeding as new download\n", existingFilePath)
+					err = dl.SetSuccess(app.DownloadDB, fileName, md5)
+				}
+			} else {
+				// No duplicate found, proceed as normal
+				err = dl.SetSuccess(app.DownloadDB, fileName, md5)
+			}
 		}
 
 		// Handle DB errors

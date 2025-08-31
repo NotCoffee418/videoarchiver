@@ -51,4 +51,5 @@ const (
 	StFailedGiveUp           = 4
 	StSuccessPlaylistRemoved = 5
 	StFailedPlaylistRemoved  = 6
+	StSuccessDuplicate       = 7
 )

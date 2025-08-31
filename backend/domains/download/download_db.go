@@ -2,6 +2,7 @@ package download
 
 import (
 	"database/sql"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -37,7 +38,7 @@ func (d *DownloadDB) GetDownloadsForPlaylist(playlistId int) ([]Download, error)
 func (d *DownloadDB) GetDownloadHistoryPage(offset, limit int, showSuccess, showFailed bool) ([]Download, error) {
 	var statuses []int
 	if showSuccess {
-		statuses = append(statuses, StSuccess, StSuccessPlaylistRemoved)
+		statuses = append(statuses, StSuccess, StSuccessPlaylistRemoved, StSuccessDuplicate)
 	}
 	if showFailed {
 		statuses = append(statuses, StFailedAutoRetry, StFailedManualRetry, StFailedGiveUp, StFailedPlaylistRemoved)
@@ -83,8 +84,62 @@ func (d *DownloadDB) scanRows(rows *sql.Rows) ([]Download, error) {
 	return downloads, nil
 }
 
+// CheckDuplicateByMD5 checks if a file with the same MD5 exists in the database
+// It looks for files with similar names (base name with or without "-1", "-2", etc.)
+func (d *DownloadDB) CheckDuplicateByMD5(md5 string, baseFilename string, playlistId int) (*Download, error) {
+	if md5 == "" {
+		return nil, nil
+	}
+
+	// Extract base name without extension for pattern matching
+	baseName := strings.TrimSuffix(baseFilename, filepath.Ext(baseFilename))
+	ext := filepath.Ext(baseFilename)
+	
+	// Query for existing downloads with same MD5 and similar filename pattern
+	query := `SELECT * FROM downloads 
+	         WHERE md5 = ? AND playlist_id = ? AND status IN (?, ?) 
+	         AND (output_filename = ? OR output_filename LIKE ? OR output_filename LIKE ?)`
+	
+	// Pattern matching for "-1", "-2", etc. variations
+	pattern1 := baseName + "-%" + ext  // matches "filename-1.ext", "filename-10.ext" etc
+	pattern2 := baseName + "-%"        // matches "filename-1", "filename-10" etc (if extension is missing)
+	
+	rows, err := d.db.Query(query, md5, playlistId, StSuccess, StSuccessDuplicate, baseFilename, pattern1, pattern2)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	downloads, err := d.scanRows(rows)
+	if err != nil {
+		return nil, err
+	}
+	
+	if len(downloads) > 0 {
+		return &downloads[0], nil
+	}
+	return nil, nil
+}
+
 func (d *Download) SetSuccess(dlDB *DownloadDB, outputFilename string, md5 string) error {
 	d.Status = StSuccess
+	d.MD5 = sql.NullString{String: md5, Valid: true}
+	d.OutputFilename = sql.NullString{String: outputFilename, Valid: true}
+	d.FailMessage = sql.NullString{String: "", Valid: false}
+	d.AttemptCount += 1
+	d.LastAttempt = time.Now().Unix()
+
+	var err error
+	if d.ID == 0 {
+		err = d.insertDownload(dlDB)
+	} else {
+		err = d.updateDownload(dlDB)
+	}
+	return err
+}
+
+func (d *Download) SetSuccessDuplicate(dlDB *DownloadDB, outputFilename string, md5 string) error {
+	d.Status = StSuccessDuplicate
 	d.MD5 = sql.NullString{String: md5, Valid: true}
 	d.OutputFilename = sql.NullString{String: outputFilename, Valid: true}
 	d.FailMessage = sql.NullString{String: "", Valid: false}
