@@ -2,15 +2,17 @@ package db
 
 import (
 	"database/sql"
-	"path/filepath"
 	"sync"
-	"videoarchiver/backend/domains/pathing"
+	"videoarchiver/backend/domains/config"
+	"videoarchiver/backend/domains/logging"
 
 	_ "modernc.org/sqlite"
 )
 
 type DatabaseService struct {
-	db *sql.DB
+	db           *sql.DB
+	configSvc    *config.ConfigService
+	logSvc       *logging.LogService
 }
 
 var (
@@ -18,13 +20,18 @@ var (
 	once       sync.Once // ensure singleton of `db` even with multiple instances of service
 )
 
-func NewDatabaseService() (*DatabaseService, error) {
+func NewDatabaseService(configSvc *config.ConfigService, logSvc *logging.LogService) (*DatabaseService, error) {
 	var errInit error
 	once.Do(func() {
-		dbPath, err := getDatabasePath()
+		dbPath, err := configSvc.GetDatabasePath()
 		if err != nil {
 			errInit = err
 			return
+		}
+
+		// Log the database location
+		if logSvc != nil {
+			logSvc.Info("Database location: " + dbPath)
 		}
 
 		db, err := sql.Open("sqlite", dbPath)
@@ -40,7 +47,11 @@ func NewDatabaseService() (*DatabaseService, error) {
 			return
 		}
 
-		dbInstance = &DatabaseService{db: db}
+		dbInstance = &DatabaseService{
+			db:        db,
+			configSvc: configSvc,
+			logSvc:    logSvc,
+		}
 	})
 
 	if errInit != nil {
@@ -51,12 +62,4 @@ func NewDatabaseService() (*DatabaseService, error) {
 
 func (d *DatabaseService) GetDB() *sql.DB {
 	return d.db
-}
-
-func getDatabasePath() (string, error) {
-	workingDir, err := pathing.GetWorkingDir()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(workingDir, "db.sqlite"), nil
 }
