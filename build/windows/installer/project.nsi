@@ -122,6 +122,10 @@ Section
     # Registry key to start daemon on startup
     WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "${INFO_PRODUCTNAME} Daemon" '"$INSTDIR\${PRODUCT_EXECUTABLE}" --mode daemon'
 
+    # Start daemon immediately (before the UI, essential)
+    Exec '"$INSTDIR\${PRODUCT_EXECUTABLE}" --mode daemon'
+
+
     !insertmacro wails.associateFiles
     !insertmacro wails.associateCustomProtocols
 
