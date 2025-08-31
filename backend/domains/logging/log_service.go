@@ -37,7 +37,7 @@ func NewLogService(mode string) *LogService {
 		logger.SetOutput(os.Stdout)
 		logger.SetFormatter(&logrus.JSONFormatter{})
 		logger.SetLevel(logrus.DebugLevel)
-		
+
 		service := &LogService{
 			logger: logger,
 			mode:   mode,
@@ -70,7 +70,7 @@ func NewLogService(mode string) *LogService {
 
 	// Test log entry to verify logging is working
 	service.Info("LogService initialized for mode: " + mode)
-	
+
 	return service
 }
 
@@ -78,7 +78,7 @@ func NewLogService(mode string) *LogService {
 func (l *LogService) Log(verbosity logrus.Level, message string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	
+
 	timestamp := time.Now()
 	logEntry := l.logger.WithFields(logrus.Fields{
 		"verbosity": verbosity,
@@ -98,7 +98,7 @@ func (l *LogService) Log(verbosity logrus.Level, message string) {
 func (l *LogService) Close() error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	
+
 	if l.file != nil {
 		return l.file.Close()
 	}

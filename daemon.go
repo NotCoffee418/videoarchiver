@@ -219,7 +219,7 @@ func downloadItem(dl *download.Download, pl *playlist.Playlist) {
 			err = dl.SetFail(app.DownloadDB, fmt.Sprintf("Failed to calculate MD5: %v", err))
 		} else {
 			fileName := filepath.Base(downloadResult.FilePath)
-			
+
 			if downloadResult.IsDuplicate {
 				app.LogService.Info(fmt.Sprintf("Duplicate detected for item %s (matches existing file: %s)", dl.Url, downloadResult.DuplicateOf))
 				err = dl.SetSuccessDuplicate(app.DownloadDB, downloadResult.DuplicateOf, md5)

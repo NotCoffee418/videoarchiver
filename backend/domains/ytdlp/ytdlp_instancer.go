@@ -31,7 +31,7 @@ func InstallOrUpdate(forceReinstall bool, logger ...*logging.LogService) error {
 	if len(logger) > 0 {
 		log = logger[0]
 	}
-	
+
 	// Install or update ytdlp
 	err := installUpdateYtdlp(log)
 	if err != nil {
@@ -99,7 +99,7 @@ func installUpdateYtdlp(logger *logging.LogService) error {
 		if logger != nil {
 			logger.Info("Downloading ytdlp...")
 		}
-		
+
 		// Download
 		downloadUrl := baseYtdlpDownloadUrl + getYtdlpExecutableFileName()
 		err := downloadFileHttp(downloadUrl, ytdlpPath)
@@ -190,7 +190,7 @@ func installUpdateFfmpeg(forceReinstall bool, logger *logging.LogService) error 
 		if logger != nil {
 			logger.Debug("Downloading ffmpeg for Windows...")
 		}
-		
+
 		// Download ffmpeg to temp file
 		downloadUrl := "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.7z"
 		tmpFile := filepath.Join(os.TempDir(), fmt.Sprintf("videoarchiver-ffmpeg-%d.7z", time.Now().UnixNano()))
@@ -221,7 +221,7 @@ func installUpdateFfmpeg(forceReinstall bool, logger *logging.LogService) error 
 		if logger != nil {
 			logger.Debug("Downloading ffmpeg for Linux...")
 		}
-		
+
 		// Identify download for architecture
 		var archStr string
 		switch runtime.GOARCH {

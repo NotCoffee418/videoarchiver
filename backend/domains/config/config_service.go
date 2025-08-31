@@ -48,12 +48,12 @@ func (c *ConfigService) GetDatabasePath() (string, error) {
 		// Return default path if not configured
 		return getDefaultDatabasePath()
 	}
-	
+
 	// If the configured path is relative, make it absolute using GetWorkingFile
 	if !filepath.IsAbs(c.config.DatabasePath) {
 		return pathing.GetWorkingFile(c.config.DatabasePath)
 	}
-	
+
 	return c.config.DatabasePath, nil
 }
 
@@ -66,11 +66,11 @@ func (c *ConfigService) loadConfig() error {
 		if err != nil {
 			return err
 		}
-		
+
 		c.config = &Config{
 			DatabasePath: defaultPath,
 		}
-		
+
 		// Save the default configuration
 		return c.saveConfig()
 	}
