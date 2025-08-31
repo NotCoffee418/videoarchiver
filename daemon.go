@@ -29,6 +29,16 @@ func startDaemonLoop(_app *App) {
 	app = _app
 	fmt.Println("Starting daemon loop...")
 
+	// Remove daemon startup lock when daemon is fully initialized
+	defer func() {
+		if app.DaemonLockService != nil {
+			err := app.DaemonLockService.RemoveLock()
+			if err != nil {
+				fmt.Printf("Warning: Failed to remove daemon lock: %v\n", err)
+			}
+		}
+	}()
+
 	// Create context and shutdown handling here
 	ctx, _cancelFunc := context.WithCancel(context.Background())
 	cancelFunc = _cancelFunc
@@ -41,6 +51,16 @@ func startDaemonLoop(_app *App) {
 		fmt.Println("Shutdown signal received")
 		cancelFunc()
 	}()
+
+	// Remove lock once daemon is fully started and ready
+	if app.DaemonLockService != nil {
+		err := app.DaemonLockService.RemoveLock()
+		if err != nil {
+			fmt.Printf("Warning: Failed to remove daemon lock: %v\n", err)
+		} else {
+			fmt.Println("Daemon startup lock removed - daemon is ready")
+		}
+	}
 
 	for {
 		select {

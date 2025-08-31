@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 	"videoarchiver/backend/daemonsignal"
+	"videoarchiver/backend/domains/daemonlock"
 	"videoarchiver/backend/domains/db"
 	"videoarchiver/backend/domains/download"
 	"videoarchiver/backend/domains/playlist"
@@ -44,6 +45,7 @@ type App struct {
 	PlaylistService     *playlist.PlaylistService
 	SettingsService     *settings.SettingsService
 	DaemonSignalService *daemonsignal.DaemonSignalService
+	DaemonLockService   *daemonlock.DaemonLockService
 	DownloadDB          *download.DownloadDB
 	DownloadService     *download.DownloadService
 	StartupProgress     string
@@ -87,6 +89,9 @@ func (a *App) startup(ctx context.Context) {
 
 	// Create DaemonTrigger service
 	a.DaemonSignalService = daemonsignal.NewDaemonSignalService(a.SettingsService)
+
+	// Create DaemonLock service
+	a.DaemonLockService = daemonlock.NewDaemonLockService()
 
 	// Create PlaylistDB using dbService
 	a.PlaylistDB = playlist.NewPlaylistDB(dbService)
@@ -251,10 +256,36 @@ func (a *App) RegisterAllFailedForRetryManual() error {
 	return a.DownloadService.RegisterAllFailedForRetryManual()
 }
 
+func (a *App) IsDaemonLocked() bool {
+	return a.DaemonLockService.IsLocked()
+}
+
+func (a *App) GetDaemonLockAge() (int64, error) {
+	age, err := a.DaemonLockService.GetLockAge()
+	if err != nil {
+		return 0, err
+	}
+	return int64(age.Seconds()), nil
+}
+
 func (a *App) StartDaemon() error {
 	if a.isDaemonRunning {
 		return nil
 	}
+
+	// Create daemon startup lock
+	err := a.DaemonLockService.CreateLock()
+	if err != nil {
+		return fmt.Errorf("failed to create daemon lock: %v", err)
+	}
+
+	// Ensure lock is cleaned up if daemon start fails
+	defer func() {
+		// Only remove lock if daemon didn't actually start
+		if !a.IsDaemonRunning() {
+			a.DaemonLockService.RemoveLock()
+		}
+	}()
 
 	switch goruntime.GOOS {
 	case "windows":

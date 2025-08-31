@@ -2,6 +2,8 @@
     import { onMount, onDestroy } from "svelte";
 
     let isDaemonRunning = false;
+    let isDaemonLocked = false;
+    let daemonLockAge = 0;
     let isProcessing = false;
     let error = '';
     let checkInterval;
@@ -20,8 +22,36 @@
         }
     }
 
+    async function checkDaemonLock() {
+        try {
+            const locked = await window.go.main.App.IsDaemonLocked();
+            isDaemonLocked = locked;
+            
+            if (locked) {
+                try {
+                    const ageSeconds = await window.go.main.App.GetDaemonLockAge();
+                    daemonLockAge = ageSeconds;
+                } catch (err) {
+                    // If we can't get lock age, just show that it's locked
+                    daemonLockAge = 0;
+                }
+            } else {
+                daemonLockAge = 0;
+            }
+        } catch (err) {
+            console.error("Failed to check daemon lock status:", err);
+            isDaemonLocked = false;
+            daemonLockAge = 0;
+        }
+    }
+
+    async function checkAllStatus() {
+        await checkDaemonStatus();
+        await checkDaemonLock();
+    }
+
     async function onStart() {
-        if (isProcessing || isDaemonRunning) return;
+        if (isProcessing || isDaemonRunning || isDaemonLocked) return;
         isProcessing = true;
         error = '';
         
@@ -29,7 +59,7 @@
             await window.go.main.App.StartDaemon();
             // Only poll if start command succeeded
             for (let i = 0; i < 6 && !isDaemonRunning; i++) {
-                await checkDaemonStatus();
+                await checkAllStatus();
                 if (isDaemonRunning) break;
                 await new Promise(r => setTimeout(r, 5000));
             }
@@ -54,7 +84,7 @@
             await window.go.main.App.StopDaemon();
             // Only poll if stop command succeeded
             for (let i = 0; i < 6 && isDaemonRunning; i++) {
-                await checkDaemonStatus();
+                await checkAllStatus();
                 if (!isDaemonRunning) break;
                 await new Promise(r => setTimeout(r, 5000));
             }
@@ -71,8 +101,8 @@
     }
 
     onMount(() => {
-        checkDaemonStatus();
-        checkInterval = setInterval(checkDaemonStatus, 5000);
+        checkAllStatus();
+        checkInterval = setInterval(checkAllStatus, 5000);
     });
 
     onDestroy(() => {
@@ -86,20 +116,33 @@
     <button 
         class="control-btn" 
         on:click={onStart} 
-        disabled={isProcessing || isDaemonRunning}>
-        {#if isProcessing && !isDaemonRunning}Starting...{:else}Start Daemon{/if}
+        disabled={isProcessing || isDaemonRunning || isDaemonLocked}>
+        {#if isDaemonLocked}
+            Daemon Booting...
+        {:else if isProcessing && !isDaemonRunning}
+            Starting...
+        {:else}
+            Start Daemon
+        {/if}
     </button>
 
     <button 
         class="control-btn" 
         on:click={onStop} 
-        disabled={isProcessing || !isDaemonRunning}>
+        disabled={isProcessing || !isDaemonRunning || isDaemonLocked}>
         {#if isProcessing && isDaemonRunning}Stopping...{:else}Stop Daemon{/if}
     </button>
 
     <div class="status">
-        <span class="status-dot" class:active={isDaemonRunning}></span>
-        Daemon {isDaemonRunning ? 'Running' : 'Stopped'}
+        <span class="status-dot" class:active={isDaemonRunning} class:locked={isDaemonLocked}></span>
+        {#if isDaemonLocked}
+            Daemon Booting
+            {#if daemonLockAge > 0}
+                ({Math.floor(daemonLockAge)}s)
+            {/if}
+        {:else}
+            Daemon {isDaemonRunning ? 'Running' : 'Stopped'}
+        {/if}
     </div>
 
     {#if error}
@@ -137,6 +180,17 @@
 
     .status-dot.active {
         background: #44ff44;
+    }
+
+    .status-dot.locked {
+        background: #ffaa44;
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
     }
 
     .error {
