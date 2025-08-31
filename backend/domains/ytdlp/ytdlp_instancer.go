@@ -26,14 +26,19 @@ var (
 	ffprobeExecutableFullPath string = ""
 )
 
-func InstallOrUpdate(forceReinstall bool, logger ...*logging.LogService) error {
+// SettingsChecker interface to check settings without importing the settings package
+type SettingsChecker interface {
+	GetSettingString(key string) (string, error)
+}
+
+func InstallOrUpdate(forceReinstall bool, settingsChecker SettingsChecker, logger ...*logging.LogService) error {
 	var log *logging.LogService
 	if len(logger) > 0 {
 		log = logger[0]
 	}
 	
 	// Install or update ytdlp
-	err := installUpdateYtdlp(log)
+	err := installUpdateYtdlp(settingsChecker, log)
 	if err != nil {
 		return err
 	}
@@ -72,7 +77,7 @@ func runCommand(args ...string) (string, error) {
 }
 
 // Install or update ytdlp
-func installUpdateYtdlp(logger *logging.LogService) error {
+func installUpdateYtdlp(settingsChecker SettingsChecker, logger *logging.LogService) error {
 	ytdlpPath, err := getYtdlpPath()
 	if err != nil {
 		return err
@@ -123,18 +128,32 @@ func installUpdateYtdlp(logger *logging.LogService) error {
 		return nil
 	}
 
-	// Update ytdlp (even on fresh install)
-	if logger != nil {
-		logger.Debug("Checking for ytdlp updates...")
-	}
-	_, err = runCommand("-U")
-	if err != nil {
-		return fmt.Errorf("ytdlp instancer: failed to update ytdlp: %w", err)
+	// Update ytdlp (check autoupdate setting first)
+	shouldUpdate := true
+	if settingsChecker != nil {
+		autoupdate, err := settingsChecker.GetSettingString("autoupdate_ytdlp")
+		if err == nil && autoupdate == "false" {
+			shouldUpdate = false
+			if logger != nil {
+				logger.Debug("Skipping ytdlp update - autoupdate_ytdlp is disabled")
+			}
+		}
 	}
 
-	if logger != nil {
-		logger.Debug("ytdlp update check completed")
+	if shouldUpdate {
+		if logger != nil {
+			logger.Debug("Checking for ytdlp updates...")
+		}
+		_, err = runCommand("-U")
+		if err != nil {
+			return fmt.Errorf("ytdlp instancer: failed to update ytdlp: %w", err)
+		}
+
+		if logger != nil {
+			logger.Debug("ytdlp update check completed")
+		}
 	}
+
 	return nil
 }
 
