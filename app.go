@@ -65,6 +65,19 @@ func NewApp(wailsEnabled bool) *App {
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 
+	// Start thread for spamming startup progress early
+	// We need this because desync between js/backend
+	if a.WailsEnabled {
+		go func() {
+			for !a.StartupComplete {
+				if a.StartupProgress != "" {
+					runtime.EventsEmit(a.ctx, "startup-progress", a.StartupProgress)
+				}
+				time.Sleep(100 * time.Millisecond)
+			}
+		}()
+	}
+
 	// Handle locking mechanism for UI mode only
 	if a.WailsEnabled {
 		// UI mode (slave) - wait for daemon lock if present
@@ -111,19 +124,6 @@ func (a *App) startup(ctx context.Context) {
 
 	// Init utils with context
 	a.Utils = utils.NewUtils(ctx)
-
-	// Start thread for spamming startup progress
-	// We need this because desync between js/backend
-	if a.WailsEnabled {
-		go func() {
-			for !a.StartupComplete {
-				if a.StartupProgress != "" {
-					runtime.EventsEmit(a.ctx, "startup-progress", a.StartupProgress)
-				}
-				time.Sleep(100 * time.Millisecond)
-			}
-		}()
-	}
 
 	// Apply database migrations (AFTER setting up DB)
 	a.StartupProgress = "Applying database updates..."
