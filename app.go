@@ -126,16 +126,6 @@ func (a *App) startup(ctx context.Context) {
 	// Create SettingsService using dbService
 	a.SettingsService = settings.NewSettingsService(dbService, a.LogService)
 
-	// ✅ Install ytdlp in background channel (after settings are available)
-	ytdlpUpdateChan := make(chan error)
-	go func() {
-		defer close(ytdlpUpdateChan)
-		err := ytdlp.InstallOrUpdate(false, a.SettingsService, a.LogService)
-		if err != nil {
-			ytdlpUpdateChan <- err
-		}
-	}()
-
 	// Create DaemonTrigger service
 	a.DaemonSignalService = daemonsignal.NewDaemonSignalService(a.SettingsService)
 
@@ -165,6 +155,26 @@ func (a *App) startup(ctx context.Context) {
 		migrationFS,
 		"migrations",
 	)
+
+	// For UI mode, wait for legal disclaimer acceptance before installing dependencies
+	if a.WailsEnabled {
+		a.StartupProgress = "Waiting for legal disclaimer acceptance..."
+		a.LogService.Info("UI mode: waiting for legal disclaimer acceptance before installing dependencies")
+		for {
+			accepted, err := a.GetLegalDisclaimerAccepted()
+			if err != nil {
+				a.LogService.Error(fmt.Sprintf("Failed to check legal disclaimer status: %v", err))
+				time.Sleep(5 * time.Second)
+				continue
+			}
+			if accepted {
+				a.LogService.Info("Legal disclaimer accepted, proceeding with dependency installation")
+				break
+			}
+			a.LogService.Debug("Waiting for legal disclaimer acceptance before proceeding...")
+			time.Sleep(1 * time.Second)
+		}
+	}
 
 	// For daemon mode, wait for legal disclaimer acceptance before installing dependencies
 	if !a.WailsEnabled {
@@ -197,6 +207,17 @@ func (a *App) startup(ctx context.Context) {
 			}
 		}()
 	}
+
+	// ✅ Install ytdlp in background channel (after legal disclaimer is accepted)
+	a.LogService.Info("Starting dependency installation after legal disclaimer acceptance")
+	ytdlpUpdateChan := make(chan error)
+	go func() {
+		defer close(ytdlpUpdateChan)
+		err := ytdlp.InstallOrUpdate(false, a.SettingsService, a.LogService)
+		if err != nil {
+			ytdlpUpdateChan <- err
+		}
+	}()
 
 	// Prepare message for ytdlp update if it needs to do a full install/update
 	a.StartupProgress = "Checking dependencies..."
