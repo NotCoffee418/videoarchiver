@@ -77,7 +77,6 @@ ManifestDPIAware true
 
 !insertmacro MUI_PAGE_WELCOME # Welcome to the installer page.
 # !insertmacro MUI_PAGE_LICENSE "resources\eula.txt" # Adds a EULA page to the installer
-!insertmacro MUI_PAGE_DIRECTORY # In which folder install page.
 !insertmacro MUI_PAGE_INSTFILES # Installing page.
 !insertmacro MUI_PAGE_FINISH # Finished installation page.
 
@@ -93,7 +92,7 @@ ManifestDPIAware true
 Name "${INFO_PRODUCTNAME}"
 OutFile "..\..\bin\${INFO_PROJECTNAME}-${ARCH}-installer.exe" # Name of the installer's file.
 # Define installation directory
-InstallDir "$LOCALAPPDATA\${INFO_PRODUCTNAME}" # Install to local app data folder
+InstallDir "$LOCALAPPDATA\videoarchiver" # Install to hardcoded app data folder to match app expectations
 ShowInstDetails show # This will always show the installation details.
 
 Function .onInit
@@ -101,10 +100,7 @@ Function .onInit
 FunctionEnd
 
 Function LaunchUI
-    # Wait a moment for daemon to complete startup before launching UI
-    # The daemon was started immediately after installation, so we need to give it time
-    Sleep 3000
-    Exec '"$INSTDIR\${PRODUCT_EXECUTABLE}" --mode ui'
+    Exec '"$INSTDIR\${PRODUCT_EXECUTABLE}"'
 FunctionEnd
 
 Section
