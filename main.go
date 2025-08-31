@@ -21,11 +21,11 @@ func main() {
 
 	switch *mode {
 	case "daemon":
-		app := NewApp(false)
+		app := NewApp(false, "daemon")
 		runDaemon(app)
 
 	case "ui", "":
-		app := NewApp(true)
+		app := NewApp(true, "ui")
 		runUI(app)
 
 	default:
@@ -37,7 +37,7 @@ func main() {
 func runDaemon(app *App) {
 	fmt.Println("Initializing application")
 	app.startup(context.Background())
-	fmt.Println("Daemon starting")
+	app.LogService.Info("Daemon starting")
 	startDaemonLoop(app)
 }
 

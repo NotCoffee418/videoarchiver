@@ -10,6 +10,7 @@ import (
 	"videoarchiver/backend/daemonsignal"
 	"videoarchiver/backend/domains/db"
 	"videoarchiver/backend/domains/download"
+	"videoarchiver/backend/domains/logging"
 	"videoarchiver/backend/domains/playlist"
 	"videoarchiver/backend/domains/runner"
 	"videoarchiver/backend/domains/settings"
@@ -45,17 +46,22 @@ type App struct {
 	DaemonSignalService *daemonsignal.DaemonSignalService
 	DownloadDB          *download.DownloadDB
 	DownloadService     *download.DownloadService
+	LogDB               *logging.LogDB
+	LogService          *logging.LogService
 	StartupProgress     string
 	isDaemonRunning     bool
+	mode                string
 }
 
 // NewApp creates a new App application struct
-func NewApp(wailsEnabled bool) *App {
+func NewApp(wailsEnabled bool, mode string) *App {
 	app := &App{
 		WailsEnabled: wailsEnabled,
+		mode:         mode,
 	}
 	// Check initial daemon state
 	app.isDaemonRunning = app.IsDaemonRunning()
+	
 	return app
 }
 
@@ -83,6 +89,10 @@ func (a *App) startup(ctx context.Context) {
 
 	// Create SettingsService using dbService
 	a.SettingsService = settings.NewSettingsService(dbService)
+
+	// Create logging services
+	a.LogDB = logging.NewLogDB(dbService)
+	a.LogService = logging.NewLogService(a.LogDB, a.mode)
 
 	// Create DaemonTrigger service
 	a.DaemonSignalService = daemonsignal.NewDaemonSignalService(a.SettingsService)
@@ -343,6 +353,21 @@ func (a *App) StopDaemon() error {
 
 	a.isDaemonRunning = false
 	return nil
+}
+
+// GetRecentLogs returns the most recent log entries, capped at 250
+func (a *App) GetRecentLogs() ([]logging.Log, error) {
+	if a.LogDB == nil {
+		return []logging.Log{}, nil
+	}
+	
+	// Get logs with verbosity 0 (debug) and above, limit to 250
+	logs, err := a.LogDB.GetLogs(0, 250)
+	if err != nil {
+		return nil, err
+	}
+	
+	return logs, nil
 }
 
 func (a *App) IsDaemonRunning() bool {

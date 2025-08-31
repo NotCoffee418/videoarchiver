@@ -2,8 +2,6 @@ package logging
 
 import (
 	"database/sql"
-	"fmt"
-	"os"
 	"time"
 	"videoarchiver/backend/domains/db"
 )
@@ -39,11 +37,7 @@ func (l *LogDB) GetLogs(minVerbosity, limit int) ([]Log, error) {
 // AddLog inserts a log entry into the database
 func (l *LogDB) AddLog(verbosity int, message string) error {
 	timestamp := time.Now()
-	logMessage := fmt.Sprintf("[%s][%d] %s", timestamp.Format(time.RFC3339), verbosity, message)
 
-	// Print log to stdout
-	fmt.Fprintln(os.Stdout, logMessage)
-
-	_, err := l.db.Exec("INSERT INTO logs (verbosity, timestamp, message) VALUES (?, ?, ?)", verbosity, timestamp, message)
+	_, err := l.db.Exec("INSERT INTO logs (verbosity, timestamp, message) VALUES (?, ?, ?)", verbosity, timestamp.Unix(), message)
 	return err
 }

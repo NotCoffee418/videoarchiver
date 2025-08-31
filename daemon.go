@@ -27,7 +27,7 @@ const (
 
 func startDaemonLoop(_app *App) {
 	app = _app
-	fmt.Println("Starting daemon loop...")
+	app.LogService.Info("Starting daemon loop...")
 
 	// Create context and shutdown handling here
 	ctx, _cancelFunc := context.WithCancel(context.Background())
@@ -38,35 +38,35 @@ func startDaemonLoop(_app *App) {
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sigChan
-		fmt.Println("Shutdown signal received")
+		app.LogService.Info("Shutdown signal received")
 		cancelFunc()
 	}()
 
 	for {
 		select {
 		case <-ctx.Done():
-			fmt.Println("Daemon loop shutting down")
+			app.LogService.Info("Daemon loop shutting down")
 			return
 		default:
 			// Check if we need to do work due to time elapsed
 			doWork := lastRun.Add(daemonPlaylistCheckInterval).Before(time.Now())
 			if doWork {
-				fmt.Println("Running iteration: time elapsed since last run")
+				app.LogService.Info("Running iteration: time elapsed since last run")
 			}
 
 			// Check if we need to do work due to change signal
 			if !doWork {
 				isChangeTriggered, err := app.DaemonSignalService.IsChangeTriggered()
 				if err != nil {
-					fmt.Printf("Error: Failed to check if change is triggered: %v\n", err)
+					app.LogService.Error(fmt.Sprintf("Failed to check if change is triggered: %v", err))
 					cancelFunc()
 					return
 				}
 				if isChangeTriggered {
-					fmt.Println("Running iteration: change triggered by UI")
+					app.LogService.Info("Running iteration: change triggered by UI")
 					err := app.DaemonSignalService.ClearChangeTrigger()
 					if err != nil {
-						fmt.Printf("Error: Failed to clear change trigger: %v\n", err)
+						app.LogService.Error(fmt.Sprintf("Failed to clear change trigger: %v", err))
 						cancelFunc()
 						return
 					}
@@ -95,41 +95,41 @@ func startDaemonLoop(_app *App) {
 
 // Process playlists
 func processActivePlaylists() {
-	fmt.Println("Processing playlists...")
+	app.LogService.Info("Processing playlists...")
 
 	// Get acive playlists
 	activePlaylists, err := app.PlaylistDB.GetActivePlaylists()
 	if err != nil {
-		fmt.Printf("Error: Failed to get active playlists: %v\n", err)
+		app.LogService.Error(fmt.Sprintf("Failed to get active playlists: %v", err))
 		return
 	}
 
 	// Loop over active playlists
 	for _, pl := range activePlaylists {
-		fmt.Printf("Processing playlist: %s\n", pl.Name)
+		app.LogService.Info(fmt.Sprintf("Processing playlist: %s", pl.Name))
 
 		// Get playlist items online
 		plInfo, err := ytdlp.GetPlaylistInfoFlat(pl.URL)
 		if err != nil {
-			fmt.Printf("Error: Failed to get playlist info for %s: %v\n", pl.Name, err)
+			app.LogService.Error(fmt.Sprintf("Failed to get playlist info for %s: %v", pl.Name, err))
 			continue
 		}
 
 		// Check which playlist items are already processed
 		existingDls, err := app.DownloadDB.GetDownloadsForPlaylist(pl.ID)
 		if err != nil {
-			fmt.Printf("Error: Failed to get existing downloads for playlist %s: %v\n", pl.Name, err)
+			app.LogService.Error(fmt.Sprintf("Failed to get existing downloads for playlist %s: %v", pl.Name, err))
 			continue
 		}
 
 		// Filter out already downloaded urls
 		retryables, undownloadedUrls := getDownloadables(plInfo, existingDls)
 		if len(undownloadedUrls) == 0 && len(retryables) == 0 {
-			fmt.Printf("No new items or retryable to download for playlist: %s\n", pl.Name)
+			app.LogService.Debug(fmt.Sprintf("No new items or retryable to download for playlist: %s", pl.Name))
 			continue
 		}
-		fmt.Printf("Found %d new items and %d retryable items to download for playlist: %s\n",
-			len(undownloadedUrls), len(retryables), pl.Name)
+		app.LogService.Info(fmt.Sprintf("Found %d new items and %d retryable items to download for playlist: %s",
+			len(undownloadedUrls), len(retryables), pl.Name))
 
 		// Retry any retryable items
 		for _, dl := range retryables {
@@ -151,7 +151,7 @@ func processActivePlaylists() {
 
 	}
 
-	fmt.Println("Playlist processing complete.")
+	app.LogService.Info("Playlist processing complete.")
 }
 
 // Get undownloaded and retryable items from playlist info and existing downloads
@@ -187,17 +187,17 @@ func shouldStopIteration() bool {
 	// Check for shutdown signal
 	select {
 	case <-context.Background().Done():
-		fmt.Println("Shutdown signal received, stopping downloads")
+		app.LogService.Info("Shutdown signal received, stopping downloads")
 		return true
 	default:
 		// Check for daemon change signal
 		isChangeTriggered, err := app.DaemonSignalService.IsChangeTriggered()
 		if err != nil {
-			fmt.Printf("Error: Failed to check if change is triggered: %v\n", err)
+			app.LogService.Error(fmt.Sprintf("Failed to check if change is triggered: %v", err))
 			return true
 		}
 		if isChangeTriggered {
-			fmt.Println("Change triggered by UI, stopping downloads to restart iteration")
+			app.LogService.Info("Change triggered by UI, stopping downloads to restart iteration")
 			return true
 		}
 	}
@@ -205,29 +205,29 @@ func shouldStopIteration() bool {
 }
 
 func downloadItem(dl *download.Download, pl *playlist.Playlist) {
-	fmt.Printf("Downloading new item: %s\n", dl.Url)
+	app.LogService.Info(fmt.Sprintf("Downloading new item: %s", dl.Url))
 	outputFilePath, err := app.DownloadService.DownloadFile(
 		dl.Url, pl.SaveDirectory, pl.OutputFormat)
 	if err != nil {
-		fmt.Printf("Error: Failed to download item %s: %v\n", dl.Url, err)
+		app.LogService.Error(fmt.Sprintf("Failed to download item %s: %v", dl.Url, err))
 		dl.SetFail(app.DownloadDB, err.Error())
 	} else {
 		// Calculate MD5 of downloaded file
 		md5, err := download.CalculateMD5(outputFilePath)
 		if err != nil {
-			fmt.Printf("Error: Failed to calculate MD5 for item %s: %v\n", dl.Url, err)
+			app.LogService.Error(fmt.Sprintf("Failed to calculate MD5 for item %s: %v", dl.Url, err))
 			err = dl.SetFail(app.DownloadDB, fmt.Sprintf("Failed to calculate MD5: %v", err))
 			// Optionally delete the file if MD5 calculation fails
 			os.Remove(outputFilePath)
 		} else {
-			fmt.Printf("Download successful for item %s, saved to %s\n", dl.Url, outputFilePath)
+			app.LogService.Info(fmt.Sprintf("Download successful for item %s, saved to %s", dl.Url, outputFilePath))
 			fileName := filepath.Base(outputFilePath)
 			err = dl.SetSuccess(app.DownloadDB, fileName, md5)
 		}
 
 		// Handle DB errors
 		if err != nil {
-			fmt.Printf("failed to update database after download %s: %v\n", dl.Url, err)
+			app.LogService.Error(fmt.Sprintf("failed to update database after download %s: %v", dl.Url, err))
 		}
 	}
 }
