@@ -161,8 +161,5 @@ func DownloadFile(
 		outputString, outputError = runCommand(append(args, "-o", outputPath, url)...)
 	}
 
-	fmt.Println(outputString)
-	fmt.Println(outputError)
-
 	return outputString, outputError
 }

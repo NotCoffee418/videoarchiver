@@ -221,10 +221,10 @@ func downloadItem(dl *download.Download, pl *playlist.Playlist) {
 			fileName := filepath.Base(downloadResult.FilePath)
 			
 			if downloadResult.IsDuplicate {
-				fmt.Printf("Duplicate detected for item %s (matches existing file: %s)\n", dl.Url, downloadResult.DuplicateOf)
+				app.LogService.Info(fmt.Sprintf("Duplicate detected for item %s (matches existing file: %s)", dl.Url, downloadResult.DuplicateOf))
 				err = dl.SetSuccessDuplicate(app.DownloadDB, downloadResult.DuplicateOf, md5)
 			} else {
-				fmt.Printf("Download successful for item %s, saved to %s\n", dl.Url, downloadResult.FilePath)
+				app.LogService.Info(fmt.Sprintf("Download successful for item %s, saved to %s", dl.Url, downloadResult.FilePath))
 				err = dl.SetSuccess(app.DownloadDB, fileName, md5)
 			}
 		}

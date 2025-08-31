@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"strings"
 	"time"
+	"videoarchiver/backend/domains/logging"
 	"videoarchiver/backend/domains/pathing"
 	"videoarchiver/backend/domains/runner"
 
@@ -25,15 +26,20 @@ var (
 	ffprobeExecutableFullPath string = ""
 )
 
-func InstallOrUpdate(forceReinstall bool) error {
+func InstallOrUpdate(forceReinstall bool, logger ...*logging.LogService) error {
+	var log *logging.LogService
+	if len(logger) > 0 {
+		log = logger[0]
+	}
+	
 	// Install or update ytdlp
-	err := installUpdateYtdlp()
+	err := installUpdateYtdlp(log)
 	if err != nil {
 		return err
 	}
 
 	// Install or update ffmpeg
-	err = installUpdateFfmpeg(false)
+	err = installUpdateFfmpeg(false, log)
 	if err != nil {
 		return err
 	}
@@ -43,14 +49,13 @@ func InstallOrUpdate(forceReinstall bool) error {
 
 // Runs a ytdlp command and returns the stdout and stderr
 func runCommand(args ...string) (string, error) {
+	// Note: This function doesn't use logger to avoid changing all call sites
+	// The command execution details are not critical for logging
 	ytdlpPath, err := getYtdlpPath()
 	if err != nil {
 		return "", err
 	}
 
-	// print command
-	fmt.Println("Running command:", ytdlpPath, strings.Join(args, " "))
-	
 	stdout, stderr, err := runner.RunWithOutput(ytdlpPath, args...)
 	if err != nil {
 		return stdout, fmt.Errorf("%s: %s", err, stderr)
@@ -67,7 +72,7 @@ func runCommand(args ...string) (string, error) {
 }
 
 // Install or update ytdlp
-func installUpdateYtdlp() error {
+func installUpdateYtdlp(logger *logging.LogService) error {
 	ytdlpPath, err := getYtdlpPath()
 	if err != nil {
 		return err
@@ -77,7 +82,9 @@ func installUpdateYtdlp() error {
 	if fileExists(ytdlpPath) {
 		err = ytdlpCorruptionCheck(ytdlpPath)
 		if err != nil {
-			fmt.Println("ytdlp corruption check failed, reinstalling")
+			if logger != nil {
+				logger.Info("ytdlp corruption check failed, reinstalling")
+			}
 
 			// Delete old version
 			err = os.Remove(ytdlpPath)
@@ -117,8 +124,10 @@ func installUpdateYtdlp() error {
 	return nil
 }
 
-func installUpdateFfmpeg(forceReinstall bool) error {
-	fmt.Println("Installing or updating ffmpeg")
+func installUpdateFfmpeg(forceReinstall bool, logger *logging.LogService) error {
+	if logger != nil {
+		logger.Info("Installing or updating ffmpeg")
+	}
 
 	// Get ffmpeg path
 	ffmpegPath, err := getFfmpegPath()
@@ -156,7 +165,9 @@ func installUpdateFfmpeg(forceReinstall bool) error {
 
 	// Already exists, no update needed
 	if !forceReinstall && fileExists(ffmpegPath) && fileExists(ffprobePath) {
-		fmt.Println("ffmpeg and ffprobe already exist, no update needed")
+		if logger != nil {
+			logger.Debug("ffmpeg and ffprobe already exist, no update needed")
+		}
 		return nil
 	}
 

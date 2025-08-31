@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"videoarchiver/backend/domains/lockfile"
+	"videoarchiver/backend/domains/logging"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -36,41 +37,45 @@ func main() {
 }
 
 func runDaemon(app *App) {
+	// Create early logger for daemon startup messages
+	earlyLogger := logging.NewLogService("daemon")
+	defer earlyLogger.Close()
+	
 	// Handle daemon locking before initialization
-	fmt.Println("Checking for existing daemon instances...")
+	earlyLogger.Info("Checking for existing daemon instances...")
 	
 	// Check if lock already exists
 	locked, err := lockfile.IsLocked()
 	if err != nil {
-		fmt.Printf("Failed to check lock status: %v\n", err)
+		earlyLogger.Error(fmt.Sprintf("Failed to check lock status: %v", err))
 		os.Exit(1)
 	}
 
 	if locked {
 		// Another daemon is starting up or running, exit this instance
-		fmt.Println("Another daemon instance is starting up. Exiting...")
+		earlyLogger.Info("Another daemon instance is starting up. Exiting...")
 		os.Exit(0)
 	}
 
 	// Create lock file
 	if err := lockfile.CreateLock(); err != nil {
-		fmt.Printf("Failed to create lock file: %v\n", err)
+		earlyLogger.Error(fmt.Sprintf("Failed to create lock file: %v", err))
 		os.Exit(1)
 	}
 
 	// Ensure lock is removed on exit
 	defer func() {
 		if err := lockfile.RemoveLock(); err != nil {
-			fmt.Printf("Warning: Failed to remove lock file: %v\n", err)
+			earlyLogger.Warn(fmt.Sprintf("Failed to remove lock file: %v", err))
 		}
 	}()
 
-	fmt.Println("Initializing application")
+	earlyLogger.Info("Initializing application")
 	app.startup(context.Background())
 
 	// Remove lock after successful startup
 	if err := lockfile.RemoveLock(); err != nil {
-		fmt.Printf("Warning: Failed to remove lock file after startup: %v\n", err)
+		app.LogService.Warn(fmt.Sprintf("Failed to remove lock file after startup: %v", err))
 	}
 	
 	app.LogService.Info("Daemon starting")
