@@ -38,11 +38,11 @@ func RunAndWait(name string, args ...string) error {
 func RunWithOutput(name string, args ...string) (stdout string, stderr string, err error) {
 	cmd := exec.Command(name, args...)
 	configureProcessAttributes(cmd)
-
+	
 	var stdoutBuf, stderrBuf bytes.Buffer
 	cmd.Stdout = &stdoutBuf
 	cmd.Stderr = &stderrBuf
-
+	
 	err = cmd.Run()
 	return stdoutBuf.String(), stderrBuf.String(), err
 }
