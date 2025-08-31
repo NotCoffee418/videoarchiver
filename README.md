@@ -9,6 +9,37 @@ A simple tool for archiving videos from playlists. Add videos to a playlist, and
 - **Background Processing**: Runs in the background
 - **Format Options**: Choose your preferred format per playlist
 
+## Installation
+
+### Pre-built Binaries
+
+Download the latest release for your platform from the [Releases page](https://github.com/NotCoffee418/videoarchiver/releases):
+
+- **Windows**: `videoarchiver-vX.X.X-windows-installer.exe` - Full installer with NSIS
+- **Linux (amd64)**: `videoarchiver-vX.X.X-linux-amd64.tar.gz` - For x86_64 systems
+
+### Building from Source
+
+Requirements:
+- Go 1.25+
+- Node.js 20+
+- Wails v2: `go install github.com/wailsapp/wails/v2/cmd/wails@latest`
+
+```bash
+# Clone the repository
+git clone https://github.com/NotCoffee418/videoarchiver.git
+cd videoarchiver
+
+# Install frontend dependencies
+cd frontend && npm install && cd ..
+
+# Build the application
+wails build
+
+# For Windows installer
+wails build -nsis
+```
+
 ## Usage
 
 1. Add a playlist URL to monitor

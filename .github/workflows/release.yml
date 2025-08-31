@@ -1,0 +1,141 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+env:
+  GO_VERSION: '1.25'
+  NODE_VERSION: '20'
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config
+          # Try installing webkit2gtk-4.0 first, fallback to 4.1 if needed
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev || {
+            echo "webkit2gtk-4.0 not found, trying webkit2gtk-4.1"
+            sudo apt-get install -y libwebkit2gtk-4.1-dev
+            echo "WEBKIT_TAG=webkit2_41" >> $GITHUB_ENV
+          }
+
+      - name: Install Wails
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+      - name: Install frontend dependencies
+        run: cd frontend && npm install
+
+      - name: Build Linux binary
+        run: |
+          if [ "$WEBKIT_TAG" == "webkit2_41" ]; then
+            echo "Building with webkit2_41 tag"
+            wails build --platform linux/amd64 -tags webkit2_41
+          else
+            echo "Building with default webkit"
+            wails build --platform linux/amd64
+          fi
+
+      - name: Get version
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Package Linux binary
+        run: |
+          mkdir -p dist
+          cd build/bin
+          cp videoarchiver ../../dist/videoarchiver-${{ steps.get_version.outputs.VERSION }}-linux-amd64
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-amd64-binary
+          path: dist/
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install Wails
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+      - name: Install frontend dependencies
+        run: cd frontend && npm install
+
+      - name: Build Windows installer
+        run: wails build -nsis
+
+      - name: Get version
+        id: get_version
+        shell: bash
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: build/bin/*-installer.exe
+
+  create-release:
+    needs: [build-linux, build-windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get version
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release-assets
+          
+          # Copy Linux binary
+          cp artifacts/linux-amd64-binary/videoarchiver-${{ steps.get_version.outputs.VERSION }}-linux-amd64 release-assets/
+          
+          # Find and copy Windows installer (specifically look for -installer.exe)
+          INSTALLER_PATH=$(find artifacts/windows-installer -name "*-installer.exe" | head -1)
+          cp "$INSTALLER_PATH" "release-assets/videoarchiver-${{ steps.get_version.outputs.VERSION }}-windows-installer.exe"
+
+      - name: Create Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create ${{ github.ref_name }} \
+            --title "Video Archiver ${{ steps.get_version.outputs.VERSION }}" \
+            --notes "Release ${{ steps.get_version.outputs.VERSION }}" \
+            release-assets/*
