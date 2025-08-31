@@ -3,6 +3,7 @@ package runner
 import (
 	"bytes"
 	"os/exec"
+	"time"
 )
 
 // StartDetached starts a command and immediately returns without waiting.
@@ -51,6 +52,20 @@ func RunWithOutput(name string, args ...string) (stdout string, stderr string, e
 // Used for simple version checks and similar operations.
 // OS-specific implementations handle console window hiding on Windows.
 func RunCombinedOutput(name string, args ...string) ([]byte, error) {
+	cmd := exec.Command(name, args...)
+	configureProcessAttributes(cmd)
+	return cmd.CombinedOutput()
+}
+
+// RunCombinedOutputWithTimeout executes a command with a timeout and returns the combined output.
+// This is specifically used for corruption checks to prevent hanging on corrupted binaries.
+func RunCombinedOutputWithTimeout(timeout time.Duration, name string, args ...string) ([]byte, error) {
+	// Use the Unix-specific timeout function on Unix systems, regular execution on Windows
+	if err := runWithTimeoutCheck(timeout, name, args...); err != nil {
+		return nil, err
+	}
+	
+	// If no crash/timeout, get the actual output
 	cmd := exec.Command(name, args...)
 	configureProcessAttributes(cmd)
 	return cmd.CombinedOutput()

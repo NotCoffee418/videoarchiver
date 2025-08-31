@@ -399,19 +399,19 @@ func fileExists(path string) bool {
 }
 
 func ffmpegCorruptionCheck(ffmpegPath string) error {
-	// Run the command and capture output
-	_, err := runner.RunCombinedOutput(ffmpegPath, "-version")
+	// Use timeout-based check to detect crashes on Unix systems
+	_, err := runner.RunCombinedOutputWithTimeout(5*time.Second, ffmpegPath, "-version")
 	if err != nil {
-		return fmt.Errorf("ffmpeg corruption check failed, reinstalling: %v", err)
+		return fmt.Errorf("ffmpeg corruption check failed: %v", err)
 	}
 	return nil
 }
 
 func ffprobeCorruptionCheck(ffprobePath string) error {
-	// Run the command and capture output
-	_, err := runner.RunCombinedOutput(ffprobePath, "-version")
+	// Use timeout-based check to detect crashes on Unix systems
+	_, err := runner.RunCombinedOutputWithTimeout(5*time.Second, ffprobePath, "-version")
 	if err != nil {
-		return fmt.Errorf("ffprobe corruption check failed, reinstalling: %v", err)
+		return fmt.Errorf("ffprobe corruption check failed: %v", err)
 	}
 	return nil
 }
