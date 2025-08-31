@@ -70,8 +70,8 @@ func (d *DownloadService) DownloadFile(url, directory, format string) (string, e
 
 // DownloadFileWithDuplicateCheck downloads a file and checks for duplicates
 func (d *DownloadService) DownloadFileWithDuplicateCheck(url, directory, format string) (*DownloadResult, error) {
-	d.logService.Debug(fmt.Sprintf("Starting download: %s (format: %s, directory: %s)", url, format, directory))
-	
+	d.logService.Info(fmt.Sprintf("Starting download: %s (format: %s, directory: %s)", url, format, directory))
+
 	// Set temp path for the file
 	tmpFile := filepath.Join(os.TempDir(), fmt.Sprintf("videoarchiver-download-%d.%s", time.Now().UnixNano(), format))
 	defer os.Remove(tmpFile)
@@ -89,7 +89,7 @@ func (d *DownloadService) DownloadFileWithDuplicateCheck(url, directory, format 
 	}
 
 	baseFilename := filepath.Base(videoTitle + "." + strings.ToLower(format))
-	
+
 	// Calculate MD5 of the downloaded file
 	fileMD5, err := CalculateMD5(tmpFile)
 	if err != nil {
@@ -158,7 +158,7 @@ func (d *DownloadService) CheckForDuplicateInDirectory(fileMD5, targetDir, baseF
 	// Extract base name and extension
 	baseName := strings.TrimSuffix(baseFilename, filepath.Ext(baseFilename))
 	ext := filepath.Ext(baseFilename)
-	
+
 	// Check base filename and numbered variations
 	for i := 0; i < 100; i++ { // reasonable limit to avoid infinite loops
 		var checkFilename string
@@ -167,9 +167,9 @@ func (d *DownloadService) CheckForDuplicateInDirectory(fileMD5, targetDir, baseF
 		} else {
 			checkFilename = baseName + "-" + strconv.Itoa(i) + ext
 		}
-		
+
 		checkPath := filepath.Join(targetDir, checkFilename)
-		
+
 		// Check if file exists
 		if d.fileExists(checkPath) {
 			// Calculate MD5 of existing file
@@ -178,14 +178,14 @@ func (d *DownloadService) CheckForDuplicateInDirectory(fileMD5, targetDir, baseF
 				// Skip files we can't read
 				continue
 			}
-			
+
 			// If MD5 matches, we found a duplicate
 			if existingMD5 == fileMD5 {
 				return checkFilename, nil
 			}
 		}
 	}
-	
+
 	return "", nil // No duplicate found
 }
 

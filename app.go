@@ -11,8 +11,8 @@ import (
 	"videoarchiver/backend/daemonsignal"
 	"videoarchiver/backend/domains/db"
 	"videoarchiver/backend/domains/download"
-	"videoarchiver/backend/domains/logging"
 	"videoarchiver/backend/domains/lockfile"
+	"videoarchiver/backend/domains/logging"
 	"videoarchiver/backend/domains/pathing"
 	"videoarchiver/backend/domains/playlist"
 	"videoarchiver/backend/domains/runner"
@@ -63,7 +63,7 @@ func NewApp(wailsEnabled bool, mode string) *App {
 	}
 	// Check initial daemon state
 	app.isDaemonRunning = app.IsDaemonRunning()
-	
+
 	return app
 }
 
@@ -167,11 +167,7 @@ func (a *App) startup(ctx context.Context) {
 	}
 	ytdlpUpdateDone = true
 
-	// Test the logging system with sample entries
 	a.LogService.Info("Application startup completed successfully")
-	a.LogService.Debug("Debug logging system test")
-	a.LogService.Warn("Warning logging system test")
-
 	// Emit startup complete event in background
 	a.StartupProgress = "Startup complete"
 	if a.WailsEnabled {
@@ -473,7 +469,7 @@ func (a *App) getLogLinesFromFile(filename string, lines int) ([]string, error) 
 
 	// Split into lines and get the last N lines
 	allLines := strings.Split(string(content), "\n")
-	
+
 	// Remove empty last line if it exists
 	if len(allLines) > 0 && allLines[len(allLines)-1] == "" {
 		allLines = allLines[:len(allLines)-1]
