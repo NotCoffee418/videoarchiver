@@ -96,17 +96,6 @@ func (a *App) startup(ctx context.Context) {
 		}()
 	}
 
-	// Handle locking mechanism for UI mode only
-	if a.WailsEnabled {
-		a.LogService.Info("UI mode detected, checking for daemon locking...")
-		// UI mode (slave) - wait for daemon lock if present
-		if err := a.handleUILocking(); err != nil {
-			a.LogService.Error(fmt.Sprintf("LOG: UI about to exit due to locking error: %v", err))
-			a.HandleFatalError("Failed to handle UI locking: " + err.Error())
-		}
-		a.LogService.Info("UI locking check completed successfully")
-	}
-
 	// Create configuration service FIRST
 	configService, err := config.NewConfigService()
 	if err != nil {
@@ -174,10 +163,34 @@ func (a *App) startup(ctx context.Context) {
 			a.LogService.Debug("Waiting for legal disclaimer acceptance before proceeding...")
 			time.Sleep(1 * time.Second)
 		}
+
+		// Then handle locking for UI mode
+		if a.WailsEnabled {
+			a.LogService.Info("UI mode detected, checking for daemon locking...")
+			// UI mode (slave) - wait for daemon lock if present
+			if err := a.handleUILocking(); err != nil {
+				a.LogService.Error(fmt.Sprintf("LOG: UI about to exit due to locking error: %v", err))
+				a.HandleFatalError("Failed to handle UI locking: " + err.Error())
+			}
+			a.LogService.Info("UI locking check completed successfully")
+		}
 	}
 
 	// For daemon mode, wait for legal disclaimer acceptance before installing dependencies
 	if !a.WailsEnabled {
+		// Create lock before waiting for legal disclaimer acceptance
+		a.LogService.Info("Creating lock file to coordinate with UI...")
+		if err := lockfile.CreateLock(); err != nil {
+			a.HandleFatalError("Failed to create lock file: " + err.Error())
+		}
+
+		// Ensure lock is removed on exit
+		defer func() {
+			if err := lockfile.RemoveLock(); err != nil {
+				a.LogService.Warn(fmt.Sprintf("Failed to remove lock file: %v", err))
+			}
+		}()
+
 		a.StartupProgress = "Waiting for legal disclaimer acceptance..."
 		for {
 			accepted, err := a.GetLegalDisclaimerAccepted()
@@ -193,19 +206,6 @@ func (a *App) startup(ctx context.Context) {
 			a.LogService.Info("Waiting for legal disclaimer acceptance before proceeding...")
 			time.Sleep(5 * time.Second)
 		}
-
-		// Now that disclaimer is accepted, create lock file to signal UI to wait
-		a.LogService.Info("Creating lock file to coordinate with UI...")
-		if err := lockfile.CreateLock(); err != nil {
-			a.HandleFatalError("Failed to create lock file: " + err.Error())
-		}
-
-		// Ensure lock is removed on exit
-		defer func() {
-			if err := lockfile.RemoveLock(); err != nil {
-				a.LogService.Warn(fmt.Sprintf("Failed to remove lock file: %v", err))
-			}
-		}()
 	}
 
 	// ✅ Install ytdlp in background channel (after legal disclaimer is accepted)
@@ -241,7 +241,7 @@ func (a *App) startup(ctx context.Context) {
 	ytdlpUpdateDone = true
 
 	a.LogService.Info("Application startup completed successfully")
-	
+
 	// For daemon mode, remove lock file after successful startup
 	if !a.WailsEnabled {
 		if err := lockfile.RemoveLock(); err != nil {
@@ -250,7 +250,7 @@ func (a *App) startup(ctx context.Context) {
 			a.LogService.Info("Lock file removed, daemon ready for normal operation")
 		}
 	}
-	
+
 	// Emit startup complete event in background
 	a.StartupProgress = "Startup complete"
 	if a.WailsEnabled {
@@ -277,7 +277,7 @@ func (a *App) startup(ctx context.Context) {
 // handleUILocking handles locking for UI mode (slave)
 func (a *App) handleUILocking() error {
 	a.LogService.Info("Starting handleUILocking check...")
-	
+
 	// Check if daemon lock exists
 	locked, err := lockfile.IsLocked()
 	if err != nil {
@@ -296,21 +296,10 @@ func (a *App) handleUILocking() error {
 	// Lock exists - check if daemon is already running
 	isDaemonAlreadyRunning := a.IsDaemonRunning()
 	a.LogService.Info(fmt.Sprintf("Daemon running status while lock exists: %v", isDaemonAlreadyRunning))
-	
-	if isDaemonAlreadyRunning {
-		// Daemon is running but lock exists - this suggests a stale lock file
-		a.LogService.Warn("Daemon is running but lock file exists - removing stale lock file")
-		if err := lockfile.RemoveLock(); err != nil {
-			a.LogService.Error(fmt.Sprintf("Failed to remove stale lock file: %v", err))
-			return fmt.Errorf("failed to remove stale lock file: %w", err)
-		}
-		a.LogService.Info("Stale lock file removed, proceeding with UI startup")
-		return nil
-	}
 
 	// Lock exists, wait for daemon to complete startup
 	a.LogService.Info("Daemon lock found, waiting for daemon initialization to complete...")
-	a.StartupProgress = "Waiting for daemon initialization..."
+	a.StartupProgress = "Waiting for daemon initialization... This may take a few minutes on first run."
 	a.LogService.Info("Waiting for daemon initialization...")
 
 	// Wait up to 10 minutes for the lock to be released
@@ -328,7 +317,7 @@ func (a *App) handleUILocking() error {
 		a.LogService.Warn("Timeout waiting for daemon startup, checking if daemon is running...")
 		isDaemonRunning := a.IsDaemonRunning()
 		a.LogService.Info(fmt.Sprintf("Daemon running check result: %v", isDaemonRunning))
-		
+
 		if !isDaemonRunning {
 			// Daemon not running but lock exists, try to start daemon
 			a.LogService.Info("Daemon not running, attempting to start daemon...")
