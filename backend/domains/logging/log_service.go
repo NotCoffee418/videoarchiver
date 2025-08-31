@@ -11,7 +11,6 @@ import (
 )
 
 type LogService struct {
-	logDB  *LogDB
 	logger *logrus.Logger
 	mode   string
 	file   *os.File
@@ -20,7 +19,7 @@ type LogService struct {
 
 // NewLogService creates a new log service with mode-specific log files
 // mode should be "daemon" or "ui"
-func NewLogService(logDB *LogDB, mode string) *LogService {
+func NewLogService(mode string) *LogService {
 	logger := logrus.New()
 
 	// Create mode-specific log file using proper pathing
@@ -40,7 +39,6 @@ func NewLogService(logDB *LogDB, mode string) *LogService {
 		logger.SetLevel(logrus.DebugLevel)
 		
 		service := &LogService{
-			logDB:  logDB,
 			logger: logger,
 			mode:   mode,
 			file:   nil,
@@ -65,7 +63,6 @@ func NewLogService(logDB *LogDB, mode string) *LogService {
 	logger.SetLevel(logrus.DebugLevel)           // Default level
 
 	service := &LogService{
-		logDB:  logDB,
 		logger: logger,
 		mode:   mode,
 		file:   file,
@@ -94,11 +91,6 @@ func (l *LogService) Log(verbosity logrus.Level, message string) {
 	// Force sync to disk if file is available
 	if l.file != nil {
 		l.file.Sync()
-	}
-
-	// Store in database if logDB is available
-	if l.logDB != nil {
-		l.logDB.AddLog(int(verbosity), message)
 	}
 }
 

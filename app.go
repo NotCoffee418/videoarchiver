@@ -49,7 +49,6 @@ type App struct {
 	DaemonSignalService *daemonsignal.DaemonSignalService
 	DownloadDB          *download.DownloadDB
 	DownloadService     *download.DownloadService
-	LogDB               *logging.LogDB
 	LogService          *logging.LogService
 	StartupProgress     string
 	isDaemonRunning     bool
@@ -115,8 +114,7 @@ func (a *App) startup(ctx context.Context) {
 	a.SettingsService = settings.NewSettingsService(dbService)
 
 	// Create logging services
-	a.LogDB = logging.NewLogDB(dbService)
-	a.LogService = logging.NewLogService(a.LogDB, a.mode)
+	a.LogService = logging.NewLogService(a.mode)
 
 	// Create DaemonTrigger service
 	a.DaemonSignalService = daemonsignal.NewDaemonSignalService(a.SettingsService)
@@ -422,19 +420,10 @@ func (a *App) StopDaemon() error {
 	return nil
 }
 
-// GetRecentLogs returns the most recent log entries, capped at 250
-func (a *App) GetRecentLogs() ([]logging.Log, error) {
-	if a.LogDB == nil {
-		return []logging.Log{}, nil
-	}
-	
-	// Get logs with verbosity 0 (debug) and above, limit to 250
-	logs, err := a.LogDB.GetLogs(0, 250)
-	if err != nil {
-		return nil, err
-	}
-	
-	return logs, nil
+// GetRecentLogs returns empty array as database logging is no longer supported
+// Use GetDaemonLogLines() or GetUILogLines() for file-based logs instead
+func (a *App) GetRecentLogs() ([]interface{}, error) {
+	return []interface{}{}, nil
 }
 
 // GetDaemonLogLines returns the last N lines from daemon.log file
