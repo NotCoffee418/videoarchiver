@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"strings"
 	"time"
+	"videoarchiver/backend/domains/logging"
 	"videoarchiver/backend/domains/pathing"
 	"videoarchiver/backend/domains/runner"
 
@@ -25,15 +26,20 @@ var (
 	ffprobeExecutableFullPath string = ""
 )
 
-func InstallOrUpdate(forceReinstall bool) error {
+func InstallOrUpdate(forceReinstall bool, logger ...*logging.LogService) error {
+	var log *logging.LogService
+	if len(logger) > 0 {
+		log = logger[0]
+	}
+	
 	// Install or update ytdlp
-	err := installUpdateYtdlp()
+	err := installUpdateYtdlp(log)
 	if err != nil {
 		return err
 	}
 
 	// Install or update ffmpeg
-	err = installUpdateFfmpeg(false)
+	err = installUpdateFfmpeg(false, log)
 	if err != nil {
 		return err
 	}
@@ -43,14 +49,13 @@ func InstallOrUpdate(forceReinstall bool) error {
 
 // Runs a ytdlp command and returns the stdout and stderr
 func runCommand(args ...string) (string, error) {
+	// Note: This function doesn't use logger to avoid changing all call sites
+	// The command execution details are not critical for logging
 	ytdlpPath, err := getYtdlpPath()
 	if err != nil {
 		return "", err
 	}
 
-	// print command
-	fmt.Println("Running command:", ytdlpPath, strings.Join(args, " "))
-	
 	stdout, stderr, err := runner.RunWithOutput(ytdlpPath, args...)
 	if err != nil {
 		return stdout, fmt.Errorf("%s: %s", err, stderr)
@@ -67,7 +72,7 @@ func runCommand(args ...string) (string, error) {
 }
 
 // Install or update ytdlp
-func installUpdateYtdlp() error {
+func installUpdateYtdlp(logger *logging.LogService) error {
 	ytdlpPath, err := getYtdlpPath()
 	if err != nil {
 		return err
@@ -77,7 +82,9 @@ func installUpdateYtdlp() error {
 	if fileExists(ytdlpPath) {
 		err = ytdlpCorruptionCheck(ytdlpPath)
 		if err != nil {
-			fmt.Println("ytdlp corruption check failed, reinstalling")
+			if logger != nil {
+				logger.Info("ytdlp corruption check failed, reinstalling")
+			}
 
 			// Delete old version
 			err = os.Remove(ytdlpPath)
@@ -89,11 +96,19 @@ func installUpdateYtdlp() error {
 
 	// Download ytdlp if it doesn't exist
 	if !fileExists(ytdlpPath) {
+		if logger != nil {
+			logger.Info("Downloading ytdlp...")
+		}
+		
 		// Download
 		downloadUrl := baseYtdlpDownloadUrl + getYtdlpExecutableFileName()
 		err := downloadFileHttp(downloadUrl, ytdlpPath)
 		if err != nil {
 			return fmt.Errorf("ytdlp instancer: failed to download ytdlp: %w", err)
+		}
+
+		if logger != nil {
+			logger.Info("ytdlp downloaded successfully")
 		}
 
 		// Make executable on unix
@@ -109,16 +124,24 @@ func installUpdateYtdlp() error {
 	}
 
 	// Update ytdlp (even on fresh install)
+	if logger != nil {
+		logger.Debug("Checking for ytdlp updates...")
+	}
 	_, err = runCommand("-U")
 	if err != nil {
 		return fmt.Errorf("ytdlp instancer: failed to update ytdlp: %w", err)
 	}
 
+	if logger != nil {
+		logger.Debug("ytdlp update check completed")
+	}
 	return nil
 }
 
-func installUpdateFfmpeg(forceReinstall bool) error {
-	fmt.Println("Installing or updating ffmpeg")
+func installUpdateFfmpeg(forceReinstall bool, logger *logging.LogService) error {
+	if logger != nil {
+		logger.Info("Installing or updating ffmpeg")
+	}
 
 	// Get ffmpeg path
 	ffmpegPath, err := getFfmpegPath()
@@ -156,12 +179,18 @@ func installUpdateFfmpeg(forceReinstall bool) error {
 
 	// Already exists, no update needed
 	if !forceReinstall && fileExists(ffmpegPath) && fileExists(ffprobePath) {
-		fmt.Println("ffmpeg and ffprobe already exist, no update needed")
+		if logger != nil {
+			logger.Debug("ffmpeg and ffprobe already exist, no update needed")
+		}
 		return nil
 	}
 
 	switch runtime.GOOS {
 	case "windows":
+		if logger != nil {
+			logger.Debug("Downloading ffmpeg for Windows...")
+		}
+		
 		// Download ffmpeg to temp file
 		downloadUrl := "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.7z"
 		tmpFile := filepath.Join(os.TempDir(), fmt.Sprintf("videoarchiver-ffmpeg-%d.7z", time.Now().UnixNano()))
@@ -171,6 +200,10 @@ func installUpdateFfmpeg(forceReinstall bool) error {
 		err = downloadFileHttp(downloadUrl, tmpFile)
 		if err != nil {
 			return fmt.Errorf("ytdlp instancer: failed to download ffmpeg: %w", err)
+		}
+
+		if logger != nil {
+			logger.Debug("Extracting ffmpeg and ffprobe...")
 		}
 
 		// Extract ffmpeg.exe
@@ -185,6 +218,10 @@ func installUpdateFfmpeg(forceReinstall bool) error {
 			return fmt.Errorf("ytdlp instancer: failed to extract ffprobe: %w", err)
 		}
 	case "linux":
+		if logger != nil {
+			logger.Debug("Downloading ffmpeg for Linux...")
+		}
+		
 		// Identify download for architecture
 		var archStr string
 		switch runtime.GOARCH {
@@ -207,6 +244,10 @@ func installUpdateFfmpeg(forceReinstall bool) error {
 		err = downloadFileHttp(downloadUrl, tmpFile)
 		if err != nil {
 			return fmt.Errorf("ytdlp instancer: failed to download ffmpeg: %w", err)
+		}
+
+		if logger != nil {
+			logger.Debug("Extracting ffmpeg and ffprobe...")
 		}
 
 		// Extract ffmpeg
@@ -236,6 +277,9 @@ func installUpdateFfmpeg(forceReinstall bool) error {
 		return fmt.Errorf("ytdlp instancer: unsupported OS: %s", runtime.GOOS)
 	}
 
+	if logger != nil {
+		logger.Info("ffmpeg and ffprobe installation completed successfully")
+	}
 	return nil
 }
 

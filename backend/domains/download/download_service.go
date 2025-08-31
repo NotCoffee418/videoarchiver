@@ -15,11 +15,20 @@ import (
 	"videoarchiver/backend/domains/ytdlp"
 )
 
+// LogServiceInterface defines the logging interface to avoid circular imports
+type LogServiceInterface interface {
+	Debug(message string)
+	Info(message string)
+	Warn(message string)
+	Error(message string)
+}
+
 type DownloadService struct {
 	ctx                 context.Context
 	settingsService     *settings.SettingsService
 	downloadDB          *DownloadDB
 	daemonSignalService *daemonsignal.DaemonSignalService
+	logService          LogServiceInterface
 }
 
 const (
@@ -32,12 +41,14 @@ func NewDownloadService(
 	settingsService *settings.SettingsService,
 	downloadDB *DownloadDB,
 	daemonSignalService *daemonsignal.DaemonSignalService,
+	logService LogServiceInterface,
 ) *DownloadService {
 	return &DownloadService{
 		ctx:                 ctx,
 		settingsService:     settingsService,
 		downloadDB:          downloadDB,
 		daemonSignalService: daemonSignalService,
+		logService:          logService,
 	}
 }
 
@@ -59,12 +70,14 @@ func (d *DownloadService) DownloadFile(url, directory, format string) (string, e
 
 // DownloadFileWithDuplicateCheck downloads a file and checks for duplicates
 func (d *DownloadService) DownloadFileWithDuplicateCheck(url, directory, format string) (*DownloadResult, error) {
+	d.logService.Info(fmt.Sprintf("Starting download: %s (format: %s, directory: %s)", url, format, directory))
+
 	// Set temp path for the file
 	tmpFile := filepath.Join(os.TempDir(), fmt.Sprintf("videoarchiver-download-%d.%s", time.Now().UnixNano(), format))
 	defer os.Remove(tmpFile)
 
 	// Download to temp path
-	outputString, err := ytdlp.DownloadFile(d.settingsService, url, tmpFile, format)
+	outputString, err := ytdlp.DownloadFile(d.settingsService, url, tmpFile, format, d.logService)
 	if err != nil {
 		return nil, fmt.Errorf("%s%w", ErrDownloadErrorBase, err)
 	}
@@ -76,7 +89,7 @@ func (d *DownloadService) DownloadFileWithDuplicateCheck(url, directory, format 
 	}
 
 	baseFilename := filepath.Base(videoTitle + "." + strings.ToLower(format))
-	
+
 	// Calculate MD5 of the downloaded file
 	fileMD5, err := CalculateMD5(tmpFile)
 	if err != nil {
@@ -92,6 +105,7 @@ func (d *DownloadService) DownloadFileWithDuplicateCheck(url, directory, format 
 	if duplicateFilename != "" {
 		// Duplicate found - don't move the file, just return the duplicate info
 		duplicatePath := filepath.Join(directory, duplicateFilename)
+		d.logService.Info(fmt.Sprintf("Download skipped: duplicate found - %s", duplicateFilename))
 		return &DownloadResult{
 			FilePath:    duplicatePath,
 			IsDuplicate: true,
@@ -115,6 +129,7 @@ func (d *DownloadService) DownloadFileWithDuplicateCheck(url, directory, format 
 		return nil, fmt.Errorf("download service: failed to move file: %w", err)
 	}
 
+	d.logService.Info(fmt.Sprintf("Download completed successfully: %s", filepath.Base(savePath)))
 	return &DownloadResult{
 		FilePath:    savePath,
 		IsDuplicate: false,
@@ -143,7 +158,7 @@ func (d *DownloadService) CheckForDuplicateInDirectory(fileMD5, targetDir, baseF
 	// Extract base name and extension
 	baseName := strings.TrimSuffix(baseFilename, filepath.Ext(baseFilename))
 	ext := filepath.Ext(baseFilename)
-	
+
 	// Check base filename and numbered variations
 	for i := 0; i < 100; i++ { // reasonable limit to avoid infinite loops
 		var checkFilename string
@@ -152,9 +167,9 @@ func (d *DownloadService) CheckForDuplicateInDirectory(fileMD5, targetDir, baseF
 		} else {
 			checkFilename = baseName + "-" + strconv.Itoa(i) + ext
 		}
-		
+
 		checkPath := filepath.Join(targetDir, checkFilename)
-		
+
 		// Check if file exists
 		if d.fileExists(checkPath) {
 			// Calculate MD5 of existing file
@@ -163,14 +178,14 @@ func (d *DownloadService) CheckForDuplicateInDirectory(fileMD5, targetDir, baseF
 				// Skip files we can't read
 				continue
 			}
-			
+
 			// If MD5 matches, we found a duplicate
 			if existingMD5 == fileMD5 {
 				return checkFilename, nil
 			}
 		}
 	}
-	
+
 	return "", nil // No duplicate found
 }
 

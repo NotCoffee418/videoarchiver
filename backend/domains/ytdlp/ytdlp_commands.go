@@ -7,6 +7,14 @@ import (
 	"videoarchiver/backend/domains/settings"
 )
 
+// LogServiceInterface defines the logging interface to avoid circular imports
+type LogServiceInterface interface {
+	Debug(message string)
+	Info(message string)
+	Warn(message string)
+	Error(message string)
+}
+
 // Get minimal playlist info
 func GetPlaylistInfoFlat(url string) (*YtdlpPlaylistInfo, error) {
 	raw, err := runCommand("--no-warnings", "--flat-playlist", "--yes-playlist", "-J", url)
@@ -103,6 +111,7 @@ func DownloadFile(
 	url,
 	outputPath,
 	format string,
+	logService LogServiceInterface,
 ) (string, error) {
 	if format != "mp3" && format != "mp4" {
 		return "", fmt.Errorf("unsupported format: %s", format)
@@ -161,8 +170,15 @@ func DownloadFile(
 		outputString, outputError = runCommand(append(args, "-o", outputPath, url)...)
 	}
 
-	fmt.Println(outputString)
-	fmt.Println(outputError)
+	// Log verbose output for debugging
+	if logService != nil {
+		if outputString != "" {
+			logService.Debug("yt-dlp output: " + outputString)
+		}
+		if outputError != nil {
+			logService.Debug("yt-dlp error: " + outputError.Error())
+		}
+	}
 
 	return outputString, outputError
 }

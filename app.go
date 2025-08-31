@@ -12,8 +12,8 @@ import (
 	"videoarchiver/backend/domains/config"
 	"videoarchiver/backend/domains/db"
 	"videoarchiver/backend/domains/download"
-	"videoarchiver/backend/domains/logging"
 	"videoarchiver/backend/domains/lockfile"
+	"videoarchiver/backend/domains/logging"
 	"videoarchiver/backend/domains/pathing"
 	"videoarchiver/backend/domains/playlist"
 	"videoarchiver/backend/domains/runner"
@@ -65,7 +65,7 @@ func NewApp(wailsEnabled bool, mode string) *App {
 	}
 	// Check initial daemon state
 	app.isDaemonRunning = app.IsDaemonRunning()
-	
+
 	return app
 }
 
@@ -139,6 +139,7 @@ func (a *App) startup(ctx context.Context) {
 		a.SettingsService,
 		a.DownloadDB,
 		a.DaemonSignalService,
+		a.LogService,
 	)
 
 	// Init utils with context
@@ -175,11 +176,7 @@ func (a *App) startup(ctx context.Context) {
 	}
 	ytdlpUpdateDone = true
 
-	// Test the logging system with sample entries
 	a.LogService.Info("Application startup completed successfully")
-	a.LogService.Debug("Debug logging system test")
-	a.LogService.Warn("Warning logging system test")
-
 	// Emit startup complete event in background
 	a.StartupProgress = "Startup complete"
 	if a.WailsEnabled {
@@ -218,7 +215,7 @@ func (a *App) handleUILocking() error {
 
 	// Lock exists, wait for daemon to complete startup
 	a.StartupProgress = "Waiting for daemon initialization..."
-	fmt.Println("Waiting for daemon initialization...")
+	a.LogService.Info("Waiting for daemon initialization...")
 
 	// Wait up to 10 minutes for the lock to be released
 	released, err := lockfile.WaitForLockRelease(10 * time.Minute)
@@ -228,10 +225,10 @@ func (a *App) handleUILocking() error {
 
 	if !released {
 		// Timeout reached, check if daemon is actually running
-		fmt.Println("Timeout waiting for daemon startup, checking if daemon is running...")
+		a.LogService.Warn("Timeout waiting for daemon startup, checking if daemon is running...")
 		if !a.IsDaemonRunning() {
 			// Daemon not running but lock exists, try to start daemon
-			fmt.Println("Daemon not running, attempting to start daemon...")
+			a.LogService.Info("Daemon not running, attempting to start daemon...")
 			a.StartupProgress = "Starting daemon..."
 			if err := a.StartDaemon(); err != nil {
 				return fmt.Errorf("failed to start daemon: %w", err)
@@ -250,7 +247,7 @@ func (a *App) handleUILocking() error {
 		}
 	}
 
-	fmt.Println("Daemon startup complete, proceeding with UI startup...")
+	a.LogService.Info("Daemon startup complete, proceeding with UI startup...")
 	return nil
 }
 
@@ -262,9 +259,16 @@ func (a *App) HandleFatalError(message string) {
 			Title:   "Application Error",
 			Message: message,
 		})
+		if a.LogService != nil {
+			a.LogService.Error("Fatal error: " + message)
+		}
 		os.Exit(1)
 	} else {
-		fmt.Println(message)
+		if a.LogService != nil {
+			a.LogService.Error("Fatal error: " + message)
+		} else {
+			fmt.Println("Fatal error: " + message)
+		}
 		os.Exit(1)
 	}
 }
@@ -411,7 +415,7 @@ func (a *App) StopDaemon() error {
 				if err := p.Kill(); err != nil {
 					return fmt.Errorf("failed to kill process %d: %v", p.Pid, err)
 				}
-				fmt.Printf("Killed daemon process: PID=%d\n", p.Pid)
+				a.LogService.Info(fmt.Sprintf("Killed daemon process: PID=%d", p.Pid))
 			}
 		}
 
@@ -474,7 +478,7 @@ func (a *App) getLogLinesFromFile(filename string, lines int) ([]string, error) 
 
 	// Split into lines and get the last N lines
 	allLines := strings.Split(string(content), "\n")
-	
+
 	// Remove empty last line if it exists
 	if len(allLines) > 0 && allLines[len(allLines)-1] == "" {
 		allLines = allLines[:len(allLines)-1]
@@ -500,13 +504,13 @@ func (a *App) IsDaemonRunning() bool {
 		selfPid := os.Getpid()
 		processes, err := process.Processes()
 		if err != nil {
-			fmt.Printf("Error getting process list: %v\n", err)
+			a.LogService.Error(fmt.Sprintf("Error getting process list: %v", err))
 			return false
 		}
 
 		selfExe, err := os.Executable()
 		if err != nil {
-			fmt.Printf("Error getting executable path: %v\n", err)
+			a.LogService.Error(fmt.Sprintf("Error getting executable path: %v", err))
 			return false
 		}
 		selfExe = strings.ToLower(selfExe)
@@ -526,11 +530,10 @@ func (a *App) IsDaemonRunning() bool {
 
 			// Check if it's our executable AND it's running in daemon mode
 			if exe == selfExe && strings.Contains(cmdline, "--mode daemon") {
-				fmt.Printf("Found daemon process: PID=%d CMD=%s\n", p.Pid, cmdline)
+				a.LogService.Debug(fmt.Sprintf("Found daemon process: PID=%d CMD=%s", p.Pid, cmdline))
 				return true
 			}
 		}
-		fmt.Println("No daemon process found")
 		return false
 
 	case "linux":
