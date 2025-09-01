@@ -11,12 +11,14 @@ declare global {
           GetClipboard: () => Promise<string>;
           GetActivePlaylists: () => Promise<Array<any>>;
           GetLegalDisclaimerAccepted: () => Promise<boolean>;
+          GetConfirmCloseEnabled: () => Promise<boolean>;
           GetSettingString: (arg1: string) => Promise<string>;
           HandleFatalError: (arg1: string) => Promise<void>;
           IsStartupComplete: () => Promise<boolean>;
           OpenDirectory: (arg1: string) => Promise<void>;
           SelectDirectory: () => Promise<string>;
           SetLegalDisclaimerAccepted: (arg1: boolean) => Promise<void>;
+          SetConfirmCloseEnabled: (arg1: boolean) => Promise<void>;
           SetSettingPreparsed: (arg1: string, arg2: string) => Promise<void>;
           UpdatePlaylistDirectory: (
             arg1: number,

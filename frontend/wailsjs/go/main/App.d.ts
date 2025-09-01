@@ -13,6 +13,8 @@ export function GetActivePlaylists():Promise<Array<playlist.Playlist>>;
 
 export function GetClipboard():Promise<string>;
 
+export function GetConfirmCloseEnabled():Promise<boolean>;
+
 export function GetDaemonLogLines(arg1:number):Promise<Array<string>>;
 
 export function GetDaemonLogLinesWithLevel(arg1:number,arg2:string):Promise<Array<string>>;
@@ -40,6 +42,8 @@ export function OpenDirectory(arg1:string):Promise<void>;
 export function RegisterAllFailedForRetryManual():Promise<void>;
 
 export function SelectDirectory():Promise<string>;
+
+export function SetConfirmCloseEnabled(arg1:boolean):Promise<void>;
 
 export function SetLegalDisclaimerAccepted(arg1:boolean):Promise<void>;
 

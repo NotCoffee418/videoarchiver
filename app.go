@@ -655,9 +655,62 @@ func (a *App) SetLegalDisclaimerAccepted(accepted bool) error {
 	return a.SettingsService.SetPreparsed("legal_disclaimer_accepted", value)
 }
 
+func (a *App) GetConfirmCloseEnabled() (bool, error) {
+	value, err := a.SettingsService.GetSettingString("confirm_close_enabled")
+	if err != nil {
+		return false, err
+	}
+	return value == "true", nil
+}
+
+func (a *App) SetConfirmCloseEnabled(enabled bool) error {
+	value := "false"
+	if enabled {
+		value = "true"
+	}
+	return a.SettingsService.SetPreparsed("confirm_close_enabled", value)
+}
+
 func (a *App) CloseApplication() {
 	if a.WailsEnabled {
-		runtime.Quit(a.ctx)
+		// Check if confirmation is enabled
+		confirmEnabled, err := a.GetConfirmCloseEnabled()
+		if err != nil {
+			// If we can't check the setting, default to no confirmation
+			if a.LogService != nil {
+				a.LogService.Error(fmt.Sprintf("Failed to check confirm_close_enabled setting: %v", err))
+			}
+			confirmEnabled = false
+		}
+		
+		if confirmEnabled {
+			// Show confirmation dialog with "No" as default
+			result, err := runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
+				Type:          runtime.QuestionDialog,
+				Title:         "Confirm Close",
+				Message:       "Are you sure you want to close this application?",
+				Buttons:       []string{"Yes", "No"},
+				DefaultButton: "No",
+				CancelButton:  "No",
+			})
+			if err != nil {
+				if a.LogService != nil {
+					a.LogService.Error(fmt.Sprintf("Failed to show close confirmation dialog: %v", err))
+				}
+				// If dialog fails, proceed with close
+				runtime.Quit(a.ctx)
+				return
+			}
+			
+			// Only close if user clicked "Yes"
+			if result == "Yes" {
+				runtime.Quit(a.ctx)
+			}
+			// If "No" or dialog was cancelled, do nothing (stay open)
+		} else {
+			// No confirmation needed, close immediately
+			runtime.Quit(a.ctx)
+		}
 	} else {
 		os.Exit(0)
 	}
