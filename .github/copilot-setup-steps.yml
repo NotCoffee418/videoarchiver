@@ -1,0 +1,197 @@
+# GitHub Copilot Setup Steps for Video Archiver
+# This file automates the development environment setup described in copilot-instructions.md
+
+name: "Video Archiver Development Environment Setup"
+description: "Sets up Go, Node.js, Wails v2, and system dependencies required for Video Archiver development"
+
+setup:
+  # Step 1: Install Go 1.25+
+  - name: "Install Go 1.25+"
+    description: "Install Go programming language (minimum version 1.25)"
+    platforms:
+      linux:
+        steps:
+          - run: |
+              # Remove any existing Go installation
+              sudo rm -rf /usr/local/go
+              # Download and install Go 1.25.3
+              wget -q https://go.dev/dl/go1.25.3.linux-amd64.tar.gz
+              sudo tar -C /usr/local -xzf go1.25.3.linux-amd64.tar.gz
+              rm go1.25.3.linux-amd64.tar.gz
+              # Add Go to PATH
+              echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
+              echo 'export PATH=$PATH:~/go/bin' >> ~/.bashrc
+              source ~/.bashrc
+            description: "Download and install Go 1.25.3 for Linux"
+          - run: "go version"
+            description: "Verify Go installation"
+      macos:
+        steps:
+          - run: |
+              # Install Go via Homebrew
+              brew install go@1.25 || brew install go
+              # Add Go to PATH
+              echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.zshrc
+              echo 'export PATH=$PATH:~/go/bin' >> ~/.zshrc
+              source ~/.zshrc
+            description: "Install Go via Homebrew"
+          - run: "go version"
+            description: "Verify Go installation"
+      windows:
+        steps:
+          - run: |
+              # Download and install Go for Windows
+              Invoke-WebRequest -Uri "https://go.dev/dl/go1.25.3.windows-amd64.msi" -OutFile "go-installer.msi"
+              Start-Process msiexec.exe -Wait -ArgumentList '/I go-installer.msi /quiet'
+              Remove-Item go-installer.msi
+              # Add Go to PATH (done automatically by installer)
+              $env:PATH += ";C:\Program Files\Go\bin;$env:USERPROFILE\go\bin"
+            description: "Download and install Go 1.25.3 for Windows"
+          - run: "go version"
+            description: "Verify Go installation"
+
+  # Step 2: Install Node.js 20
+  - name: "Install Node.js 20"
+    description: "Install Node.js and npm (version 20 as used in release workflow)"
+    platforms:
+      linux:
+        steps:
+          - run: |
+              # Install Node.js 20 via NodeSource repository
+              curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+              sudo apt-get install -y nodejs
+            description: "Install Node.js 20 via NodeSource"
+          - run: "node --version && npm --version"
+            description: "Verify Node.js and npm installation"
+      macos:
+        steps:
+          - run: |
+              # Install Node.js via Homebrew
+              brew install node@20 || brew install node
+            description: "Install Node.js 20 via Homebrew"
+          - run: "node --version && npm --version"
+            description: "Verify Node.js and npm installation"
+      windows:
+        steps:
+          - run: |
+              # Download and install Node.js for Windows
+              Invoke-WebRequest -Uri "https://nodejs.org/dist/v20.11.0/node-v20.11.0-x64.msi" -OutFile "node-installer.msi"
+              Start-Process msiexec.exe -Wait -ArgumentList '/I node-installer.msi /quiet'
+              Remove-Item node-installer.msi
+            description: "Download and install Node.js 20 for Windows"
+          - run: "node --version && npm --version"
+            description: "Verify Node.js and npm installation"
+
+  # Step 3: Install system dependencies (Linux specific)
+  - name: "Install system dependencies"
+    description: "Install build tools and WebKit libraries required for Wails development"
+    platforms:
+      linux:
+        steps:
+          - run: |
+              # Update package lists
+              sudo apt-get update
+              # Install basic build tools
+              sudo apt-get install -y build-essential pkg-config curl
+            description: "Install basic build tools"
+          - run: |
+              # Install GTK and WebKit development libraries
+              # Try webkit2gtk-4.1 first (Ubuntu 24.04+), fallback to 4.0 (Ubuntu 22.04-)
+              sudo apt-get install -y libgtk-3-dev
+              sudo apt-get install -y libwebkit2gtk-4.1-dev || \
+              sudo apt-get install -y libwebkit2gtk-4.0-dev
+            description: "Install GTK and WebKit development libraries"
+          - run: |
+              # Verify WebKit installation
+              pkg-config --exists webkit2gtk-4.1 || pkg-config --exists webkit2gtk-4.0
+              echo "WebKit libraries installed successfully"
+            description: "Verify WebKit libraries installation"
+      macos:
+        steps:
+          - run: |
+              # Install Xcode command line tools if not already installed
+              xcode-select --install 2>/dev/null || echo "Xcode command line tools already installed"
+            description: "Install Xcode command line tools"
+      windows:
+        steps:
+          - run: |
+              # Windows doesn't need additional system dependencies for Wails
+              echo "No additional system dependencies required for Windows"
+            description: "Windows system dependencies check"
+
+  # Step 4: Install Wails v2
+  - name: "Install Wails v2"
+    description: "Install Wails v2 framework for Go desktop applications"
+    platforms:
+      all:
+        steps:
+          - run: "go install github.com/wailsapp/wails/v2/cmd/wails@latest"
+            description: "Install Wails v2 via go install"
+          - run: "wails version"
+            description: "Verify Wails installation"
+
+  # Step 5: Setup project dependencies
+  - name: "Install frontend dependencies"
+    description: "Install npm dependencies for the Svelte frontend"
+    platforms:
+      all:
+        steps:
+          - run: "cd frontend && npm install"
+            description: "Install frontend npm dependencies"
+            working_directory: "."
+
+  # Step 6: Verify complete setup
+  - name: "Verify development environment"
+    description: "Verify all tools are properly installed and the project can be built"
+    platforms:
+      all:
+        steps:
+          - run: "go mod tidy"
+            description: "Clean and verify Go dependencies"
+          - run: "cd frontend && npm run build"
+            description: "Build frontend assets to verify setup"
+            working_directory: "."
+
+# Additional development notes
+notes: |
+  After setup is complete, you can use these commands for development:
+  
+  Development mode (preferred):
+    wails dev
+  
+  Manual build:
+    wails build
+  
+  Windows installer:
+    wails build -nsis
+  
+  Application modes:
+    go run . --mode ui      (default, desktop interface)
+    go run . --mode daemon  (background service)
+  
+  Important: If testing daemon mode, remove any existing lock file first:
+    Linux: rm "$HOME/.local/share/videoarchiver/.lock"
+    Windows: del "%LOCALAPPDATA%\videoarchiver\.lock"
+
+# Troubleshooting
+troubleshooting:
+  - issue: "Build fails with 'unknown field HideWindow' error on Linux/macOS"
+    solution: |
+      This is a known issue (#22) with Windows-specific syscall code. 
+      The error occurs in:
+      - backend/domains/ytdlp/ytdlp_instancer.go
+      - backend/domains/utils/utils.go
+      This may be resolved in future updates.
+  
+  - issue: "WebKit libraries not found during build"
+    solution: |
+      Install the correct WebKit development libraries:
+      Ubuntu 24.04+: sudo apt install libwebkit2gtk-4.1-dev libgtk-3-dev
+      Ubuntu 22.04-: sudo apt install libwebkit2gtk-4.0-dev libgtk-3-dev
+      Fedora: sudo dnf install webkit2gtk4.1-devel gtk3-devel
+  
+  - issue: "wails command not found"
+    solution: |
+      Ensure ~/go/bin is in your PATH:
+      export PATH=$PATH:~/go/bin
+      Then restart your terminal or run: source ~/.bashrc
