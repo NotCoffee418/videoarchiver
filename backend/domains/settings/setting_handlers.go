@@ -116,10 +116,24 @@ func (h *AutoupdateYtdlpHandler) HandleSettingChange(key, oldValue, newValue str
 	return nil
 }
 
+// AllowDuplicatesHandler handles the allow_duplicates setting
+type AllowDuplicatesHandler struct{}
+
+func (h *AllowDuplicatesHandler) HandleSettingChange(key, oldValue, newValue string, logger *logging.LogService) error {
+	if logger != nil {
+		logger.Info(fmt.Sprintf("Setting changed: %s = %s (was: %s)", key, newValue, oldValue))
+	}
+	
+	// This handler just logs the change - the actual logic is in download_service.go
+	// when it checks the setting before performing duplicate checks
+	return nil
+}
+
 // GetSettingHandlers returns a map of setting handlers
 func GetSettingHandlers() map[string]SettingHandler {
 	return map[string]SettingHandler{
 		"autostart_service":  &AutostartServiceHandler{},
 		"autoupdate_ytdlp":   &AutoupdateYtdlpHandler{},
+		"allow_duplicates":   &AllowDuplicatesHandler{},
 	}
 }
