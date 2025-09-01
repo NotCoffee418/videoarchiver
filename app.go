@@ -4,7 +4,6 @@ import (
 	"context"
 	"embed"
 	"fmt"
-	"io"
 	"os"
 	"strings"
 	"time"
@@ -14,7 +13,6 @@ import (
 	"videoarchiver/backend/domains/download"
 	"videoarchiver/backend/domains/lockfile"
 	"videoarchiver/backend/domains/logging"
-	"videoarchiver/backend/domains/pathing"
 	"videoarchiver/backend/domains/playlist"
 	"videoarchiver/backend/domains/runner"
 	"videoarchiver/backend/domains/settings"
@@ -547,61 +545,22 @@ func (a *App) GetRecentLogs() ([]interface{}, error) {
 
 // GetDaemonLogLines returns the last N lines from daemon.log file
 func (a *App) GetDaemonLogLines(lines int) ([]string, error) {
-	return a.getLogLinesFromFile("daemon.log", lines)
+	return a.LogService.GetLogLinesFromFile("daemon.log", lines)
 }
 
 // GetUILogLines returns the last N lines from ui.log file
 func (a *App) GetUILogLines(lines int) ([]string, error) {
-	return a.getLogLinesFromFile("ui.log", lines)
+	return a.LogService.GetLogLinesFromFile("ui.log", lines)
 }
 
-// getLogLinesFromFile reads the last N lines from a log file using proper pathing
-func (a *App) getLogLinesFromFile(filename string, lines int) ([]string, error) {
-	// Get proper log file path using pathing system
-	logFilePath, err := pathing.GetWorkingFile(filename)
-	if err != nil {
-		return []string{fmt.Sprintf("Error getting log file path: %v", err)}, nil
-	}
+// GetDaemonLogLinesWithLevel returns the last N lines from daemon.log file filtered by minimum log level
+func (a *App) GetDaemonLogLinesWithLevel(lines int, minLevel string) ([]string, error) {
+	return a.LogService.GetLogLinesFromFileWithLevel("daemon.log", lines, minLevel)
+}
 
-	file, err := os.Open(logFilePath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return []string{"Log file does not exist yet"}, nil
-		}
-		return nil, fmt.Errorf("failed to open log file %s: %v", logFilePath, err)
-	}
-	defer file.Close()
-
-	// Read all content
-	content, err := io.ReadAll(file)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read log file %s: %v", logFilePath, err)
-	}
-
-	if len(content) == 0 {
-		return []string{"Log file is empty"}, nil
-	}
-
-	// Split into lines and get the last N lines
-	allLines := strings.Split(string(content), "\n")
-
-	// Remove empty last line if it exists
-	if len(allLines) > 0 && allLines[len(allLines)-1] == "" {
-		allLines = allLines[:len(allLines)-1]
-	}
-
-	// Get last N lines
-	startIndex := 0
-	if len(allLines) > lines {
-		startIndex = len(allLines) - lines
-	}
-
-	result := allLines[startIndex:]
-	if len(result) == 0 {
-		return []string{"No log entries found"}, nil
-	}
-
-	return result, nil
+// GetUILogLinesWithLevel returns the last N lines from ui.log file filtered by minimum log level
+func (a *App) GetUILogLinesWithLevel(lines int, minLevel string) ([]string, error) {
+	return a.LogService.GetLogLinesFromFileWithLevel("ui.log", lines, minLevel)
 }
 
 func (a *App) IsDaemonRunning() bool {

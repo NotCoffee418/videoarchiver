@@ -15,6 +15,8 @@ export function GetClipboard():Promise<string>;
 
 export function GetDaemonLogLines(arg1:number):Promise<Array<string>>;
 
+export function GetDaemonLogLinesWithLevel(arg1:number,arg2:string):Promise<Array<string>>;
+
 export function GetDownloadHistoryPage(arg1:number,arg2:number,arg3:boolean,arg4:boolean):Promise<Array<download.Download>>;
 
 export function GetLegalDisclaimerAccepted():Promise<boolean>;
@@ -24,6 +26,8 @@ export function GetRecentLogs():Promise<Array<any>>;
 export function GetSettingString(arg1:string):Promise<string>;
 
 export function GetUILogLines(arg1:number):Promise<Array<string>>;
+
+export function GetUILogLinesWithLevel(arg1:number,arg2:string):Promise<Array<string>>;
 
 export function HandleFatalError(arg1:string):Promise<void>;
 

@@ -26,6 +26,10 @@ export function GetDaemonLogLines(arg1) {
   return window['go']['main']['App']['GetDaemonLogLines'](arg1);
 }
 
+export function GetDaemonLogLinesWithLevel(arg1, arg2) {
+  return window['go']['main']['App']['GetDaemonLogLinesWithLevel'](arg1, arg2);
+}
+
 export function GetDownloadHistoryPage(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['GetDownloadHistoryPage'](arg1, arg2, arg3, arg4);
 }
@@ -44,6 +48,10 @@ export function GetSettingString(arg1) {
 
 export function GetUILogLines(arg1) {
   return window['go']['main']['App']['GetUILogLines'](arg1);
+}
+
+export function GetUILogLinesWithLevel(arg1, arg2) {
+  return window['go']['main']['App']['GetUILogLinesWithLevel'](arg1, arg2);
 }
 
 export function HandleFatalError(arg1) {
