@@ -80,6 +80,7 @@
             case 'info': return 'log-info';
             case 'warn': case 'warning': return 'log-warning';
             case 'error': return 'log-error';
+            case 'fatal': return 'log-fatal';
             default: return 'log-info';
         }
     }
@@ -161,6 +162,16 @@
                             onchange={() => onLogLevelChange('error')}
                         />
                         ERROR
+                    </label>
+                    <label class="radio-label">
+                        <input 
+                            type="radio" 
+                            name="minLogLevel" 
+                            value="fatal" 
+                            checked={minLogLevel === 'fatal'}
+                            onchange={() => onLogLevelChange('fatal')}
+                        />
+                        FATAL
                     </label>
                 </div>
             </div>
@@ -437,6 +448,15 @@
 
     .log-error .log-level {
         background: #f44336;
+        color: white;
+    }
+
+    .log-fatal {
+        border-left: 3px solid #d32f2f;
+    }
+
+    .log-fatal .log-level {
+        background: #d32f2f;
         color: white;
     }
 </style>
