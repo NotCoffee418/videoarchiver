@@ -196,6 +196,8 @@ func (l *LogService) GetLogLinesFromFileWithLevel(filename string, lines int, mi
 		minLevel = logrus.WarnLevel
 	case "error":
 		minLevel = logrus.ErrorLevel
+	case "fatal":
+		minLevel = logrus.FatalLevel
 	default:
 		minLevel = logrus.InfoLevel // Default to info
 	}
@@ -262,6 +264,8 @@ func (l *LogService) GetLogLinesFromFileWithLevel(filename string, lines int, mi
 			logLevel = logrus.WarnLevel
 		case "error":
 			logLevel = logrus.ErrorLevel
+		case "fatal":
+			logLevel = logrus.FatalLevel
 		default:
 			logLevel = logrus.InfoLevel
 		}
