@@ -10,6 +10,7 @@
   import SettingsPage from './routes/SettingsPage.svelte';
   import LoadingSpinner from './components/LoadingSpinner.svelte';
   import HistoryPage from './routes/HistoryPage.svelte';
+  import DuplicatesPage from './routes/DuplicatesPage.svelte';
   import LegalDisclaimer from './components/LegalDisclaimer.svelte';
 
   // Simple hash-based routing that maintains component state
@@ -20,6 +21,7 @@
     '/': { component: ArchivePage, instance: null },
     '/direct': { component: DirectPage, instance: null },
     '/history': { component: HistoryPage, instance: null },
+    '/duplicates': { component: DuplicatesPage, instance: null },
     '/status': { component: StatusPage, instance: null },
     '/settings': { component: SettingsPage, instance: null }
   };
