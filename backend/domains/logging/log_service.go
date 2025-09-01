@@ -40,7 +40,7 @@ func NewLogService(mode string) *LogService {
 		logger.SetOutput(os.Stdout)
 		logger.SetFormatter(&logrus.JSONFormatter{})
 		logger.SetLevel(logrus.DebugLevel)
-		
+
 		service := &LogService{
 			logger: logger,
 			mode:   mode,
@@ -73,7 +73,7 @@ func NewLogService(mode string) *LogService {
 
 	// Test log entry to verify logging is working
 	service.Info("LogService initialized for mode: " + mode)
-	
+
 	return service
 }
 
@@ -81,7 +81,7 @@ func NewLogService(mode string) *LogService {
 func (l *LogService) Log(verbosity logrus.Level, message string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	
+
 	timestamp := time.Now()
 	logEntry := l.logger.WithFields(logrus.Fields{
 		"verbosity": verbosity,
@@ -101,7 +101,7 @@ func (l *LogService) Log(verbosity logrus.Level, message string) {
 func (l *LogService) Close() error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	
+
 	if l.file != nil {
 		return l.file.Close()
 	}
@@ -126,6 +126,12 @@ func (l *LogService) Warn(message string) {
 // Error logs an error level message
 func (l *LogService) Error(message string) {
 	l.Log(logrus.ErrorLevel, message)
+}
+
+// Fatal logs a fatal level message and exits
+func (l *LogService) Fatal(message string) {
+	l.Log(logrus.FatalLevel, message)
+	os.Exit(1)
 }
 
 // GetLogLinesFromFile reads the last N lines from a log file using proper pathing
@@ -238,7 +244,7 @@ func (l *LogService) GetLogLinesFromFileWithLevel(filename string, lines int, mi
 		var logEntry struct {
 			Level string `json:"level"`
 		}
-		
+
 		if err := json.Unmarshal([]byte(line), &logEntry); err != nil {
 			// If not JSON, include the line (could be plain text log)
 			filteredLines = append(filteredLines, line)

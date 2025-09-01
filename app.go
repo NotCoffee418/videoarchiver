@@ -5,6 +5,7 @@ import (
 	"embed"
 	"fmt"
 	"os"
+	"runtime/debug"
 	"strings"
 	"time"
 	"videoarchiver/backend/daemonsignal"
@@ -79,6 +80,16 @@ func (a *App) startup(ctx context.Context) {
 	// Initialize logging service early so it can be used throughout startup
 	a.LogService = logging.NewLogService(a.mode)
 	a.LogService.Info(fmt.Sprintf("Starting application startup for mode: %s", a.mode))
+
+	// Add panic catcher with logging
+	defer func() {
+		if r := recover(); r != nil {
+			crashMsg := fmt.Sprintf("Application panic: %v\nStack trace:\n%s",
+				r, string(debug.Stack()))
+			a.LogService.Fatal(crashMsg)
+			os.Exit(1)
+		}
+	}()
 
 	// Start thread for spamming startup progress early
 	// We need this because desync between js/backend
