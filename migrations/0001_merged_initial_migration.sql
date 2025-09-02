@@ -1,7 +1,7 @@
 
 -- +up
 CREATE TABLE IF NOT EXISTS "playlists" (
-    "id" INTEGER NOT NULL,
+    "id" INTEGER NOT NULL UNIQUE,
     "name" VARCHAR NOT NULL,
     "url" VARCHAR NOT NULL,
     "output_format" VARCHAR NOT NULL,
@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS "playlists" (
 
 
 CREATE TABLE "downloads" (
-    "id" INTEGER NOT NULL,
+    "id" INTEGER NOT NULL UNIQUE,
     "playlist_id" INTEGER NOT NULL,
     "url" VARCHAR NOT NULL,
     "status" INTEGER NOT NULL,
@@ -33,9 +33,8 @@ CREATE INDEX "downloads_index_0"
 ON "downloads" ("playlist_id", "url", "md5");
 
 CREATE TABLE "settings" (
-    "setting_key" VARCHAR NOT NULL,
-    "setting_value" VARCHAR NOT NULL,
-    PRIMARY KEY("setting_key")
+    "setting_key" VARCHAR NOT NULL UNIQUE,
+    "setting_value" VARCHAR NOT NULL
 );
 
 INSERT INTO "settings" (setting_key, setting_value) VALUES 
