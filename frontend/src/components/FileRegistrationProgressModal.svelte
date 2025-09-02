@@ -71,10 +71,6 @@
   <div class="modal-content">
     <div class="modal-header">
       <h2>File Registration Progress</h2>
-      <!-- Close button only appears when complete -->
-      {#if isComplete}
-        <button class="dialog-close-btn" onclick={closeModal}>✕</button>
-      {/if}
     </div>
 
     <div class="progress-container">
@@ -103,6 +99,16 @@
         </div>
       {/if}
     </div>
+
+    <!-- Reserved space for close button -->
+    <div class="button-container">
+      {#if isComplete}
+        <button class="close-button" onclick={closeModal}>Close</button>
+      {:else}
+        <!-- Reserve space even when button is not visible -->
+        <div class="button-spacer"></div>
+      {/if}
+    </div>
   </div>
   {/if}
 </dialog>
@@ -110,57 +116,49 @@
 <style>
   dialog#file-registration-progress-dialog {
     border: none;
-    border-radius: 8px;
-    padding: 0;
-    width: 500px;
+    border-radius: 12px;
+    padding: 2rem;
+    width: 50rem;
     max-width: 90vw;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-    background: var(--color-background, #ffffff);
+    background-color: #222;
+    color: #fff;
+  }
+
+  dialog#file-registration-progress-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.5);
   }
 
   .modal-content {
-    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
   }
 
   .modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
+    text-align: center;
   }
 
   .modal-header h2 {
     margin: 0;
-    color: var(--color-text, #333333);
+    color: #fff;
     font-size: 1.5rem;
-  }
-
-  .dialog-close-btn {
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    cursor: pointer;
-    color: var(--color-text-secondary, #666666);
-    padding: 4px;
-    border-radius: 4px;
-    transition: background-color 0.2s;
-  }
-
-  .dialog-close-btn:hover {
-    background-color: var(--color-hover, rgba(0, 0, 0, 0.1));
+    font-weight: 500;
   }
 
   .progress-container {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 1rem;
+    flex: 1;
   }
 
   .progress-text {
-    color: var(--color-text, #333333);
+    color: #fff;
     font-size: 1rem;
     text-align: center;
     min-height: 24px;
+    margin-bottom: 0.5rem;
   }
 
   .progress-bar-container {
@@ -172,10 +170,10 @@
   .progress-bar {
     flex: 1;
     height: 20px;
-    background-color: var(--color-background-secondary, #f0f0f0);
+    background-color: #333;
     border-radius: 10px;
     overflow: hidden;
-    border: 1px solid var(--color-border, #dddddd);
+    border: 1px solid #555;
   }
 
   .progress-fill {
@@ -188,7 +186,7 @@
 
   .progress-percentage {
     font-weight: bold;
-    color: var(--color-text, #333333);
+    color: #fff;
     min-width: 40px;
     text-align: right;
   }
@@ -198,12 +196,12 @@
     flex-direction: column;
     align-items: center;
     gap: 12px;
-    padding: 16px;
+    padding: 1rem;
   }
 
   .loading-note {
     margin: 0;
-    color: var(--color-text-secondary, #666666);
+    color: #ccc;
     font-style: italic;
     text-align: center;
   }
@@ -213,7 +211,7 @@
     flex-direction: column;
     align-items: center;
     gap: 12px;
-    padding: 16px;
+    padding: 1rem;
   }
 
   .checkmark {
@@ -227,5 +225,34 @@
     color: #4CAF50;
     font-weight: bold;
     text-align: center;
+  }
+
+  .button-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 1rem;
+    min-height: 2.5rem;
+    align-items: center;
+  }
+
+  .close-button {
+    background-color: #333;
+    color: #fff;
+    border: 1px solid #555;
+    padding: 0.5rem 2rem;
+    border-radius: 4px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 120px;
+  }
+
+  .close-button:hover {
+    background-color: #555;
+  }
+
+  .button-spacer {
+    height: 2.5rem;
+    width: 120px;
   }
 </style>
