@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 	"videoarchiver/backend/daemonsignal"
+	"videoarchiver/backend/domains/closeconfirm"
 	"videoarchiver/backend/domains/config"
 	"videoarchiver/backend/domains/db"
 	"videoarchiver/backend/domains/download"
@@ -51,9 +52,11 @@ type App struct {
 	DownloadDB          *download.DownloadDB
 	DownloadService     *download.DownloadService
 	LogService          *logging.LogService
+	CloseConfirmService *closeconfirm.CloseConfirmService
 	StartupProgress     string
 	isDaemonRunning     bool
 	mode                string
+	confirmCloseEnabled bool
 }
 
 // NewApp creates a new App application struct
@@ -62,6 +65,7 @@ func NewApp(wailsEnabled bool, mode string) *App {
 	app := &App{
 		WailsEnabled: wailsEnabled,
 		mode:         mode,
+		confirmCloseEnabled: false, // Default to disabled, manually enabled when needed
 	}
 	// Check initial daemon state
 	fmt.Printf("Checking if daemon is running...\n")
@@ -143,6 +147,9 @@ func (a *App) startup(ctx context.Context) {
 
 	// Init utils with context
 	a.Utils = utils.NewUtils(ctx)
+
+	// Initialize CloseConfirmService with context
+	a.CloseConfirmService = closeconfirm.NewCloseConfirmService(ctx, a.LogService)
 
 	// Apply database migrations (AFTER setting up DB)
 	a.StartupProgress = "Applying database updates..."
@@ -655,8 +662,27 @@ func (a *App) SetLegalDisclaimerAccepted(accepted bool) error {
 	return a.SettingsService.SetPreparsed("legal_disclaimer_accepted", value)
 }
 
+func (a *App) GetConfirmCloseEnabled() (bool, error) {
+	// Use service if available, fallback to field for backward compatibility
+	if a.CloseConfirmService != nil {
+		return a.CloseConfirmService.IsEnabled(), nil
+	}
+	return a.confirmCloseEnabled, nil
+}
+
+func (a *App) SetConfirmCloseEnabled(enabled bool) error {
+	// Use service if available, also update field for backward compatibility
+	if a.CloseConfirmService != nil {
+		a.CloseConfirmService.SetEnabled(enabled)
+	}
+	a.confirmCloseEnabled = enabled
+	return nil
+}
+
 func (a *App) CloseApplication() {
 	if a.WailsEnabled {
+		// Simply call runtime.Quit() and let OnBeforeClose handler handle confirmation
+		// This prevents double dialogs since OnBeforeClose will handle the confirmation
 		runtime.Quit(a.ctx)
 	} else {
 		os.Exit(0)
