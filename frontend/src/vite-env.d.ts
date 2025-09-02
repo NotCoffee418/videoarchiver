@@ -49,6 +49,9 @@ declare global {
           StopDaemon: () => Promise<void>;
           IsDaemonRunning: () => Promise<boolean>;
           CloseApplication: () => Promise<void>;
+          GetRegisteredFiles: (arg1: number, arg2: number) => Promise<Array<any>>;
+          RegisterDirectory: (arg1: string) => Promise<void>;
+          ClearAllRegisteredFiles: () => Promise<void>;
         };
       };
     };
