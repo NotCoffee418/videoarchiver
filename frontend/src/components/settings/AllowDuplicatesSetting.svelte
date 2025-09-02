@@ -103,13 +103,11 @@
 <dialog id="allow-duplicates-confirm-modal">
   <button class="dialog-close-btn" onclick={closeConfirmModal}>✕</button>
   <h1>⚠️ Enable Duplicate Downloads?</h1>
-  <p>
-    <strong>Warning:</strong> This will immediately re-download existing videos from your registered playlists, 
-    potentially flooding your directories with duplicate files.
-  </p>
-  <p>Are you sure you want to proceed?</p>
+    <p><strong>Warning:</strong> This may fill your playlist directories with duplicate files which already exist in other directories depending on your setup.</p>
+    <p>Enabling this setting will also skip checking the registered files.</p>
+    <p>Are you sure you want to proceed?</p>
   <div class="modal-buttons">
-    <button class="danger-btn" onclick={confirmEnableDuplicates}>Yes, Enable Duplicates</button>
+    <button class="danger-btn" onclick={confirmEnableDuplicates}>Yes, Allow Duplicates</button>
     <button onclick={closeConfirmModal}>Cancel</button>
   </div>
 </dialog>
