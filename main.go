@@ -83,6 +83,15 @@ func runUI(app *App) {
 		},
 		BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
 		OnStartup:        app.startup,
+		OnBeforeClose: func(ctx context.Context) (prevent bool) {
+			// Use the CloseConfirmService if available
+			if app.CloseConfirmService != nil {
+				// Return true to prevent close if user cancels
+				return !app.CloseConfirmService.ShouldConfirmClose()
+			}
+			// Fallback: allow close
+			return false
+		},
 		Bind: []interface{}{
 			app,
 		},

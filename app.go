@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 	"videoarchiver/backend/daemonsignal"
+	"videoarchiver/backend/domains/closeconfirm"
 	"videoarchiver/backend/domains/config"
 	"videoarchiver/backend/domains/db"
 	"videoarchiver/backend/domains/download"
@@ -51,6 +52,7 @@ type App struct {
 	DownloadDB          *download.DownloadDB
 	DownloadService     *download.DownloadService
 	LogService          *logging.LogService
+	CloseConfirmService *closeconfirm.CloseConfirmService
 	StartupProgress     string
 	isDaemonRunning     bool
 	mode                string
@@ -63,7 +65,7 @@ func NewApp(wailsEnabled bool, mode string) *App {
 	app := &App{
 		WailsEnabled: wailsEnabled,
 		mode:         mode,
-		confirmCloseEnabled: true, // Default to enabled
+		confirmCloseEnabled: false, // Default to disabled, manually enabled when needed
 	}
 	// Check initial daemon state
 	fmt.Printf("Checking if daemon is running...\n")
@@ -145,6 +147,9 @@ func (a *App) startup(ctx context.Context) {
 
 	// Init utils with context
 	a.Utils = utils.NewUtils(ctx)
+
+	// Initialize CloseConfirmService with context
+	a.CloseConfirmService = closeconfirm.NewCloseConfirmService(ctx, a.LogService)
 
 	// Apply database migrations (AFTER setting up DB)
 	a.StartupProgress = "Applying database updates..."
@@ -658,16 +663,34 @@ func (a *App) SetLegalDisclaimerAccepted(accepted bool) error {
 }
 
 func (a *App) GetConfirmCloseEnabled() (bool, error) {
+	// Use service if available, fallback to field for backward compatibility
+	if a.CloseConfirmService != nil {
+		return a.CloseConfirmService.IsEnabled(), nil
+	}
 	return a.confirmCloseEnabled, nil
 }
 
 func (a *App) SetConfirmCloseEnabled(enabled bool) error {
+	// Use service if available, also update field for backward compatibility
+	if a.CloseConfirmService != nil {
+		a.CloseConfirmService.SetEnabled(enabled)
+	}
 	a.confirmCloseEnabled = enabled
 	return nil
 }
 
 func (a *App) CloseApplication() {
 	if a.WailsEnabled {
+		// Use the service if available, fallback to original logic
+		if a.CloseConfirmService != nil {
+			if a.CloseConfirmService.ShouldConfirmClose() {
+				runtime.Quit(a.ctx)
+			}
+			// If ShouldConfirmClose returns false, don't close
+			return
+		}
+
+		// Fallback logic for backward compatibility
 		// Check if confirmation is enabled
 		confirmEnabled, err := a.GetConfirmCloseEnabled()
 		if err != nil {
