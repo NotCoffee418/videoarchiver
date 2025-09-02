@@ -54,6 +54,7 @@ type App struct {
 	StartupProgress     string
 	isDaemonRunning     bool
 	mode                string
+	confirmCloseEnabled bool
 }
 
 // NewApp creates a new App application struct
@@ -62,6 +63,7 @@ func NewApp(wailsEnabled bool, mode string) *App {
 	app := &App{
 		WailsEnabled: wailsEnabled,
 		mode:         mode,
+		confirmCloseEnabled: true, // Default to enabled
 	}
 	// Check initial daemon state
 	fmt.Printf("Checking if daemon is running...\n")
@@ -656,19 +658,12 @@ func (a *App) SetLegalDisclaimerAccepted(accepted bool) error {
 }
 
 func (a *App) GetConfirmCloseEnabled() (bool, error) {
-	value, err := a.SettingsService.GetSettingString("confirm_close_enabled")
-	if err != nil {
-		return false, err
-	}
-	return value == "true", nil
+	return a.confirmCloseEnabled, nil
 }
 
 func (a *App) SetConfirmCloseEnabled(enabled bool) error {
-	value := "false"
-	if enabled {
-		value = "true"
-	}
-	return a.SettingsService.SetPreparsed("confirm_close_enabled", value)
+	a.confirmCloseEnabled = enabled
+	return nil
 }
 
 func (a *App) CloseApplication() {
