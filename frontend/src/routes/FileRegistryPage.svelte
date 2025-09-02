@@ -2,6 +2,7 @@
     import { onMount, onDestroy } from "svelte";
     import LoadingSpinner from "../components/LoadingSpinner.svelte";
     import SelectDirectoryButton from "../components/SelectDirectoryButton.svelte";
+    import FileRegistrationProgressModal from "../components/FileRegistrationProgressModal.svelte";
 
     let registeredFiles = $state([]);
     let offset = $state(0);
@@ -12,6 +13,7 @@
     // Modal states
     let showRegisterModal = $state(false);
     let showClearModal = $state(false);
+    let showProgressModal = $state(false);
     let modalProcessing = $state(false);
     let modalError = $state(null);
     let selectedDirectory = $state("");
@@ -109,17 +111,26 @@
             return;
         }
 
-        modalProcessing = true;
+        // Close the directory selection modal
+        closeRegisterModal();
+        
+        // Show progress modal
+        showProgressModal = true;
+        
         try {
             await window.go.main.App.RegisterDirectory(selectedDirectory);
-            closeRegisterModal();
-            // Refresh the list
-            await fetchPage(false);
         } catch (error) {
+            console.error("Failed to register directory:", error);
+            showProgressModal = false;
             modalError = error;
-        } finally {
-            modalProcessing = false;
+            showRegisterModal = true;
         }
+    }
+
+    function onRegistrationComplete() {
+        console.log("Directory registration completed successfully");
+        // Refresh the list after completion
+        fetchPage(false);
     }
 
     async function handleClearAll() {
@@ -254,6 +265,12 @@
         </div>
     {/if}
 </dialog>
+
+<!-- File Registration Progress Modal -->
+<FileRegistrationProgressModal 
+  bind:isOpen={showProgressModal}
+  onComplete={onRegistrationComplete}
+/>
 
 <style>
     .container { 
