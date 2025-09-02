@@ -736,3 +736,77 @@ func (a *App) RegisterFilesWithProgress(directory string) error {
 
 	return nil
 }
+
+// RegisteredFile represents a file that has been registered for duplicate detection
+type RegisteredFile struct {
+	ID           int    `json:"id"`
+	Filename     string `json:"filename"`
+	FilePath     string `json:"file_path"`
+	MD5Hash      string `json:"md5_hash"`
+	RegisteredAt int64  `json:"registered_at"`
+}
+
+// GetRegisteredFiles returns a paginated list of registered files (placeholder implementation)
+func (a *App) GetRegisteredFiles(offset int, limit int) ([]RegisteredFile, error) {
+	// Sample data for now - in future this will come from database
+	sampleFiles := []RegisteredFile{
+		{
+			ID:           1,
+			Filename:     "sample_video_1.mp4",
+			FilePath:     "/home/user/videos/sample_video_1.mp4",
+			MD5Hash:      "a1b2c3d4e5f6789012345678901234567890abcd",
+			RegisteredAt: time.Now().Unix() - 86400, // 1 day ago
+		},
+		{
+			ID:           2,
+			Filename:     "another_video.mp3",
+			FilePath:     "/home/user/music/another_video.mp3",
+			MD5Hash:      "f1e2d3c4b5a6789012345678901234567890efgh",
+			RegisteredAt: time.Now().Unix() - 172800, // 2 days ago
+		},
+		{
+			ID:           3,
+			Filename:     "presentation.mp4",
+			FilePath:     "/home/user/documents/presentation.mp4",
+			MD5Hash:      "9876543210abcdef0123456789abcdef01234567",
+			RegisteredAt: time.Now().Unix() - 259200, // 3 days ago
+		},
+	}
+
+	// Simple pagination logic
+	start := offset
+	end := offset + limit
+	
+	if start >= len(sampleFiles) {
+		return []RegisteredFile{}, nil
+	}
+	
+	if end > len(sampleFiles) {
+		end = len(sampleFiles)
+	}
+	
+	return sampleFiles[start:end], nil
+}
+
+// RegisterDirectory registers all files in a directory for duplicate detection (placeholder implementation)
+func (a *App) RegisterDirectory(directoryPath string) error {
+	// Placeholder implementation - in future this will:
+	// 1. Scan directory recursively for all files
+	// 2. Calculate MD5 hash for each file
+	// 3. Store filename, path, and hash in database
+	a.LogService.Info(fmt.Sprintf("RegisterDirectory placeholder called with path: %s", directoryPath))
+	
+	// Simulate some processing time
+	time.Sleep(100 * time.Millisecond)
+	
+	return nil
+}
+
+// ClearAllRegisteredFiles removes all registered files from the database (placeholder implementation)
+func (a *App) ClearAllRegisteredFiles() error {
+	// Placeholder implementation - in future this will:
+	// 1. Delete all records from registered files table
+	a.LogService.Info("ClearAllRegisteredFiles placeholder called")
+	
+	return nil
+}

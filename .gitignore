@@ -33,3 +33,4 @@ frontend/dist
 __debug_bin*
 videoarchiver
 tmp/
+test-build
