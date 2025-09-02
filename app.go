@@ -688,3 +688,152 @@ func (a *App) CloseApplication() {
 		os.Exit(0)
 	}
 }
+
+
+// RegisteredFile represents a file that has been registered for duplicate detection
+type RegisteredFile struct {
+	ID           int    `json:"id"`
+	Filename     string `json:"filename"`
+	FilePath     string `json:"file_path"`
+	MD5Hash      string `json:"md5_hash"`
+	RegisteredAt int64  `json:"registered_at"`
+}
+
+// GetRegisteredFiles returns a paginated list of registered files (placeholder implementation)
+func (a *App) GetRegisteredFiles(offset int, limit int) ([]RegisteredFile, error) {
+	// Sample data for now - in future this will come from database
+	sampleFiles := []RegisteredFile{
+		{
+			ID:           1,
+			Filename:     "sample_video_1.mp4",
+			FilePath:     "/home/user/videos/sample_video_1.mp4",
+			MD5Hash:      "a1b2c3d4e5f6789012345678901234567890abcd",
+			RegisteredAt: time.Now().Unix() - 86400, // 1 day ago
+		},
+		{
+			ID:           2,
+			Filename:     "another_video.mp3",
+			FilePath:     "/home/user/music/another_video.mp3",
+			MD5Hash:      "f1e2d3c4b5a6789012345678901234567890efgh",
+			RegisteredAt: time.Now().Unix() - 172800, // 2 days ago
+		},
+		{
+			ID:           3,
+			Filename:     "presentation.mp4",
+			FilePath:     "/home/user/documents/presentation.mp4",
+			MD5Hash:      "9876543210abcdef0123456789abcdef01234567",
+			RegisteredAt: time.Now().Unix() - 259200, // 3 days ago
+		},
+	}
+
+	// Simple pagination logic
+	start := offset
+	end := offset + limit
+	
+	if start >= len(sampleFiles) {
+		return []RegisteredFile{}, nil
+	}
+	
+	if end > len(sampleFiles) {
+		end = len(sampleFiles)
+	}
+	
+	return sampleFiles[start:end], nil
+}
+
+// RegisterDirectory registers all files in a directory for duplicate detection with progress reporting
+func (a *App) RegisterDirectory(directoryPath string) error {
+	a.LogService.Info(fmt.Sprintf("Starting directory registration for: %s", directoryPath))
+	
+	// If Wails is enabled, emit progress events
+	if a.WailsEnabled {
+		go func() {
+			// Simulate realistic file registration process with progress updates
+			steps := []struct {
+				percent int
+				message string
+				delay   time.Duration
+			}{
+				{0, "Initializing directory registration...", 200 * time.Millisecond},
+				{10, "Scanning directory structure...", 500 * time.Millisecond},
+				{25, "Analyzing files for registration...", 800 * time.Millisecond},
+				{40, "Calculating MD5 checksums...", 1000 * time.Millisecond},
+				{60, "Preparing database entries...", 700 * time.Millisecond},
+				{75, "Validating file integrity...", 600 * time.Millisecond},
+				{90, "Finalizing registration...", 400 * time.Millisecond},
+				{100, "Registration completed successfully!", 300 * time.Millisecond},
+			}
+
+			for _, step := range steps {
+				time.Sleep(step.delay)
+				
+				// Emit progress event
+				runtime.EventsEmit(a.ctx, "file-registration-progress", map[string]interface{}{
+					"percent": step.percent,
+					"message": step.message,
+				})
+
+				a.LogService.Debug(fmt.Sprintf("Directory registration progress: %d%% - %s", step.percent, step.message))
+			}
+
+			// Final completion event
+			time.Sleep(200 * time.Millisecond)
+			runtime.EventsEmit(a.ctx, "file-registration-complete")
+			a.LogService.Info("Directory registration process completed")
+		}()
+	} else {
+		// Simulate some processing time for non-UI mode
+		time.Sleep(100 * time.Millisecond)
+	}
+	
+	return nil
+}
+
+// ClearAllRegisteredFiles removes all registered files from the database (placeholder implementation)
+func (a *App) ClearAllRegisteredFiles() error {
+	// Placeholder implementation - in future this will:
+	// 1. Delete all records from registered files table
+	a.LogService.Info("ClearAllRegisteredFiles placeholder called")
+	
+	return nil
+}
+
+// TestModalProgress is a test function to verify modal functionality
+func (a *App) TestModalProgress() error {
+	a.LogService.Info("TestModalProgress called - triggering progress events for testing")
+	
+	if a.WailsEnabled {
+		go func() {
+			// Quick test progression
+			steps := []struct {
+				percent int
+				message string
+				delay   time.Duration
+			}{
+				{0, "Test: Starting modal test...", 100 * time.Millisecond},
+				{25, "Test: First quarter...", 200 * time.Millisecond},
+				{50, "Test: Halfway there...", 200 * time.Millisecond},
+				{75, "Test: Almost done...", 200 * time.Millisecond},
+				{100, "Test: Modal test completed!", 200 * time.Millisecond},
+			}
+
+			for _, step := range steps {
+				time.Sleep(step.delay)
+				
+				runtime.EventsEmit(a.ctx, "file-registration-progress", map[string]interface{}{
+					"percent": step.percent,
+					"message": step.message,
+				})
+
+				a.LogService.Info(fmt.Sprintf("Test progress: %d%% - %s", step.percent, step.message))
+			}
+
+			// Final completion event
+			time.Sleep(100 * time.Millisecond)
+			runtime.EventsEmit(a.ctx, "file-registration-complete")
+			a.LogService.Info("Test modal progress completed")
+		}()
+	}
+	
+	return nil
+}

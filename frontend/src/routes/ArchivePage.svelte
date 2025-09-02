@@ -31,7 +31,9 @@
 <main>
   <div class="header">
     <h1>Archive</h1>
-    <AddPlaylistButton onPlaylistAdded={reloadPlaylists} />
+    <div class="header-buttons">
+      <AddPlaylistButton onPlaylistAdded={reloadPlaylists} />
+    </div>
   </div>
 
   {#if playlists.length > 0}
@@ -62,5 +64,11 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1rem;
+  }
+
+  .header-buttons {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
   }
 </style>

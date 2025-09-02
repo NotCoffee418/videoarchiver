@@ -1,6 +1,7 @@
 <script>
   import SettingView, { SettingType } from "../components/settings/SettingView.svelte";
   import SettingsGroup from "../components/settings/SettingsGroup.svelte";
+  import AllowDuplicatesSetting from "../components/settings/AllowDuplicatesSetting.svelte";
   
 </script>
 
@@ -57,7 +58,13 @@
         </div>
       </div>
       
-      
+</SettingsGroup>
+
+<SettingsGroup title="Advanced">
+    <AllowDuplicatesSetting 
+        key="allow_duplicates"
+        label="Allow Duplicate Downloads"
+        description="Disables duplicate detection, allowing videos to be re-downloaded even if they already exist in your directories." />
 </SettingsGroup>
 <!-- Hidden div for development -->
 <!-- <SettingsGroup title="Example Settings">
