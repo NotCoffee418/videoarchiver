@@ -46,22 +46,26 @@
     onComplete();
   }
 
-  // Handle dialog opening/closing
+  // Handle dialog opening/closing with proper element binding
+  let dialogElement = $state(null);
+  
   $effect(() => {
-    const dialog = document.querySelector('dialog#file-registration-progress-dialog');
-    if (dialog) {
-      if (isOpen && !dialog.open) {
-        dialog.showModal();
-      } else if (!isOpen && dialog.open) {
-        dialog.close();
+    console.log(`Modal effect running: isOpen=${isOpen}, dialogElement exists=${!!dialogElement}`);
+    if (dialogElement) {
+      if (isOpen && !dialogElement.open) {
+        console.log("Opening modal dialog");
+        dialogElement.showModal();
+      } else if (!isOpen && dialogElement.open) {
+        console.log("Closing modal dialog");
+        dialogElement.close();
       }
     }
   });
 </script>
 
 <!-- File Registration Progress Modal -->
-{#if isOpen}
-<dialog id="file-registration-progress-dialog">
+<dialog id="file-registration-progress-dialog" bind:this={dialogElement}>
+  {#if isOpen}
   <div class="modal-content">
     <div class="modal-header">
       <h2>File Registration Progress</h2>
@@ -98,8 +102,8 @@
       {/if}
     </div>
   </div>
+  {/if}
 </dialog>
-{/if}
 
 <style>
   dialog#file-registration-progress-dialog {

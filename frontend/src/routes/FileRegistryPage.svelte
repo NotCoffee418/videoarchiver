@@ -115,6 +115,7 @@
         closeRegisterModal();
         
         // Show progress modal
+        console.log("Setting showProgressModal to true");
         showProgressModal = true;
         
         try {

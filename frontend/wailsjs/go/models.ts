@@ -51,6 +51,31 @@ export namespace download {
 
 }
 
+export namespace main {
+	
+	export class RegisteredFile {
+	    id: number;
+	    filename: string;
+	    file_path: string;
+	    md5_hash: string;
+	    registered_at: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new RegisteredFile(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.filename = source["filename"];
+	        this.file_path = source["file_path"];
+	        this.md5_hash = source["md5_hash"];
+	        this.registered_at = source["registered_at"];
+	    }
+	}
+
+}
+
 export namespace playlist {
 	
 	export class Playlist {
