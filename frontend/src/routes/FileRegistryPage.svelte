@@ -142,11 +142,11 @@
 </script>
 
 <div class="container">
-    <h1>Duplicate Registration</h1>
+    <h1>File Registry</h1>
     
     <div class="explanation">
         <p>
-            <strong>What is Duplicate Registration?</strong><br>
+            <strong>What is File Registry?</strong><br>
             This feature allows you to register files from your existing collection to prevent duplicate downloads. 
             When you register a directory, all files (including those in subfolders) are catalogued by filename and MD5 hash. 
             During automatic downloads, any new file with the same MD5 hash as a registered file will be treated as a duplicate and skipped, 
