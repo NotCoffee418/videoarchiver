@@ -64,7 +64,7 @@
     <AllowDuplicatesSetting 
         key="allow_duplicates"
         label="Allow Duplicate Downloads"
-        description="When enabled, bypasses duplicate detection and allows downloading files that may already exist in the target directory. This may result in multiple copies of the same content." />
+        description="Disables duplicate detection, allowing videos to be re-downloaded even if they already exist in your directories." />
 </SettingsGroup>
 <!-- Hidden div for development -->
 <!-- <SettingsGroup title="Example Settings">

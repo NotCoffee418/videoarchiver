@@ -44,6 +44,7 @@
 
   function confirmEnableDuplicates() {
     value = true;
+    /** @type {HTMLInputElement | null} */
     const checkbox = document.querySelector(`#checkbox-input-${key}`);
     if (checkbox) checkbox.checked = true;
     saveSetting(key, value.toString());
@@ -103,12 +104,8 @@
   <button class="dialog-close-btn" onclick={closeConfirmModal}>✕</button>
   <h1>⚠️ Enable Duplicate Downloads?</h1>
   <p>
-    <strong>Warning:</strong> Enabling this setting will allow the application to download duplicate files, 
-    potentially wasting disk space and bandwidth.
-  </p>
-  <p>
-    When enabled, the duplicate detection system will be bypassed, meaning videos that already exist 
-    in your download directory may be downloaded again with different filenames.
+    <strong>Warning:</strong> This will immediately re-download existing videos from your registered playlists, 
+    potentially flooding your directories with duplicate files.
   </p>
   <p>Are you sure you want to proceed?</p>
   <div class="modal-buttons">
