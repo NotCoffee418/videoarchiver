@@ -13,6 +13,7 @@ import (
 	"videoarchiver/backend/domains/config"
 	"videoarchiver/backend/domains/db"
 	"videoarchiver/backend/domains/download"
+	"videoarchiver/backend/domains/fileregistry"
 	"videoarchiver/backend/domains/lockfile"
 	"videoarchiver/backend/domains/logging"
 	"videoarchiver/backend/domains/playlist"
@@ -51,6 +52,7 @@ type App struct {
 	DaemonSignalService *daemonsignal.DaemonSignalService
 	DownloadDB          *download.DownloadDB
 	DownloadService     *download.DownloadService
+	FileRegistryService *fileregistry.FileRegistryService
 	LogService          *logging.LogService
 	CloseConfirmService *closeconfirm.CloseConfirmService
 	StartupProgress     string
@@ -137,10 +139,12 @@ func (a *App) startup(ctx context.Context) {
 
 	// Create DownloadService using dbService
 	a.DownloadDB = download.NewDownloadDB(dbService)
+	a.FileRegistryService = fileregistry.NewFileRegistryService(dbService)
 	a.DownloadService = download.NewDownloadService(
 		ctx,
 		a.SettingsService,
 		a.DownloadDB,
+		a.FileRegistryService,
 		a.DaemonSignalService,
 		a.LogService,
 	)
@@ -690,55 +694,9 @@ func (a *App) CloseApplication() {
 }
 
 
-// RegisteredFile represents a file that has been registered for duplicate detection
-type RegisteredFile struct {
-	ID           int    `json:"id"`
-	Filename     string `json:"filename"`
-	FilePath     string `json:"file_path"`
-	MD5          string `json:"md5"`
-	RegisteredAt int64  `json:"registered_at"`
-}
-
-// GetRegisteredFiles returns a paginated list of registered files (placeholder implementation)
-func (a *App) GetRegisteredFiles(offset int, limit int) ([]RegisteredFile, error) {
-	// Sample data for now - in future this will come from database
-	sampleFiles := []RegisteredFile{
-		{
-			ID:           1,
-			Filename:     "sample_video_1.mp4",
-			FilePath:     "/home/user/videos/sample_video_1.mp4",
-			MD5:          "a1b2c3d4e5f6789012345678901234567890abcd",
-			RegisteredAt: time.Now().Unix() - 86400, // 1 day ago
-		},
-		{
-			ID:           2,
-			Filename:     "another_video.mp3",
-			FilePath:     "/home/user/music/another_video.mp3",
-			MD5:          "f1e2d3c4b5a6789012345678901234567890efgh",
-			RegisteredAt: time.Now().Unix() - 172800, // 2 days ago
-		},
-		{
-			ID:           3,
-			Filename:     "presentation.mp4",
-			FilePath:     "/home/user/documents/presentation.mp4",
-			MD5:          "9876543210abcdef0123456789abcdef01234567",
-			RegisteredAt: time.Now().Unix() - 259200, // 3 days ago
-		},
-	}
-
-	// Simple pagination logic
-	start := offset
-	end := offset + limit
-	
-	if start >= len(sampleFiles) {
-		return []RegisteredFile{}, nil
-	}
-	
-	if end > len(sampleFiles) {
-		end = len(sampleFiles)
-	}
-	
-	return sampleFiles[start:end], nil
+// GetRegisteredFiles returns a paginated list of registered files
+func (a *App) GetRegisteredFiles(offset int, limit int) ([]fileregistry.RegisteredFile, error) {
+	return a.FileRegistryService.GetAllPaginated(offset, limit)
 }
 
 // RegisterDirectory registers all files in a directory for duplicate detection with progress reporting
@@ -789,13 +747,10 @@ func (a *App) RegisterDirectory(directoryPath string) error {
 	return nil
 }
 
-// ClearAllRegisteredFiles removes all registered files from the database (placeholder implementation)
+// ClearAllRegisteredFiles removes all registered files from the database
 func (a *App) ClearAllRegisteredFiles() error {
-	// Placeholder implementation - in future this will:
-	// 1. Delete all records from registered files table
-	a.LogService.Info("ClearAllRegisteredFiles placeholder called")
-	
-	return nil
+	a.LogService.Info("Clearing all registered files")
+	return a.FileRegistryService.ClearAll()
 }
 
 // TestModalProgress is a test function to verify modal functionality
