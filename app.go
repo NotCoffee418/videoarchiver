@@ -688,3 +688,51 @@ func (a *App) CloseApplication() {
 		os.Exit(0)
 	}
 }
+
+// RegisterFilesWithProgress simulates file registration process with progress reporting
+// This is a mock implementation that completes in approximately 5 seconds with progress callbacks
+func (a *App) RegisterFilesWithProgress(directory string) error {
+	if !a.WailsEnabled {
+		// Non-UI mode doesn't support progress events
+		return fmt.Errorf("progress reporting not supported in non-UI mode")
+	}
+
+	a.LogService.Info(fmt.Sprintf("Starting file registration for directory: %s", directory))
+
+	go func() {
+		// Simulate file registration process with progress updates
+		steps := []struct {
+			percent int
+			message string
+			delay   time.Duration
+		}{
+			{0, "Initializing file registration...", 200 * time.Millisecond},
+			{10, "Scanning directory structure...", 500 * time.Millisecond},
+			{25, "Analyzing files for registration...", 800 * time.Millisecond},
+			{40, "Calculating MD5 checksums...", 1000 * time.Millisecond},
+			{60, "Preparing database entries...", 700 * time.Millisecond},
+			{75, "Validating file integrity...", 600 * time.Millisecond},
+			{90, "Finalizing registration...", 400 * time.Millisecond},
+			{100, "Registration completed successfully!", 300 * time.Millisecond},
+		}
+
+		for _, step := range steps {
+			time.Sleep(step.delay)
+			
+			// Emit progress event
+			runtime.EventsEmit(a.ctx, "file-registration-progress", map[string]interface{}{
+				"percent": step.percent,
+				"message": step.message,
+			})
+
+			a.LogService.Debug(fmt.Sprintf("File registration progress: %d%% - %s", step.percent, step.message))
+		}
+
+		// Final completion event
+		time.Sleep(200 * time.Millisecond)
+		runtime.EventsEmit(a.ctx, "file-registration-complete")
+		a.LogService.Info("File registration process completed")
+	}()
+
+	return nil
+}

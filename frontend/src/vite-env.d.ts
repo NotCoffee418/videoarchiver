@@ -51,6 +51,7 @@ declare global {
           StopDaemon: () => Promise<void>;
           IsDaemonRunning: () => Promise<boolean>;
           CloseApplication: () => Promise<void>;
+          RegisterFilesWithProgress: (arg1: string) => Promise<void>;
         };
       };
     };
