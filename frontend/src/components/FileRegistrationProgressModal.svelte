@@ -36,35 +36,37 @@
     }
   });
 
+  // Handle modal opening/closing using the same pattern as other modals
+  $effect(() => {
+    console.log(`Modal isOpen changed to: ${isOpen}`);
+    const dialog = document.querySelector('dialog#file-registration-progress-dialog');
+    if (dialog) {
+      if (isOpen && !dialog.open) {
+        console.log("Opening modal dialog");
+        dialog.showModal();
+      } else if (!isOpen && dialog.open) {
+        console.log("Closing modal dialog");
+        dialog.close();
+      }
+    } else {
+      console.log("Dialog element not found");
+    }
+  });
+
   function closeModal() {
     if (!isComplete) return; // Modal is unclosable until complete
     
+    console.log("Closing modal and resetting state");
     isOpen = false;
     progress = 0;
     isComplete = false;
     progressText = "Initializing file registration...";
     onComplete();
   }
-
-  // Handle dialog opening/closing with proper element binding
-  let dialogElement = $state(null);
-  
-  $effect(() => {
-    console.log(`Modal effect running: isOpen=${isOpen}, dialogElement exists=${!!dialogElement}`);
-    if (dialogElement) {
-      if (isOpen && !dialogElement.open) {
-        console.log("Opening modal dialog");
-        dialogElement.showModal();
-      } else if (!isOpen && dialogElement.open) {
-        console.log("Closing modal dialog");
-        dialogElement.close();
-      }
-    }
-  });
 </script>
 
 <!-- File Registration Progress Modal -->
-<dialog id="file-registration-progress-dialog" bind:this={dialogElement}>
+<dialog id="file-registration-progress-dialog">
   {#if isOpen}
   <div class="modal-content">
     <div class="modal-header">

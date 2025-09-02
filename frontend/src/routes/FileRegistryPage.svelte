@@ -151,6 +151,19 @@
     async function setDirectory(newPath) {
         selectedDirectory = newPath;
     }
+
+    async function testModal() {
+        console.log("Test Modal button clicked");
+        // Show progress modal directly
+        showProgressModal = true;
+        
+        try {
+            await window.go.main.App.TestModalProgress();
+        } catch (error) {
+            console.error("Failed to test modal:", error);
+            showProgressModal = false;
+        }
+    }
 </script>
 
 <div class="container">
@@ -169,6 +182,7 @@
     <div class="actions">
         <button class="register-btn" onclick={openRegisterModal}>Register Directory</button>
         <button class="clear-btn" onclick={openClearModal}>Clear All Registered Files</button>
+        <button class="test-btn" onclick={testModal}>Test Modal</button>
     </div>
 
     {#if loading}
@@ -329,6 +343,20 @@
     
     .clear-btn:hover {
         background-color: #da190b;
+    }
+    
+    .test-btn {
+        background-color: #2196F3;
+        border: none;
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 4px;
+        font-size: 1rem;
+        cursor: pointer;
+    }
+    
+    .test-btn:hover {
+        background-color: #1976D2;
     }
     
     .center { 

@@ -797,3 +797,43 @@ func (a *App) ClearAllRegisteredFiles() error {
 	
 	return nil
 }
+
+// TestModalProgress is a test function to verify modal functionality
+func (a *App) TestModalProgress() error {
+	a.LogService.Info("TestModalProgress called - triggering progress events for testing")
+	
+	if a.WailsEnabled {
+		go func() {
+			// Quick test progression
+			steps := []struct {
+				percent int
+				message string
+				delay   time.Duration
+			}{
+				{0, "Test: Starting modal test...", 100 * time.Millisecond},
+				{25, "Test: First quarter...", 200 * time.Millisecond},
+				{50, "Test: Halfway there...", 200 * time.Millisecond},
+				{75, "Test: Almost done...", 200 * time.Millisecond},
+				{100, "Test: Modal test completed!", 200 * time.Millisecond},
+			}
+
+			for _, step := range steps {
+				time.Sleep(step.delay)
+				
+				runtime.EventsEmit(a.ctx, "file-registration-progress", map[string]interface{}{
+					"percent": step.percent,
+					"message": step.message,
+				})
+
+				a.LogService.Info(fmt.Sprintf("Test progress: %d%% - %s", step.percent, step.message))
+			}
+
+			// Final completion event
+			time.Sleep(100 * time.Millisecond)
+			runtime.EventsEmit(a.ctx, "file-registration-complete")
+			a.LogService.Info("Test modal progress completed")
+		}()
+	}
+	
+	return nil
+}
