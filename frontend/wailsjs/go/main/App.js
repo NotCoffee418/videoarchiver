@@ -22,6 +22,10 @@ export function GetClipboard() {
   return window['go']['main']['App']['GetClipboard']();
 }
 
+export function GetConfirmCloseEnabled() {
+  return window['go']['main']['App']['GetConfirmCloseEnabled']();
+}
+
 export function GetDaemonLogLines(arg1) {
   return window['go']['main']['App']['GetDaemonLogLines'](arg1);
 }
@@ -76,6 +80,10 @@ export function RegisterAllFailedForRetryManual() {
 
 export function SelectDirectory() {
   return window['go']['main']['App']['SelectDirectory']();
+}
+
+export function SetConfirmCloseEnabled(arg1) {
+  return window['go']['main']['App']['SetConfirmCloseEnabled'](arg1);
 }
 
 export function SetLegalDisclaimerAccepted(arg1) {
