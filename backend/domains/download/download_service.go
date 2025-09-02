@@ -96,29 +96,21 @@ func (d *DownloadService) DownloadFileWithDuplicateCheck(url, directory, format 
 		return nil, fmt.Errorf("download service: failed to calculate MD5: %w", err)
 	}
 
-	// Check if duplicate checking is enabled
-	allowDuplicates := false
-	if allowDuplicatesSetting, settingErr := d.settingsService.GetSettingString("allow_duplicates"); settingErr == nil {
-		allowDuplicates = allowDuplicatesSetting == "true"
+	// Check for duplicate in target directory
+	duplicateFilename, err := d.CheckForDuplicateInDirectory(fileMD5, directory, baseFilename)
+	if err != nil {
+		return nil, fmt.Errorf("download service: failed to check for duplicates: %w", err)
 	}
 
-	// Check for duplicate in target directory (unless duplicates are allowed)
-	if !allowDuplicates {
-		duplicateFilename, err := d.CheckForDuplicateInDirectory(fileMD5, directory, baseFilename)
-		if err != nil {
-			return nil, fmt.Errorf("download service: failed to check for duplicates: %w", err)
-		}
-
-		if duplicateFilename != "" {
-			// Duplicate found - don't move the file, just return the duplicate info
-			duplicatePath := filepath.Join(directory, duplicateFilename)
-			d.logService.Info(fmt.Sprintf("Download skipped: duplicate found - %s", duplicateFilename))
-			return &DownloadResult{
-				FilePath:    duplicatePath,
-				IsDuplicate: true,
-				DuplicateOf: duplicateFilename,
-			}, nil
-		}
+	if duplicateFilename != "" {
+		// Duplicate found - don't move the file, just return the duplicate info
+		duplicatePath := filepath.Join(directory, duplicateFilename)
+		d.logService.Info(fmt.Sprintf("Download skipped: duplicate found - %s", duplicateFilename))
+		return &DownloadResult{
+			FilePath:    duplicatePath,
+			IsDuplicate: true,
+			DuplicateOf: duplicateFilename,
+		}, nil
 	}
 
 	// No duplicate found - proceed with normal file placement and suffix logic
