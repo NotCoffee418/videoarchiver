@@ -38,23 +38,23 @@
     <div class="form-group">
         <label for="url">URL</label>
         <div class="input-group">
-            <input type="text" id="url" placeholder="Enter URL" bind:value={url} />
-            <button class="paste-button" onclick={pasteUrl}>Paste URL</button>
+            <input type="text" id="url" placeholder="Enter URL" bind:value={url} disabled={isDownloading} />
+            <button class="paste-button" onclick={pasteUrl} disabled={isDownloading}>Paste URL</button>
         </div>
     </div>
 
     <div class="form-group">
         <label for="directory">Directory</label>
         <div class="input-group">
-            <input type="text" id="directory" placeholder="Enter directory" bind:value={directory} />
-            <SelectDirectoryButton text="Select Directory" clickHandlerAsync={selectDirectory} />
+            <input type="text" id="directory" placeholder="Enter directory" bind:value={directory} disabled={isDownloading} />
+            <SelectDirectoryButton text="Select Directory" clickHandlerAsync={selectDirectory} disabled={isDownloading} />
         </div>
     </div>
 
     <div class="form-group">
         <label for="format">Format</label>
         <div class="input-group">
-            <select id="format" bind:value={format}>
+            <select id="format" bind:value={format} disabled={isDownloading}>
                 <option value="mp3">MP3</option>
                 <option value="mp4">MP4</option>
             </select>
