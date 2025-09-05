@@ -133,14 +133,7 @@ func (d *DownloadService) DownloadFileWithDuplicateCheck(url, directory, format 
 		return nil, fmt.Errorf("download service: failed to move file: %w", err)
 	}
 
-	// Register file in file registry for future duplicate detection
 	fileName := filepath.Base(savePath)
-	err = d.fileRegistryService.RegisterFile(fileName, savePath, fileMD5)
-	if err != nil {
-		d.logService.Warn(fmt.Sprintf("Failed to register file in registry: %v", err))
-		// Don't fail the download if registry registration fails
-	}
-
 	d.logService.Info(fmt.Sprintf("Download completed successfully: %s", fileName))
 	return &DownloadResult{
 		FilePath:    savePath,
@@ -201,13 +194,6 @@ func (d *DownloadService) CheckForDuplicateInDirectory(fileMD5, targetDir, baseF
 	return "", nil // No duplicate found
 }
 
-// DuplicateInfo contains information about a detected duplicate
-type DuplicateInfo struct {
-	FilePath    string
-	DuplicateOf string // filename of the original file
-	Source      string // which source detected the duplicate: "file_registry", "downloads", or "directory"
-}
-
 // CheckForDuplicateAcrossAllSources checks for duplicates across file_registry table, downloads table, and directory files
 func (d *DownloadService) CheckForDuplicateAcrossAllSources(fileMD5, targetDir, baseFilename string) (*DuplicateInfo, error) {
 	// First check if duplicate checking is disabled
@@ -234,7 +220,7 @@ func (d *DownloadService) CheckForDuplicateAcrossAllSources(fileMD5, targetDir, 
 	}
 
 	// 2. Check downloads table for duplicate by MD5
-	downloadDuplicate, err := d.CheckForDuplicateInDownloads(fileMD5)
+	downloadDuplicate, err := d.downloadDB.CheckForDuplicateInDownloads(fileMD5)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check downloads table for duplicates: %w", err)
 	}
@@ -256,35 +242,6 @@ func (d *DownloadService) CheckForDuplicateAcrossAllSources(fileMD5, targetDir, 
 		}, nil
 	}
 
-	return nil, nil // No duplicate found
-}
-
-// CheckForDuplicateInDownloads checks if any existing download has the same MD5
-func (d *DownloadService) CheckForDuplicateInDownloads(fileMD5 string) (*DuplicateInfo, error) {
-	// Query downloads table for matching MD5 with valid output filename
-	rows, err := d.downloadDB.db.Query(
-		"SELECT output_filename FROM downloads WHERE md5 = ? AND output_filename IS NOT NULL AND output_filename != '' LIMIT 1",
-		fileMD5,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	if rows.Next() {
-		var outputFilename string
-		err := rows.Scan(&outputFilename)
-		if err != nil {
-			return nil, err
-		}
-		
-		return &DuplicateInfo{
-			FilePath:    outputFilename, // This might be just filename, not full path
-			DuplicateOf: filepath.Base(outputFilename),
-			Source:      "downloads",
-		}, nil
-	}
-	
 	return nil, nil // No duplicate found
 }
 

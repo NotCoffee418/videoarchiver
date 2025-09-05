@@ -2,6 +2,7 @@ package download
 
 import (
 	"database/sql"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -10,6 +11,13 @@ import (
 
 type DownloadDB struct {
 	db *sql.DB
+}
+
+// DuplicateInfo contains information about a detected duplicate
+type DuplicateInfo struct {
+	FilePath    string
+	DuplicateOf string // filename of the original file
+	Source      string // which source detected the duplicate: "file_registry", "downloads", or "directory"
 }
 
 func NewDownloadDB(dbService *db.DatabaseService) *DownloadDB {
@@ -173,6 +181,35 @@ func (d *Download) updateDownload(dlDB *DownloadDB) error {
 		`UPDATE downloads SET playlist_id = ?, url = ?, status = ?, format_downloaded = ?, md5 = ?, last_attempt = ?, fail_message = ?, attempt_count = ? WHERE id = ?`,
 		d.PlaylistID, d.Url, d.Status, d.FormatDownloaded, d.MD5, d.LastAttempt, d.FailMessage, d.AttemptCount, d.ID)
 	return err
+}
+
+// CheckForDuplicateInDownloads checks if any existing download has the same MD5
+func (d *DownloadDB) CheckForDuplicateInDownloads(fileMD5 string) (*DuplicateInfo, error) {
+	// Query downloads table for matching MD5
+	rows, err := d.db.Query(
+		"SELECT output_filename FROM downloads WHERE md5 = ? LIMIT 1",
+		fileMD5,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	if rows.Next() {
+		var outputFilename string
+		err := rows.Scan(&outputFilename)
+		if err != nil {
+			return nil, err
+		}
+		
+		return &DuplicateInfo{
+			FilePath:    outputFilename, // This might be just filename, not full path
+			DuplicateOf: filepath.Base(outputFilename),
+			Source:      "downloads",
+		}, nil
+	}
+	
+	return nil, nil // No duplicate found
 }
 
 // Removes excessive error message parts
