@@ -25,12 +25,12 @@ type LogServiceInterface interface {
 }
 
 type DownloadService struct {
-	ctx                    context.Context
-	settingsService        *settings.SettingsService
-	downloadDB             *DownloadDB
-	fileRegistryService    *fileregistry.FileRegistryService
-	daemonSignalService    *daemonsignal.DaemonSignalService
-	logService             LogServiceInterface
+	ctx                 context.Context
+	settingsService     *settings.SettingsService
+	downloadDB          *DownloadDB
+	fileRegistryService *fileregistry.FileRegistryService
+	daemonSignalService *daemonsignal.DaemonSignalService
+	logService          LogServiceInterface
 }
 
 const (
@@ -47,12 +47,12 @@ func NewDownloadService(
 	logService LogServiceInterface,
 ) *DownloadService {
 	return &DownloadService{
-		ctx:                    ctx,
-		settingsService:        settingsService,
-		downloadDB:             downloadDB,
-		fileRegistryService:    fileRegistryService,
-		daemonSignalService:    daemonSignalService,
-		logService:             logService,
+		ctx:                 ctx,
+		settingsService:     settingsService,
+		downloadDB:          downloadDB,
+		fileRegistryService: fileRegistryService,
+		daemonSignalService: daemonSignalService,
+		logService:          logService,
 	}
 }
 

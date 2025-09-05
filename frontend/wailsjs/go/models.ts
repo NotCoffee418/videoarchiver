@@ -51,7 +51,7 @@ export namespace download {
 
 }
 
-export namespace main {
+export namespace fileregistry {
 	
 	export class RegisteredFile {
 	    id: number;
@@ -59,11 +59,11 @@ export namespace main {
 	    file_path: string;
 	    md5: string;
 	    registered_at: number;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new RegisteredFile(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.id = source["id"];
