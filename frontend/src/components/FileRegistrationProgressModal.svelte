@@ -19,7 +19,6 @@
       const unsubscribeProgress = window.runtime.EventsOn('file-registration-progress', (data) => {
         progress = data.percent;
         progressText = data.message;
-        console.log(`File registration progress: ${progress}% - ${progressText}`);
       });
 
       // Listen for completion events
@@ -28,7 +27,6 @@
         progressText = "File registration completed successfully!";
         isComplete = true;
         hasError = false;
-        console.log("File registration completed");
       });
 
       // Listen for error events
@@ -38,7 +36,6 @@
         errorMessage = data.error || "Unknown error occurred";
         isComplete = true;
         hasError = true;
-        console.log("File registration failed:", errorMessage);
       });
 
       // Cleanup function
@@ -52,25 +49,19 @@
 
   // Handle modal opening/closing using the same pattern as other modals
   $effect(() => {
-    console.log(`Modal isOpen changed to: ${isOpen}`);
     const dialog = document.querySelector('dialog#file-registration-progress-dialog');
     if (dialog) {
       if (isOpen && !dialog.open) {
-        console.log("Opening modal dialog");
         dialog.showModal();
       } else if (!isOpen && dialog.open) {
-        console.log("Closing modal dialog");
         dialog.close();
       }
-    } else {
-      console.log("Dialog element not found");
     }
   });
 
   function closeModal() {
     if (!isComplete) return; // Modal is unclosable until complete
     
-    console.log("Closing modal and resetting state");
     isOpen = false;
     progress = 0;
     isComplete = false;

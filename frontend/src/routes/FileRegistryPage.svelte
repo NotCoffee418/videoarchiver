@@ -106,38 +106,34 @@
     }
 
     async function handleRegisterDirectory() {
-        console.log("handleRegisterDirectory called. selectedDirectory:", selectedDirectory);
-        console.log("selectedDirectory type:", typeof selectedDirectory);
-        console.log("selectedDirectory length:", selectedDirectory ? selectedDirectory.length : "undefined");
-        
-        if (!selectedDirectory) {
-            console.error("selectedDirectory is falsy:", selectedDirectory);
+        if (!selectedDirectory || selectedDirectory.trim() === "") {
             modalError = "Please select a directory first";
             return;
         }
 
-        if (selectedDirectory.trim() === "") {
-            console.error("selectedDirectory is empty after trim:", selectedDirectory);
-            modalError = "Directory path is empty";
+        // Prevent double-clicks
+        if (modalProcessing) {
             return;
         }
+        modalProcessing = true;
 
         // Close the directory selection modal
         closeRegisterModal();
         
         // Show progress modal
-        console.log("Setting showProgressModal to true");
         showProgressModal = true;
         
         try {
-            console.log("Calling RegisterDirectory with path:", selectedDirectory);
-            console.log("Path length:", selectedDirectory.length);
-            await window.go.main.App.RegisterDirectory(selectedDirectory);
+            // Ensure we pass a clean string value
+            const directoryPath = String(selectedDirectory).trim();
+            await window.go.main.App.RegisterDirectory(directoryPath);
         } catch (error) {
             console.error("Failed to register directory:", error);
             showProgressModal = false;
-            modalError = error;
+            modalError = String(error);
             showRegisterModal = true;
+        } finally {
+            modalProcessing = false;
         }
     }
 
@@ -162,19 +158,11 @@
     }
 
     async function setDirectory(newPath) {
-        console.log("setDirectory called with:", newPath);
-        console.log("newPath type:", typeof newPath);
-        console.log("newPath length:", newPath ? newPath.length : "undefined");
-        
         if (!newPath || newPath.trim() === "") {
-            console.warn("setDirectory received empty or invalid path:", newPath);
             modalError = "Invalid directory path selected";
             return;
         }
-        selectedDirectory = newPath;
-        console.log("selectedDirectory set to:", selectedDirectory);
-        console.log("selectedDirectory final type:", typeof selectedDirectory);
-        console.log("selectedDirectory final length:", selectedDirectory.length);
+        selectedDirectory = String(newPath).trim();
     }
 
     async function testModal() {
@@ -275,7 +263,7 @@
         
         <div class="modal-actions">
             <button onclick={closeRegisterModal}>Cancel</button>
-            <button class="primary" onclick={handleRegisterDirectory} disabled={!selectedDirectory}>Register Directory</button>
+            <button class="primary" onclick={handleRegisterDirectory} disabled={!selectedDirectory || modalProcessing}>Register Directory</button>
         </div>
     {/if}
 </dialog>
