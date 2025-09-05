@@ -82,8 +82,6 @@ type ProgressCallback func(percent int, message string)
 
 // RegisterDirectoryWithProgress registers all files in a directory with progress reporting
 func (f *FileRegistryService) RegisterDirectoryWithProgress(directoryPath string, logService *logging.LogService, progressCallback ProgressCallback) error {
-	logService.Info(fmt.Sprintf("Starting directory registration for: %s", directoryPath))
-	
 	// Step 1: Initialize and validate directory
 	if progressCallback != nil {
 		progressCallback(0, "Initializing directory registration...")

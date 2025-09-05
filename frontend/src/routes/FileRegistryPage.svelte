@@ -107,12 +107,17 @@
 
     async function handleRegisterDirectory() {
         console.log("handleRegisterDirectory called. selectedDirectory:", selectedDirectory);
+        console.log("selectedDirectory type:", typeof selectedDirectory);
+        console.log("selectedDirectory length:", selectedDirectory ? selectedDirectory.length : "undefined");
+        
         if (!selectedDirectory) {
+            console.error("selectedDirectory is falsy:", selectedDirectory);
             modalError = "Please select a directory first";
             return;
         }
 
         if (selectedDirectory.trim() === "") {
+            console.error("selectedDirectory is empty after trim:", selectedDirectory);
             modalError = "Directory path is empty";
             return;
         }
@@ -126,6 +131,7 @@
         
         try {
             console.log("Calling RegisterDirectory with path:", selectedDirectory);
+            console.log("Path length:", selectedDirectory.length);
             await window.go.main.App.RegisterDirectory(selectedDirectory);
         } catch (error) {
             console.error("Failed to register directory:", error);
@@ -157,6 +163,9 @@
 
     async function setDirectory(newPath) {
         console.log("setDirectory called with:", newPath);
+        console.log("newPath type:", typeof newPath);
+        console.log("newPath length:", newPath ? newPath.length : "undefined");
+        
         if (!newPath || newPath.trim() === "") {
             console.warn("setDirectory received empty or invalid path:", newPath);
             modalError = "Invalid directory path selected";
@@ -164,6 +173,8 @@
         }
         selectedDirectory = newPath;
         console.log("selectedDirectory set to:", selectedDirectory);
+        console.log("selectedDirectory final type:", typeof selectedDirectory);
+        console.log("selectedDirectory final length:", selectedDirectory.length);
     }
 
     async function testModal() {

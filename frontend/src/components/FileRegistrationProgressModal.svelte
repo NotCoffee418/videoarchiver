@@ -8,6 +8,8 @@
 
   let progress = $state(0);
   let isComplete = $state(false);
+  let hasError = $state(false);
+  let errorMessage = $state("");
   let progressText = $state("Initializing file registration...");
   
   // Listen for file registration progress events
@@ -25,13 +27,25 @@
         progress = 100;
         progressText = "File registration completed successfully!";
         isComplete = true;
+        hasError = false;
         console.log("File registration completed");
+      });
+
+      // Listen for error events
+      const unsubscribeError = window.runtime.EventsOn('file-registration-error', (data) => {
+        progress = 100;
+        progressText = "Registration failed!";
+        errorMessage = data.error || "Unknown error occurred";
+        isComplete = true;
+        hasError = true;
+        console.log("File registration failed:", errorMessage);
       });
 
       // Cleanup function
       return () => {
         unsubscribeProgress();
         unsubscribeComplete();
+        unsubscribeError();
       };
     }
   });
@@ -60,8 +74,12 @@
     isOpen = false;
     progress = 0;
     isComplete = false;
+    hasError = false;
+    errorMessage = "";
     progressText = "Initializing file registration...";
-    onComplete();
+    if (!hasError) {
+      onComplete();
+    }
   }
 </script>
 
@@ -91,6 +109,12 @@
         <div class="loading-indicator">
           <LoadingSpinner />
           <p class="loading-note">Please wait, this process cannot be cancelled...</p>
+        </div>
+      {:else if hasError}
+        <div class="error-indicator">
+          <div class="error-icon">✕</div>
+          <p class="error-note">Registration failed!</p>
+          <p class="error-details">{errorMessage}</p>
         </div>
       {:else}
         <div class="completion-indicator">
@@ -214,9 +238,23 @@
     padding: 1rem;
   }
 
+  .error-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 1rem;
+  }
+
   .checkmark {
     font-size: 3rem;
     color: #4CAF50;
+    font-weight: bold;
+  }
+
+  .error-icon {
+    font-size: 3rem;
+    color: #f44336;
     font-weight: bold;
   }
 
@@ -225,6 +263,22 @@
     color: #4CAF50;
     font-weight: bold;
     text-align: center;
+  }
+
+  .error-note {
+    margin: 0;
+    color: #f44336;
+    font-weight: bold;
+    text-align: center;
+  }
+
+  .error-details {
+    margin: 0;
+    color: #ff9999;
+    font-size: 0.9rem;
+    text-align: center;
+    max-width: 90%;
+    word-wrap: break-word;
   }
 
   .button-container {

@@ -705,6 +705,14 @@ func (a *App) GetRegisteredFiles(offset int, limit int) ([]fileregistry.Register
 
 // RegisterDirectory registers all files in a directory for duplicate detection with progress reporting
 func (a *App) RegisterDirectory(directoryPath string) error {
+	a.LogService.Info(fmt.Sprintf("Starting directory registration for: %s", directoryPath))
+	
+	// Debug: Check if directory path is empty
+	if directoryPath == "" {
+		a.LogService.Error("Directory path is empty - this indicates a frontend issue")
+		return fmt.Errorf("directory path is empty")
+	}
+	
 	// If Wails is enabled, emit progress events in background
 	if a.WailsEnabled {
 		go func() {
@@ -723,10 +731,14 @@ func (a *App) RegisterDirectory(directoryPath string) error {
 					"percent": 100,
 					"message": fmt.Sprintf("Registration failed: %v", err),
 				})
+				// Emit error completion event instead of success
+				runtime.EventsEmit(a.ctx, "file-registration-error", map[string]interface{}{
+					"error": err.Error(),
+				})
+			} else {
+				// Only emit success completion if no error
+				runtime.EventsEmit(a.ctx, "file-registration-complete")
 			}
-			
-			// Final completion event
-			runtime.EventsEmit(a.ctx, "file-registration-complete")
 			a.LogService.Info("Directory registration process completed")
 		}()
 	} else {
