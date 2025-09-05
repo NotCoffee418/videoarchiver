@@ -196,7 +196,7 @@ func (a *App) startup(ctx context.Context) {
 		}
 	}
 
-	// For daemon mode, wait for legal disclaimer acceptance before installing dependencies
+	// For daemon mode, handle legal disclaimer acceptance
 	if !a.WailsEnabled {
 		// Create lock before waiting for legal disclaimer acceptance
 		a.LogService.Info("Creating lock file to coordinate with UI...")
@@ -211,20 +211,27 @@ func (a *App) startup(ctx context.Context) {
 			}
 		}()
 
-		a.StartupProgress = "Waiting for legal disclaimer acceptance..."
-		for {
-			accepted, err := a.GetLegalDisclaimerAccepted()
-			if err != nil {
-				a.LogService.Error(fmt.Sprintf("Failed to check legal disclaimer status: %v", err))
-				time.Sleep(5 * time.Second)
-				continue
+		a.StartupProgress = "Checking legal disclaimer acceptance..."
+		accepted, err := a.GetLegalDisclaimerAccepted()
+		if err != nil {
+			a.LogService.Error(fmt.Sprintf("Failed to check legal disclaimer status: %v", err))
+			a.HandleFatalError("Failed to check legal disclaimer status: " + err.Error())
+		}
+		
+		if !accepted {
+			// In daemon mode, auto-accept the disclaimer with appropriate logging
+			a.LogService.Warn("Legal disclaimer not previously accepted. Auto-accepting for daemon mode.")
+			a.LogService.Warn("IMPORTANT: By running this daemon, you acknowledge responsibility for ensuring")
+			a.LogService.Warn("compliance with applicable laws and terms of service when downloading content.")
+			a.LogService.Warn("This software is intended for archiving videos you have the right to download.")
+			
+			if err := a.SetLegalDisclaimerAccepted(true); err != nil {
+				a.LogService.Error(fmt.Sprintf("Failed to set legal disclaimer as accepted: %v", err))
+				a.HandleFatalError("Failed to set legal disclaimer as accepted: " + err.Error())
 			}
-			if accepted {
-				a.LogService.Info("Legal disclaimer accepted, proceeding with dependency installation")
-				break
-			}
-			a.LogService.Info("Waiting for legal disclaimer acceptance before proceeding...")
-			time.Sleep(5 * time.Second)
+			a.LogService.Info("Legal disclaimer auto-accepted for daemon mode")
+		} else {
+			a.LogService.Info("Legal disclaimer previously accepted, proceeding with dependency installation")
 		}
 	}
 
