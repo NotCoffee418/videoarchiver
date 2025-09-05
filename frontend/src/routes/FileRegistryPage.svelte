@@ -106,8 +106,14 @@
     }
 
     async function handleRegisterDirectory() {
+        console.log("handleRegisterDirectory called. selectedDirectory:", selectedDirectory);
         if (!selectedDirectory) {
             modalError = "Please select a directory first";
+            return;
+        }
+
+        if (selectedDirectory.trim() === "") {
+            modalError = "Directory path is empty";
             return;
         }
 
@@ -119,6 +125,7 @@
         showProgressModal = true;
         
         try {
+            console.log("Calling RegisterDirectory with path:", selectedDirectory);
             await window.go.main.App.RegisterDirectory(selectedDirectory);
         } catch (error) {
             console.error("Failed to register directory:", error);
@@ -149,7 +156,14 @@
     }
 
     async function setDirectory(newPath) {
+        console.log("setDirectory called with:", newPath);
+        if (!newPath || newPath.trim() === "") {
+            console.warn("setDirectory received empty or invalid path:", newPath);
+            modalError = "Invalid directory path selected";
+            return;
+        }
         selectedDirectory = newPath;
+        console.log("selectedDirectory set to:", selectedDirectory);
     }
 
     async function testModal() {
@@ -240,11 +254,11 @@
         <div class="form-group">
             <label for="directory">Directory</label>
             <div class="input-group">
-                <input id="directory" type="text" bind:value={selectedDirectory} readonly />
+                <input id="directory" type="text" bind:value={selectedDirectory} />
                 <SelectDirectoryButton
                     text="Browse"
                     clickHandlerAsync={setDirectory}
-                    class="btn-select-directory" />
+                    style="padding: 0.5rem 1rem; background-color: #555; border: 1px solid #777; color: white; border-radius: 4px;" />
             </div>
         </div>
         
@@ -503,19 +517,6 @@
     
     .input-group input {
         flex: 1;
-    }
-    
-    .btn-select-directory {
-        padding: 0.5rem 1rem;
-        background-color: #555;
-        border: 1px solid #777;
-        color: white;
-        border-radius: 4px;
-        cursor: pointer;
-    }
-    
-    .btn-select-directory:hover {
-        background-color: #666;
     }
     
     .modal-actions {

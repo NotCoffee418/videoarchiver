@@ -705,8 +705,6 @@ func (a *App) GetRegisteredFiles(offset int, limit int) ([]fileregistry.Register
 
 // RegisterDirectory registers all files in a directory for duplicate detection with progress reporting
 func (a *App) RegisterDirectory(directoryPath string) error {
-	a.LogService.Info(fmt.Sprintf("Starting directory registration for: %s", directoryPath))
-	
 	// If Wails is enabled, emit progress events in background
 	if a.WailsEnabled {
 		go func() {
