@@ -5,6 +5,7 @@ import (
 	"embed"
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime/debug"
 	"strings"
 	"time"
@@ -707,47 +708,134 @@ func (a *App) GetRegisteredFiles(offset int, limit int) ([]fileregistry.Register
 func (a *App) RegisterDirectory(directoryPath string) error {
 	a.LogService.Info(fmt.Sprintf("Starting directory registration for: %s", directoryPath))
 	
-	// If Wails is enabled, emit progress events
+	// If Wails is enabled, emit progress events in background
 	if a.WailsEnabled {
 		go func() {
-			// Simulate realistic file registration process with progress updates
-			steps := []struct {
-				percent int
-				message string
-				delay   time.Duration
-			}{
-				{0, "Initializing directory registration...", 200 * time.Millisecond},
-				{10, "Scanning directory structure...", 500 * time.Millisecond},
-				{25, "Analyzing files for registration...", 800 * time.Millisecond},
-				{40, "Calculating MD5 checksums...", 1000 * time.Millisecond},
-				{60, "Preparing database entries...", 700 * time.Millisecond},
-				{75, "Validating file integrity...", 600 * time.Millisecond},
-				{90, "Finalizing registration...", 400 * time.Millisecond},
-				{100, "Registration completed successfully!", 300 * time.Millisecond},
-			}
-
-			for _, step := range steps {
-				time.Sleep(step.delay)
-				
-				// Emit progress event
+			err := a.registerDirectoryWithProgress(directoryPath)
+			if err != nil {
+				a.LogService.Error(fmt.Sprintf("Directory registration failed: %v", err))
 				runtime.EventsEmit(a.ctx, "file-registration-progress", map[string]interface{}{
-					"percent": step.percent,
-					"message": step.message,
+					"percent": 100,
+					"message": fmt.Sprintf("Registration failed: %v", err),
 				})
-
-				a.LogService.Debug(fmt.Sprintf("Directory registration progress: %d%% - %s", step.percent, step.message))
 			}
-
+			
 			// Final completion event
-			time.Sleep(200 * time.Millisecond)
 			runtime.EventsEmit(a.ctx, "file-registration-complete")
 			a.LogService.Info("Directory registration process completed")
 		}()
 	} else {
-		// Simulate some processing time for non-UI mode
-		time.Sleep(100 * time.Millisecond)
+		// Direct execution for non-UI mode
+		return a.registerDirectoryWithProgress(directoryPath)
 	}
 	
+	return nil
+}
+
+// registerDirectoryWithProgress performs the actual directory registration with progress updates
+func (a *App) registerDirectoryWithProgress(directoryPath string) error {
+	// Step 1: Initialize and validate directory
+	if a.WailsEnabled {
+		runtime.EventsEmit(a.ctx, "file-registration-progress", map[string]interface{}{
+			"percent": 0,
+			"message": "Initializing directory registration...",
+		})
+	}
+	
+	if _, err := os.Stat(directoryPath); os.IsNotExist(err) {
+		return fmt.Errorf("directory does not exist: %s", directoryPath)
+	}
+	
+	// Step 2: Scan directory to count files
+	if a.WailsEnabled {
+		runtime.EventsEmit(a.ctx, "file-registration-progress", map[string]interface{}{
+			"percent": 10,
+			"message": "Scanning directory structure...",
+		})
+	}
+	
+	var allFiles []string
+	err := filepath.Walk(directoryPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			a.LogService.Warn(fmt.Sprintf("Error accessing path %s: %v", path, err))
+			return nil // Continue walking, don't fail on individual file errors
+		}
+		
+		if !info.IsDir() {
+			allFiles = append(allFiles, path)
+		}
+		return nil
+	})
+	
+	if err != nil {
+		return fmt.Errorf("failed to scan directory: %w", err)
+	}
+	
+	totalFiles := len(allFiles)
+	a.LogService.Info(fmt.Sprintf("Found %d files to register", totalFiles))
+	
+	if totalFiles == 0 {
+		if a.WailsEnabled {
+			runtime.EventsEmit(a.ctx, "file-registration-progress", map[string]interface{}{
+				"percent": 100,
+				"message": "No files found in directory",
+			})
+		}
+		return nil
+	}
+	
+	// Step 3: Process files with progress updates
+	registeredCount := 0
+	errorCount := 0
+	
+	for i, filePath := range allFiles {
+		// Calculate progress (20% for setup, 80% for file processing)
+		progressPercent := 20 + int(float64(i)/float64(totalFiles)*80)
+		
+		if a.WailsEnabled {
+			runtime.EventsEmit(a.ctx, "file-registration-progress", map[string]interface{}{
+				"percent": progressPercent,
+				"message": fmt.Sprintf("Processing file %d of %d: %s", i+1, totalFiles, filepath.Base(filePath)),
+			})
+		}
+		
+		// Calculate MD5 hash
+		md5Hash, err := download.CalculateMD5(filePath)
+		if err != nil {
+			a.LogService.Warn(fmt.Sprintf("Failed to calculate MD5 for %s: %v", filePath, err))
+			errorCount++
+			continue
+		}
+		
+		// Register the file
+		filename := filepath.Base(filePath)
+		err = a.FileRegistryService.RegisterFile(filename, filePath, md5Hash)
+		if err != nil {
+			a.LogService.Warn(fmt.Sprintf("Failed to register file %s: %v", filePath, err))
+			errorCount++
+			continue
+		}
+		
+		registeredCount++
+		a.LogService.Debug(fmt.Sprintf("Registered file: %s (MD5: %s)", filePath, md5Hash))
+	}
+	
+	// Final progress update
+	if a.WailsEnabled {
+		var message string
+		if errorCount > 0 {
+			message = fmt.Sprintf("Registration completed: %d files registered, %d errors", registeredCount, errorCount)
+		} else {
+			message = fmt.Sprintf("Registration completed successfully: %d files registered", registeredCount)
+		}
+		
+		runtime.EventsEmit(a.ctx, "file-registration-progress", map[string]interface{}{
+			"percent": 100,
+			"message": message,
+		})
+	}
+	
+	a.LogService.Info(fmt.Sprintf("Directory registration completed: %d files registered, %d errors", registeredCount, errorCount))
 	return nil
 }
 
