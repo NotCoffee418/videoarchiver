@@ -65,10 +65,20 @@ func runDaemon(app *App) {
 		os.Exit(0)
 	}
 
-	earlyLogger.Info("Initializing application")
+	earlyLogger.Info("Initializing application startup...")
+	
+	// Add panic recovery for the startup process
+	defer func() {
+		if r := recover(); r != nil {
+			earlyLogger.Error(fmt.Sprintf("PANIC during daemon startup: %v", r))
+			earlyLogger.Error("LOG: Daemon exiting due to startup panic")
+			os.Exit(1)
+		}
+	}()
+	
 	app.startup(context.Background())
 	
-	app.LogService.Info("Daemon starting")
+	app.LogService.Info("Daemon startup completed, entering main loop")
 	startDaemonLoop(app)
 }
 

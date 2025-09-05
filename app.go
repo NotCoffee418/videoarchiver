@@ -157,6 +157,7 @@ func (a *App) startup(ctx context.Context) {
 
 	// Apply database migrations (AFTER setting up DB)
 	a.StartupProgress = "Applying database updates..."
+	a.LogService.Info("Starting database migrations...")
 	db := dbService.GetDB()
 	dbmigrator.SetDatabaseType(dbmigrator.SQLite)
 	<-dbmigrator.MigrateUpCh(
@@ -164,6 +165,7 @@ func (a *App) startup(ctx context.Context) {
 		migrationFS,
 		"migrations",
 	)
+	a.LogService.Info("Database migrations completed successfully")
 
 	// For UI mode, wait for legal disclaimer acceptance before installing dependencies
 	if a.WailsEnabled {
@@ -196,7 +198,7 @@ func (a *App) startup(ctx context.Context) {
 		}
 	}
 
-	// For daemon mode, handle legal disclaimer acceptance
+	// For daemon mode, wait for legal disclaimer acceptance before installing dependencies
 	if !a.WailsEnabled {
 		// Create lock before waiting for legal disclaimer acceptance
 		a.LogService.Info("Creating lock file to coordinate with UI...")
@@ -212,6 +214,7 @@ func (a *App) startup(ctx context.Context) {
 		}()
 
 		a.StartupProgress = "Checking legal disclaimer acceptance..."
+		a.LogService.Info("Checking legal disclaimer acceptance status...")
 		accepted, err := a.GetLegalDisclaimerAccepted()
 		if err != nil {
 			a.LogService.Error(fmt.Sprintf("Failed to check legal disclaimer status: %v", err))
@@ -219,24 +222,15 @@ func (a *App) startup(ctx context.Context) {
 		}
 		
 		if !accepted {
-			// In daemon mode, auto-accept the disclaimer with appropriate logging
-			a.LogService.Warn("Legal disclaimer not previously accepted. Auto-accepting for daemon mode.")
-			a.LogService.Warn("IMPORTANT: By running this daemon, you acknowledge responsibility for ensuring")
-			a.LogService.Warn("compliance with applicable laws and terms of service when downloading content.")
-			a.LogService.Warn("This software is intended for archiving videos you have the right to download.")
-			
-			if err := a.SetLegalDisclaimerAccepted(true); err != nil {
-				a.LogService.Error(fmt.Sprintf("Failed to set legal disclaimer as accepted: %v", err))
-				a.HandleFatalError("Failed to set legal disclaimer as accepted: " + err.Error())
-			}
-			a.LogService.Info("Legal disclaimer auto-accepted for daemon mode")
+			a.LogService.Error("Legal disclaimer has not been accepted. Please run the application in UI mode first to accept the legal disclaimer.")
+			a.HandleFatalError("Legal disclaimer must be accepted before daemon can run. Please run in UI mode first.")
 		} else {
-			a.LogService.Info("Legal disclaimer previously accepted, proceeding with dependency installation")
+			a.LogService.Info("Legal disclaimer already accepted, proceeding with startup")
 		}
 	}
 
 	// ✅ Install ytdlp in background channel (after legal disclaimer is accepted)
-	a.LogService.Info("Starting dependency installation after legal disclaimer acceptance")
+	a.LogService.Info("Starting dependency installation after legal disclaimer check")
 	ytdlpUpdateChan := make(chan error)
 	go func() {
 		defer close(ytdlpUpdateChan)
