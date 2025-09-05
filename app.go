@@ -5,7 +5,6 @@ import (
 	"embed"
 	"fmt"
 	"os"
-	"path/filepath"
 	"runtime/debug"
 	"strings"
 	"time"
@@ -711,7 +710,15 @@ func (a *App) RegisterDirectory(directoryPath string) error {
 	// If Wails is enabled, emit progress events in background
 	if a.WailsEnabled {
 		go func() {
-			err := a.registerDirectoryWithProgress(directoryPath)
+			// Create progress callback for UI mode
+			progressCallback := func(percent int, message string) {
+				runtime.EventsEmit(a.ctx, "file-registration-progress", map[string]interface{}{
+					"percent": percent,
+					"message": message,
+				})
+			}
+			
+			err := a.FileRegistryService.RegisterDirectoryWithProgress(directoryPath, a.LogService, progressCallback)
 			if err != nil {
 				a.LogService.Error(fmt.Sprintf("Directory registration failed: %v", err))
 				runtime.EventsEmit(a.ctx, "file-registration-progress", map[string]interface{}{
@@ -725,117 +732,10 @@ func (a *App) RegisterDirectory(directoryPath string) error {
 			a.LogService.Info("Directory registration process completed")
 		}()
 	} else {
-		// Direct execution for non-UI mode
-		return a.registerDirectoryWithProgress(directoryPath)
+		// Direct execution for non-UI mode (no progress callback needed)
+		return a.FileRegistryService.RegisterDirectoryWithProgress(directoryPath, a.LogService, nil)
 	}
 	
-	return nil
-}
-
-// registerDirectoryWithProgress performs the actual directory registration with progress updates
-func (a *App) registerDirectoryWithProgress(directoryPath string) error {
-	// Step 1: Initialize and validate directory
-	if a.WailsEnabled {
-		runtime.EventsEmit(a.ctx, "file-registration-progress", map[string]interface{}{
-			"percent": 0,
-			"message": "Initializing directory registration...",
-		})
-	}
-	
-	if _, err := os.Stat(directoryPath); os.IsNotExist(err) {
-		return fmt.Errorf("directory does not exist: %s", directoryPath)
-	}
-	
-	// Step 2: Scan directory to count files
-	if a.WailsEnabled {
-		runtime.EventsEmit(a.ctx, "file-registration-progress", map[string]interface{}{
-			"percent": 10,
-			"message": "Scanning directory structure...",
-		})
-	}
-	
-	var allFiles []string
-	err := filepath.Walk(directoryPath, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			a.LogService.Warn(fmt.Sprintf("Error accessing path %s: %v", path, err))
-			return nil // Continue walking, don't fail on individual file errors
-		}
-		
-		if !info.IsDir() {
-			allFiles = append(allFiles, path)
-		}
-		return nil
-	})
-	
-	if err != nil {
-		return fmt.Errorf("failed to scan directory: %w", err)
-	}
-	
-	totalFiles := len(allFiles)
-	a.LogService.Info(fmt.Sprintf("Found %d files to register", totalFiles))
-	
-	if totalFiles == 0 {
-		if a.WailsEnabled {
-			runtime.EventsEmit(a.ctx, "file-registration-progress", map[string]interface{}{
-				"percent": 100,
-				"message": "No files found in directory",
-			})
-		}
-		return nil
-	}
-	
-	// Step 3: Process files with progress updates
-	registeredCount := 0
-	errorCount := 0
-	
-	for i, filePath := range allFiles {
-		// Calculate progress (20% for setup, 80% for file processing)
-		progressPercent := 20 + int(float64(i)/float64(totalFiles)*80)
-		
-		if a.WailsEnabled {
-			runtime.EventsEmit(a.ctx, "file-registration-progress", map[string]interface{}{
-				"percent": progressPercent,
-				"message": fmt.Sprintf("Processing file %d of %d: %s", i+1, totalFiles, filepath.Base(filePath)),
-			})
-		}
-		
-		// Calculate MD5 hash
-		md5Hash, err := download.CalculateMD5(filePath)
-		if err != nil {
-			a.LogService.Warn(fmt.Sprintf("Failed to calculate MD5 for %s: %v", filePath, err))
-			errorCount++
-			continue
-		}
-		
-		// Register the file
-		filename := filepath.Base(filePath)
-		err = a.FileRegistryService.RegisterFile(filename, filePath, md5Hash)
-		if err != nil {
-			a.LogService.Warn(fmt.Sprintf("Failed to register file %s: %v", filePath, err))
-			errorCount++
-			continue
-		}
-		
-		registeredCount++
-		a.LogService.Debug(fmt.Sprintf("Registered file: %s (MD5: %s)", filePath, md5Hash))
-	}
-	
-	// Final progress update
-	if a.WailsEnabled {
-		var message string
-		if errorCount > 0 {
-			message = fmt.Sprintf("Registration completed: %d files registered, %d errors", registeredCount, errorCount)
-		} else {
-			message = fmt.Sprintf("Registration completed successfully: %d files registered", registeredCount)
-		}
-		
-		runtime.EventsEmit(a.ctx, "file-registration-progress", map[string]interface{}{
-			"percent": 100,
-			"message": message,
-		})
-	}
-	
-	a.LogService.Info(fmt.Sprintf("Directory registration completed: %d files registered, %d errors", registeredCount, errorCount))
 	return nil
 }
 
