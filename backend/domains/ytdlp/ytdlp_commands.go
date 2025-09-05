@@ -131,6 +131,7 @@ func DownloadFile(
 		"--print-json",
 		"--metadata-from-title", "%(artist)s - %(title)s",
 		"--no-warnings",
+		"--no-playlist",
 	}
 
 	var outputString string
