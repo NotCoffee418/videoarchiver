@@ -64,16 +64,7 @@ type DownloadResult struct {
 }
 
 // Download a file via Ytdlp
-func (d *DownloadService) DownloadFile(url, directory, format string) (string, error) {
-	result, err := d.DownloadFileWithDuplicateCheck(url, directory, format)
-	if err != nil {
-		return "", err
-	}
-	return result.FilePath, nil
-}
-
-// DownloadFileWithDuplicateCheck downloads a file and checks for duplicates
-func (d *DownloadService) DownloadFileWithDuplicateCheck(url, directory, format string) (*DownloadResult, error) {
+func (d *DownloadService) DownloadFile(url, directory, format string, duplicateCheck bool) (*DownloadResult, error) {
 	d.logService.Info(fmt.Sprintf("Starting download: %s (format: %s, directory: %s)", url, format, directory))
 
 	// Set temp path for the file
@@ -100,20 +91,22 @@ func (d *DownloadService) DownloadFileWithDuplicateCheck(url, directory, format 
 		return nil, fmt.Errorf("download service: failed to calculate MD5: %w", err)
 	}
 
-	// Check for duplicate in database tables (file_registry and downloads)
-	hasDuplicate, err := d.HasDuplicate(fileMD5)
-	if err != nil {
-		return nil, fmt.Errorf("download service: failed to check for duplicates: %w", err)
-	}
+	// Check for duplicate in database tables (file_registry and downloads) if duplicateCheck is enabled
+	if duplicateCheck {
+		hasDuplicate, err := d.HasDuplicate(fileMD5)
+		if err != nil {
+			return nil, fmt.Errorf("download service: failed to check for duplicates: %w", err)
+		}
 
-	if hasDuplicate {
-		// Duplicate found - don't move the file, just return the duplicate info
-		d.logService.Info("Download skipped: duplicate found in database")
-		return &DownloadResult{
-			FilePath:    "", // We don't know the exact path since we simplified the return
-			IsDuplicate: true,
-			DuplicateOf: baseFilename,
-		}, nil
+		if hasDuplicate {
+			// Duplicate found - don't move the file, just return the duplicate info
+			d.logService.Info("Download skipped: duplicate found in database")
+			return &DownloadResult{
+				FilePath:    "", // We don't know the exact path since we simplified the return
+				IsDuplicate: true,
+				DuplicateOf: baseFilename,
+			}, nil
+		}
 	}
 
 	// No duplicate found - proceed with normal file placement and suffix logic
