@@ -123,15 +123,29 @@
         // Show progress modal
         showProgressModal = true;
         
+        // Ensure we pass a clean string value and log for debugging
+        const directoryPath = String(selectedDirectory).trim();
+        console.log("About to register directory:", directoryPath);
+        console.log("Directory path type:", typeof directoryPath);
+        console.log("Directory path length:", directoryPath.length);
+        
         try {
-            // Ensure we pass a clean string value
-            const directoryPath = String(selectedDirectory).trim();
             await window.go.main.App.RegisterDirectory(directoryPath);
+            // Don't handle success here - let the progress modal handle completion events
         } catch (error) {
-            console.error("Failed to register directory:", error);
-            showProgressModal = false;
-            modalError = String(error);
-            showRegisterModal = true;
+            console.error("RegisterDirectory function threw error:", error);
+            // Instead of closing progress modal, emit error event manually
+            // This handles cases where the function throws before starting the goroutine
+            if (window.runtime && window.runtime.EventsEmit) {
+                window.runtime.EventsEmit('file-registration-error', {
+                    error: String(error)
+                });
+            } else {
+                // Fallback: close progress modal and show error in selection modal
+                showProgressModal = false;
+                modalError = String(error);
+                showRegisterModal = true;
+            }
         } finally {
             modalProcessing = false;
         }
@@ -158,11 +172,17 @@
     }
 
     async function setDirectory(newPath) {
+        console.log("setDirectory called with:", newPath);
+        console.log("setDirectory path type:", typeof newPath);
+        console.log("setDirectory path length:", newPath ? newPath.length : "undefined");
+        
         if (!newPath || newPath.trim() === "") {
             modalError = "Invalid directory path selected";
             return;
         }
         selectedDirectory = String(newPath).trim();
+        console.log("selectedDirectory set to:", selectedDirectory);
+        console.log("selectedDirectory length:", selectedDirectory.length);
     }
 
     async function testModal() {

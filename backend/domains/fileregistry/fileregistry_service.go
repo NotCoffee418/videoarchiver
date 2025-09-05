@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 	"videoarchiver/backend/domains/db"
 	"videoarchiver/backend/domains/fileutils"
@@ -82,9 +83,17 @@ type ProgressCallback func(percent int, message string)
 
 // RegisterDirectoryWithProgress registers all files in a directory with progress reporting
 func (f *FileRegistryService) RegisterDirectoryWithProgress(directoryPath string, logService *logging.LogService, progressCallback ProgressCallback) error {
-	// Step 1: Initialize and validate directory
+	// Step 1: Initialize and validate input
 	if progressCallback != nil {
 		progressCallback(0, "Initializing directory registration...")
+	}
+	
+	// Trim and validate directory path
+	directoryPath = strings.TrimSpace(directoryPath)
+	logService.Info(fmt.Sprintf("Starting directory registration for: '%s' (length: %d)", directoryPath, len(directoryPath)))
+	
+	if directoryPath == "" {
+		return fmt.Errorf("directory path is empty")
 	}
 	
 	if _, err := os.Stat(directoryPath); os.IsNotExist(err) {
