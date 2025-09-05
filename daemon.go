@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 	"videoarchiver/backend/domains/download"
+	"videoarchiver/backend/domains/fileutils"
 	"videoarchiver/backend/domains/playlist"
 	"videoarchiver/backend/domains/ytdlp"
 )
@@ -213,7 +214,7 @@ func downloadItem(dl *download.Download, pl *playlist.Playlist) {
 		dl.SetFail(app.DownloadDB, err.Error())
 	} else {
 		// Calculate MD5 of the file
-		md5, err := download.CalculateMD5(downloadResult.FilePath)
+		md5, err := fileutils.CalculateMD5(downloadResult.FilePath)
 		if err != nil {
 			app.LogService.Error(fmt.Sprintf("Failed to calculate MD5 for item %s: %v", dl.Url, err))
 			err = dl.SetFail(app.DownloadDB, fmt.Sprintf("Failed to calculate MD5: %v", err))

@@ -705,47 +705,36 @@ func (a *App) GetRegisteredFiles(offset int, limit int) ([]fileregistry.Register
 
 // RegisterDirectory registers all files in a directory for duplicate detection with progress reporting
 func (a *App) RegisterDirectory(directoryPath string) error {
-	a.LogService.Info(fmt.Sprintf("Starting directory registration for: %s", directoryPath))
+	a.LogService.Info(fmt.Sprintf("RegisterDirectory called with path: '%s' (length: %d)", directoryPath, len(directoryPath)))
 	
-	// If Wails is enabled, emit progress events
+	// If Wails is enabled, emit progress events in background
 	if a.WailsEnabled {
 		go func() {
-			// Simulate realistic file registration process with progress updates
-			steps := []struct {
-				percent int
-				message string
-				delay   time.Duration
-			}{
-				{0, "Initializing directory registration...", 200 * time.Millisecond},
-				{10, "Scanning directory structure...", 500 * time.Millisecond},
-				{25, "Analyzing files for registration...", 800 * time.Millisecond},
-				{40, "Calculating MD5 checksums...", 1000 * time.Millisecond},
-				{60, "Preparing database entries...", 700 * time.Millisecond},
-				{75, "Validating file integrity...", 600 * time.Millisecond},
-				{90, "Finalizing registration...", 400 * time.Millisecond},
-				{100, "Registration completed successfully!", 300 * time.Millisecond},
-			}
-
-			for _, step := range steps {
-				time.Sleep(step.delay)
-				
-				// Emit progress event
+			// Create progress callback for UI mode
+			progressCallback := func(percent int, message string) {
 				runtime.EventsEmit(a.ctx, "file-registration-progress", map[string]interface{}{
-					"percent": step.percent,
-					"message": step.message,
+					"percent": percent,
+					"message": message,
 				})
-
-				a.LogService.Debug(fmt.Sprintf("Directory registration progress: %d%% - %s", step.percent, step.message))
 			}
-
-			// Final completion event
-			time.Sleep(200 * time.Millisecond)
-			runtime.EventsEmit(a.ctx, "file-registration-complete")
+			
+			// All validation and processing happens in the service with consistent error handling
+			err := a.FileRegistryService.RegisterDirectoryWithProgress(directoryPath, a.LogService, progressCallback)
+			if err != nil {
+				a.LogService.Error(fmt.Sprintf("Directory registration failed: %v", err))
+				// Emit error completion event
+				runtime.EventsEmit(a.ctx, "file-registration-error", map[string]interface{}{
+					"error": err.Error(),
+				})
+			} else {
+				// Only emit success completion if no error
+				runtime.EventsEmit(a.ctx, "file-registration-complete")
+			}
 			a.LogService.Info("Directory registration process completed")
 		}()
 	} else {
-		// Simulate some processing time for non-UI mode
-		time.Sleep(100 * time.Millisecond)
+		// Direct execution for non-UI mode (no progress callback needed)
+		return a.FileRegistryService.RegisterDirectoryWithProgress(directoryPath, a.LogService, nil)
 	}
 	
 	return nil

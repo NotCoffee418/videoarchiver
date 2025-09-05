@@ -2,9 +2,7 @@ package download
 
 import (
 	"context"
-	"crypto/md5"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -12,6 +10,7 @@ import (
 	"time"
 	"videoarchiver/backend/daemonsignal"
 	"videoarchiver/backend/domains/fileregistry"
+	"videoarchiver/backend/domains/fileutils"
 	"videoarchiver/backend/domains/settings"
 	"videoarchiver/backend/domains/ytdlp"
 )
@@ -134,19 +133,9 @@ func (d *DownloadService) DownloadFile(url, directory, format string, duplicateC
 	}, nil
 }
 
+// CalculateMD5 calculates the MD5 hash of a file (now delegated to fileutils)
 func CalculateMD5(path string) (string, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		return "", fmt.Errorf("failed to open file: %w", err)
-	}
-	defer file.Close()
-
-	hash := md5.New()
-	if _, err := io.Copy(hash, file); err != nil {
-		return "", fmt.Errorf("failed to calculate MD5: %w", err)
-	}
-
-	return fmt.Sprintf("%x", hash.Sum(nil)), nil
+	return fileutils.CalculateMD5(path)
 }
 
 // CheckForDuplicateInDirectory checks if any existing file in the directory has the same MD5

@@ -106,25 +106,48 @@
     }
 
     async function handleRegisterDirectory() {
-        if (!selectedDirectory) {
+        if (!selectedDirectory || selectedDirectory.trim() === "") {
             modalError = "Please select a directory first";
             return;
         }
+
+        // Prevent double-clicks
+        if (modalProcessing) {
+            return;
+        }
+        modalProcessing = true;
 
         // Close the directory selection modal
         closeRegisterModal();
         
         // Show progress modal
-        console.log("Setting showProgressModal to true");
         showProgressModal = true;
         
+        // Ensure we pass a clean string value and log for debugging
+        const directoryPath = String(selectedDirectory).trim();
+        console.log("About to register directory:", directoryPath);
+        console.log("Directory path type:", typeof directoryPath);
+        console.log("Directory path length:", directoryPath.length);
+        
         try {
-            await window.go.main.App.RegisterDirectory(selectedDirectory);
+            await window.go.main.App.RegisterDirectory(directoryPath);
+            // Don't handle success here - let the progress modal handle completion events
         } catch (error) {
-            console.error("Failed to register directory:", error);
-            showProgressModal = false;
-            modalError = error;
-            showRegisterModal = true;
+            console.error("RegisterDirectory function threw error:", error);
+            // Instead of closing progress modal, emit error event manually
+            // This handles cases where the function throws before starting the goroutine
+            if (window.runtime && window.runtime.EventsEmit) {
+                window.runtime.EventsEmit('file-registration-error', {
+                    error: String(error)
+                });
+            } else {
+                // Fallback: close progress modal and show error in selection modal
+                showProgressModal = false;
+                modalError = String(error);
+                showRegisterModal = true;
+            }
+        } finally {
+            modalProcessing = false;
         }
     }
 
@@ -149,7 +172,17 @@
     }
 
     async function setDirectory(newPath) {
-        selectedDirectory = newPath;
+        console.log("setDirectory called with:", newPath);
+        console.log("setDirectory path type:", typeof newPath);
+        console.log("setDirectory path length:", newPath ? newPath.length : "undefined");
+        
+        if (!newPath || newPath.trim() === "") {
+            modalError = "Invalid directory path selected";
+            return;
+        }
+        selectedDirectory = String(newPath).trim();
+        console.log("selectedDirectory set to:", selectedDirectory);
+        console.log("selectedDirectory length:", selectedDirectory.length);
     }
 
     async function testModal() {
@@ -240,17 +273,17 @@
         <div class="form-group">
             <label for="directory">Directory</label>
             <div class="input-group">
-                <input id="directory" type="text" bind:value={selectedDirectory} readonly />
+                <input id="directory" type="text" bind:value={selectedDirectory} />
                 <SelectDirectoryButton
                     text="Browse"
                     clickHandlerAsync={setDirectory}
-                    class="btn-select-directory" />
+                    style="padding: 0.5rem 1rem; background-color: #555; border: 1px solid #777; color: white; border-radius: 4px;" />
             </div>
         </div>
         
         <div class="modal-actions">
             <button onclick={closeRegisterModal}>Cancel</button>
-            <button class="primary" onclick={handleRegisterDirectory} disabled={!selectedDirectory}>Register Directory</button>
+            <button class="primary" onclick={handleRegisterDirectory} disabled={!selectedDirectory || modalProcessing}>Register Directory</button>
         </div>
     {/if}
 </dialog>
@@ -503,19 +536,6 @@
     
     .input-group input {
         flex: 1;
-    }
-    
-    .btn-select-directory {
-        padding: 0.5rem 1rem;
-        background-color: #555;
-        border: 1px solid #777;
-        color: white;
-        border-radius: 4px;
-        cursor: pointer;
-    }
-    
-    .btn-select-directory:hover {
-        background-color: #666;
     }
     
     .modal-actions {
