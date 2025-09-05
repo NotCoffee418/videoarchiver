@@ -206,8 +206,8 @@ func shouldStopIteration() bool {
 
 func downloadItem(dl *download.Download, pl *playlist.Playlist) {
 	app.LogService.Info(fmt.Sprintf("Downloading new item: %s", dl.Url))
-	downloadResult, err := app.DownloadService.DownloadFileWithDuplicateCheck(
-		dl.Url, pl.SaveDirectory, pl.OutputFormat)
+	downloadResult, err := app.DownloadService.DownloadFile(
+		dl.Url, pl.SaveDirectory, pl.OutputFormat, true)
 	if err != nil {
 		app.LogService.Error(fmt.Sprintf("Failed to download item %s: %v", dl.Url, err))
 		dl.SetFail(app.DownloadDB, err.Error())

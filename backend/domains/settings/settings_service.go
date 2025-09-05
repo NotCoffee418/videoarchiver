@@ -33,6 +33,15 @@ func (s *SettingsService) GetSettingString(key string) (string, error) {
 	return value, err
 }
 
+// GetSettingBool gets a boolean setting from the database
+func (s *SettingsService) GetSettingBool(key string) (bool, error) {
+	value, err := s.GetSettingString(key)
+	if err != nil {
+		return false, err
+	}
+	return value == "true", nil
+}
+
 // Set inserts or updates the setting value and triggers handlers
 func (s *SettingsService) SetPreparsed(key string, value string) error {
 	// Get old value for handler

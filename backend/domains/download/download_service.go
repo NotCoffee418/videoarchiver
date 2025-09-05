@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 	"videoarchiver/backend/daemonsignal"
+	"videoarchiver/backend/domains/fileregistry"
 	"videoarchiver/backend/domains/settings"
 	"videoarchiver/backend/domains/ytdlp"
 )
@@ -24,11 +25,12 @@ type LogServiceInterface interface {
 }
 
 type DownloadService struct {
-	ctx                 context.Context
-	settingsService     *settings.SettingsService
-	downloadDB          *DownloadDB
-	daemonSignalService *daemonsignal.DaemonSignalService
-	logService          LogServiceInterface
+	ctx                    context.Context
+	settingsService        *settings.SettingsService
+	downloadDB             *DownloadDB
+	fileRegistryService    *fileregistry.FileRegistryService
+	daemonSignalService    *daemonsignal.DaemonSignalService
+	logService             LogServiceInterface
 }
 
 const (
@@ -40,15 +42,17 @@ func NewDownloadService(
 	ctx context.Context,
 	settingsService *settings.SettingsService,
 	downloadDB *DownloadDB,
+	fileRegistryService *fileregistry.FileRegistryService,
 	daemonSignalService *daemonsignal.DaemonSignalService,
 	logService LogServiceInterface,
 ) *DownloadService {
 	return &DownloadService{
-		ctx:                 ctx,
-		settingsService:     settingsService,
-		downloadDB:          downloadDB,
-		daemonSignalService: daemonSignalService,
-		logService:          logService,
+		ctx:                    ctx,
+		settingsService:        settingsService,
+		downloadDB:             downloadDB,
+		fileRegistryService:    fileRegistryService,
+		daemonSignalService:    daemonSignalService,
+		logService:             logService,
 	}
 }
 
@@ -60,16 +64,7 @@ type DownloadResult struct {
 }
 
 // Download a file via Ytdlp
-func (d *DownloadService) DownloadFile(url, directory, format string) (string, error) {
-	result, err := d.DownloadFileWithDuplicateCheck(url, directory, format)
-	if err != nil {
-		return "", err
-	}
-	return result.FilePath, nil
-}
-
-// DownloadFileWithDuplicateCheck downloads a file and checks for duplicates
-func (d *DownloadService) DownloadFileWithDuplicateCheck(url, directory, format string) (*DownloadResult, error) {
+func (d *DownloadService) DownloadFile(url, directory, format string, duplicateCheck bool) (*DownloadResult, error) {
 	d.logService.Info(fmt.Sprintf("Starting download: %s (format: %s, directory: %s)", url, format, directory))
 
 	// Set temp path for the file
@@ -96,21 +91,22 @@ func (d *DownloadService) DownloadFileWithDuplicateCheck(url, directory, format 
 		return nil, fmt.Errorf("download service: failed to calculate MD5: %w", err)
 	}
 
-	// Check for duplicate in target directory
-	duplicateFilename, err := d.CheckForDuplicateInDirectory(fileMD5, directory, baseFilename)
-	if err != nil {
-		return nil, fmt.Errorf("download service: failed to check for duplicates: %w", err)
-	}
+	// Check for duplicate in database tables (file_registry and downloads) if duplicateCheck is enabled
+	if duplicateCheck {
+		hasDuplicate, err := d.HasDuplicate(fileMD5)
+		if err != nil {
+			return nil, fmt.Errorf("download service: failed to check for duplicates: %w", err)
+		}
 
-	if duplicateFilename != "" {
-		// Duplicate found - don't move the file, just return the duplicate info
-		duplicatePath := filepath.Join(directory, duplicateFilename)
-		d.logService.Info(fmt.Sprintf("Download skipped: duplicate found - %s", duplicateFilename))
-		return &DownloadResult{
-			FilePath:    duplicatePath,
-			IsDuplicate: true,
-			DuplicateOf: duplicateFilename,
-		}, nil
+		if hasDuplicate {
+			// Duplicate found - don't move the file, just return the duplicate info
+			d.logService.Info("Download skipped: duplicate found in database")
+			return &DownloadResult{
+				FilePath:    "", // We don't know the exact path since we simplified the return
+				IsDuplicate: true,
+				DuplicateOf: baseFilename,
+			}, nil
+		}
 	}
 
 	// No duplicate found - proceed with normal file placement and suffix logic
@@ -129,7 +125,8 @@ func (d *DownloadService) DownloadFileWithDuplicateCheck(url, directory, format 
 		return nil, fmt.Errorf("download service: failed to move file: %w", err)
 	}
 
-	d.logService.Info(fmt.Sprintf("Download completed successfully: %s", filepath.Base(savePath)))
+	fileName := filepath.Base(savePath)
+	d.logService.Info(fmt.Sprintf("Download completed successfully: %s", fileName))
 	return &DownloadResult{
 		FilePath:    savePath,
 		IsDuplicate: false,
@@ -187,6 +184,39 @@ func (d *DownloadService) CheckForDuplicateInDirectory(fileMD5, targetDir, baseF
 	}
 
 	return "", nil // No duplicate found
+}
+
+// HasDuplicate checks for duplicates in database tables only (file_registry and downloads)
+func (d *DownloadService) HasDuplicate(fileMD5 string) (bool, error) {
+	// First check if duplicate checking is disabled
+	allowDuplicates, err := d.settingsService.GetSettingBool("allow_duplicates")
+	if err != nil {
+		d.logService.Warn(fmt.Sprintf("Failed to get allow_duplicates setting: %v", err))
+		// Continue with duplicate checking if setting can't be read
+	} else if allowDuplicates {
+		d.logService.Debug("Duplicate checking disabled by allow_duplicates setting")
+		return false, nil
+	}
+
+	// 1. Check file_registry table for duplicate by MD5
+	registeredFile, err := d.fileRegistryService.GetByMD5(fileMD5)
+	if err != nil {
+		return false, fmt.Errorf("failed to check file_registry for duplicates: %w", err)
+	}
+	if registeredFile != nil {
+		return true, nil
+	}
+
+	// 2. Check downloads table for duplicate by MD5
+	hasDuplicateInDownloads, err := d.downloadDB.CheckForDuplicateInDownloads(fileMD5)
+	if err != nil {
+		return false, fmt.Errorf("failed to check downloads table for duplicates: %w", err)
+	}
+	if hasDuplicateInDownloads {
+		return true, nil
+	}
+
+	return false, nil // No duplicate found
 }
 
 func (d *DownloadService) fileExists(path string) bool {

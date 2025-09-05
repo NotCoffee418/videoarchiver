@@ -175,6 +175,21 @@ func (d *Download) updateDownload(dlDB *DownloadDB) error {
 	return err
 }
 
+// CheckForDuplicateInDownloads checks if any existing download has the same MD5
+func (d *DownloadDB) CheckForDuplicateInDownloads(fileMD5 string) (bool, error) {
+	// Query downloads table for matching MD5
+	rows, err := d.db.Query(
+		"SELECT 1 FROM downloads WHERE md5 = ? LIMIT 1",
+		fileMD5,
+	)
+	if err != nil {
+		return false, err
+	}
+	defer rows.Close()
+
+	return rows.Next(), nil
+}
+
 // Removes excessive error message parts
 func cleanDownloadFailMessage(msg string) string {
 	rx := regexp.MustCompile(`(` + ErrDownloadErrorBase + `)?(exit status \d+?: )?(ERROR: )?`)
