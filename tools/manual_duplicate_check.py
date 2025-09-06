@@ -10,7 +10,6 @@
 # Usage:
 # python tools/manual_duplicate_check.py
 
-
 import os
 import subprocess
 import sys
@@ -100,6 +99,23 @@ def save_fingerprint_cache(cache_path, cache_data):
     except Exception as e:
         print(f"{Fore.RED}[ERROR]{Style.RESET_ALL} Failed to save cache: {e}")
 
+def clean_cache(fp_cache):
+    print(f"{Fore.CYAN}[INFO]{Style.RESET_ALL} Checking for missing files in fingerprint cache...")
+    original_len = len(fp_cache)
+    removed = 0
+    new_cache = {}
+
+    for path, data in fp_cache.items():
+        if os.path.isfile(path):
+            new_cache[path] = data
+        else:
+            print(f"{Fore.YELLOW}[REMOVED]{Style.RESET_ALL} File missing, removed from cache: {path}")
+            removed += 1
+
+    if removed > 0:
+        print(f"{Fore.CYAN}[CLEAN]{Style.RESET_ALL} Removed {removed} missing file(s) from cache")
+    return new_cache
+
 def main():
     check_fpcalc()
 
@@ -114,6 +130,7 @@ def main():
     log_file = os.path.join(folder, "dups.txt")
 
     fp_cache = load_fingerprint_cache(cache_path)
+    fp_cache = clean_cache(fp_cache)
 
     files = scan_audio_files(folder)
     print(f"{Fore.GREEN}[INFO]{Style.RESET_ALL} Found {len(files)} audio files.\n")

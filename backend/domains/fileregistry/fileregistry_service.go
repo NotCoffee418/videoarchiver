@@ -5,11 +5,14 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 	"videoarchiver/backend/domains/db"
 	"videoarchiver/backend/domains/fileutils"
 	"videoarchiver/backend/domains/logging"
+
+	"github.com/dhowden/tag"
 )
 
 type FileRegistryService struct {
@@ -181,4 +184,36 @@ func (f *FileRegistryService) RegisterDirectoryWithProgress(directoryPath string
 
 	logService.Info(fmt.Sprintf("Directory registration completed: %d files registered, %d errors", registeredCount, errorCount))
 	return nil
+}
+
+// Returns empty string or youtube url if found
+// Error only if file invalid/unreadable
+func (f *FileRegistryService) ExtractKnownYoutubeUrl(filePath string) (string, error) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	meta, err := tag.ReadFrom(file)
+	if err != nil {
+		return "", nil
+	}
+
+	// YouTube regex
+	re := regexp.MustCompile(`https://((www\.youtube\.com/watch\?v=)|(youtu\.be/))([\w-]+)\??(&+)?`)
+
+	// Gather metadata fields to scan
+	candidates := []string{
+		meta.Comment(),
+	}
+
+	// Search for a match
+	for _, text := range candidates {
+		if match := re.FindString(text); match != "" {
+			return match, nil
+		}
+	}
+
+	return "", nil
 }
