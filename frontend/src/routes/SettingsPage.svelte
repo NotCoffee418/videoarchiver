@@ -2,6 +2,7 @@
   import SettingView, { SettingType } from "../components/settings/SettingView.svelte";
   import SettingsGroup from "../components/settings/SettingsGroup.svelte";
   import AllowDuplicatesSetting from "../components/settings/AllowDuplicatesSetting.svelte";
+  import Expander from "../components/Expander.svelte";
   
 </script>
 
@@ -16,6 +17,10 @@
         label="Autoupdate yt-dlp"
         description="This will automatically update yt-dlp when a new version is available"
         type={SettingType.BOOL} />
+    <AllowDuplicatesSetting 
+        key="allow_duplicates"
+        label="Allow Duplicate Downloads"
+        description="Disables duplicate detection, allowing videos to be re-downloaded even if they already exist in your directories." />
 </SettingsGroup>
 
 <SettingsGroup title="SponsorBlock">
@@ -61,10 +66,13 @@
 </SettingsGroup>
 
 <SettingsGroup title="Advanced">
-    <AllowDuplicatesSetting 
-        key="allow_duplicates"
-        label="Allow Duplicate Downloads"
-        description="Disables duplicate detection, allowing videos to be re-downloaded even if they already exist in your directories." />
+    <Expander>
+        <SettingView 
+            key="autostart_service_demo"
+            label="Autostart Downloader Service"
+            description="This will automatically start the downloader service when the computer starts"
+            type={SettingType.BOOL} />
+    </Expander>
 </SettingsGroup>
 <!-- Hidden div for development -->
 <!-- <SettingsGroup title="Example Settings">
