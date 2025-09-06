@@ -654,7 +654,6 @@ func (a *App) IsDaemonRunning() bool {
 				return true
 			}
 		}
-		fmt.Printf("No daemon processes found\n")
 		return false
 
 	case "linux":
