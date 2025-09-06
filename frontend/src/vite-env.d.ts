@@ -13,6 +13,8 @@ declare global {
           GetLegalDisclaimerAccepted: () => Promise<boolean>;
           GetConfirmCloseEnabled: () => Promise<boolean>;
           GetSettingString: (arg1: string) => Promise<string>;
+          GetConfigString: (arg1: string) => Promise<string>;
+          SetConfigString: (arg1: string, arg2: string) => Promise<void>;
           HandleFatalError: (arg1: string) => Promise<void>;
           IsStartupComplete: () => Promise<boolean>;
           OpenDirectory: (arg1: string) => Promise<void>;

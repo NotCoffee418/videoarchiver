@@ -448,6 +448,20 @@ func (a *App) SetSettingPreparsed(key string, value string) error {
 
 }
 
+func (a *App) GetConfigString(key string) (string, error) {
+	return a.ConfigService.GetConfigString(key)
+}
+
+func (a *App) SetConfigString(key string, value string) error {
+	err := a.ConfigService.SetConfigString(key, value)
+	if err != nil {
+		return errors.Wrap(err, "failed to set config")
+	}
+
+	// Config changes trigger daemon change signal
+	return a.DaemonSignalService.TriggerChange()
+}
+
 func (a *App) DirectDownload(url, directory, format string) (string, error) {
 	// Download File
 	result, err := a.DownloadService.DownloadFile(url, directory, format)
