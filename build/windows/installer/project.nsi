@@ -23,7 +23,7 @@ Unicode true
 ## !define INFO_COMPANYNAME    "MyCompany" # Default "{{.Info.CompanyName}}"
 !define INFO_PRODUCTNAME    "Video Archiver" # Override default to use proper display name
 ## !define INFO_PRODUCTVERSION "1.0.0"     # Default "{{.Info.ProductVersion}}"
-## !define INFO_COPYRIGHT      "Copyright" # Default "{{.Info.Copyright}}"
+!define INFO_COPYRIGHT      "NotCoffee418" # Default "{{.Info.Copyright}}"
 ###
 ## !define PRODUCT_EXECUTABLE  "Application.exe"      # Default "${INFO_PROJECTNAME}.exe"
 ## !define UNINST_KEY_NAME     "UninstKeyInRegistry"  # Default "${INFO_COMPANYNAME}${INFO_PRODUCTNAME}"
@@ -136,7 +136,10 @@ Section
     !insertmacro wails.associateFiles
     !insertmacro wails.associateCustomProtocols
 
-    !insertmacro wails.writeUninstaller
+    # Custom install override for local user installs
+    # REPLACE the wails macro call with direct function call
+    # !insertmacro wails.writeUninstaller
+    Call WriteUninstallerHKCU
 SectionEnd
 
 # Uninstall sections
@@ -216,4 +219,50 @@ FunctionEnd
 Function un.onInit
     # By default, keep user data (don't select the remove data section)
     # The remove application section is always selected (RO)
+FunctionEnd
+
+
+# ---- MACRO OVERWRITES FOR LOCAL USER ----
+# ---- Overriodes wails_tools.nsh since we need to run as local user ----
+# Override wails macros to use HKCU instead of HKLM for user-level installs
+# Place this AFTER the !include "wails_tools.nsh" line
+# Override wails macros to use HKCU instead of HKLM for user-level installs
+# Place this AFTER the !include "wails_tools.nsh" line
+
+# Conditionally undefine macros only if they exist
+# HKCU Registry Overrides - PUT THIS AT THE VERY END OF YOUR .NSI FILE
+# This overwrites the wails macro calls with custom implementations
+
+# Redefine the registry key constant to use a different internal name
+!define UNINST_KEY_HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${UNINST_KEY_NAME}"
+
+# Replace the macro calls in your sections with direct registry writes
+# In your main Section, REPLACE this line:
+#   !insertmacro wails.writeUninstaller
+# WITH:
+#   Call WriteUninstallerHKCU
+
+# In your uninstall section, REPLACE this line:
+#   !insertmacro wails.deleteUninstaller  
+# WITH:
+#   Call DeleteUninstallerHKCU
+
+Function WriteUninstallerHKCU
+    WriteUninstaller "$INSTDIR\uninstall.exe"
+
+    WriteRegStr HKCU "${UNINST_KEY_HKCU}" "Publisher" "${INFO_COMPANYNAME}"
+    WriteRegStr HKCU "${UNINST_KEY_HKCU}" "DisplayName" "${INFO_PRODUCTNAME}"
+    WriteRegStr HKCU "${UNINST_KEY_HKCU}" "DisplayVersion" "${INFO_PRODUCTVERSION}"
+    WriteRegStr HKCU "${UNINST_KEY_HKCU}" "DisplayIcon" "$INSTDIR\${PRODUCT_EXECUTABLE}"
+    WriteRegStr HKCU "${UNINST_KEY_HKCU}" "UninstallString" "$\"$INSTDIR\uninstall.exe$\""
+    WriteRegStr HKCU "${UNINST_KEY_HKCU}" "QuietUninstallString" "$\"$INSTDIR\uninstall.exe$\" /S"
+
+    ${GetSize} "$INSTDIR" "/S=0K" $0 $1 $2
+    IntFmt $0 "0x%08X" $0
+    WriteRegDWORD HKCU "${UNINST_KEY_HKCU}" "EstimatedSize" "$0"
+FunctionEnd
+
+Function un.DeleteUninstallerHKCU
+    Delete "$INSTDIR\uninstall.exe"
+    DeleteRegKey HKCU "${UNINST_KEY_HKCU}"
 FunctionEnd
