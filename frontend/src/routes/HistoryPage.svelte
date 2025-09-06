@@ -231,7 +231,7 @@
                                     <div class="actions">
                                         <a href="/" onclick={(e) => copyToClipboard(d.url, e)}>Copy URL</a>
                                         <span class="separator">|</span>
-                                        <a href="/" onclick={(e) => copyToClipboard(d.output_filename.String, e)}>Copy File Path</a>
+                                        <a href="/" onclick={(e) => copyToClipboard(d.full_path?.Valid ? d.full_path.String : d.output_filename.String, e)}>Copy File Path</a>
                                     </div>
                                     <div class="timestamp">{formatTimestamp(d.last_attempt)}</div>
                                 </div>
@@ -264,7 +264,7 @@
                                         <a href="/" onclick={(e) => copyToClipboard(d.url, e)}>Copy URL</a>
                                         {#if d.output_filename?.Valid}
                                             <span class="separator">|</span>
-                                            <a href="/" onclick={(e) => copyToClipboard(d.output_filename.String, e)}>Copy File Path</a>
+                                            <a href="/" onclick={(e) => copyToClipboard(d.full_path?.Valid ? d.full_path.String : d.output_filename.String, e)}>Copy File Path</a>
                                         {/if}
                                     </div>
                                     <div class="timestamp">{formatTimestamp(d.last_attempt)}</div>

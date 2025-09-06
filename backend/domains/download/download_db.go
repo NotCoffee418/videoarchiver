@@ -2,6 +2,7 @@ package download
 
 import (
 	"database/sql"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -17,7 +18,10 @@ func NewDownloadDB(dbService *db.DatabaseService) *DownloadDB {
 }
 
 func (d *DownloadDB) GetAllDownloads(limit int) ([]Download, error) {
-	rows, err := d.db.Query("SELECT * FROM downloads ORDER BY last_attempt DESC LIMIT ?", limit)
+	rows, err := d.db.Query(`SELECT 
+		id, playlist_id, url, status, format_downloaded, md5, output_filename, 
+		last_attempt, fail_message, attempt_count, NULL as save_directory
+		FROM downloads ORDER BY last_attempt DESC LIMIT ?`, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -26,7 +30,10 @@ func (d *DownloadDB) GetAllDownloads(limit int) ([]Download, error) {
 }
 
 func (d *DownloadDB) GetDownloadsForPlaylist(playlistId int) ([]Download, error) {
-	rows, err := d.db.Query("SELECT * FROM downloads WHERE playlist_id = ?", playlistId)
+	rows, err := d.db.Query(`SELECT 
+		id, playlist_id, url, status, format_downloaded, md5, output_filename, 
+		last_attempt, fail_message, attempt_count, NULL as save_directory
+		FROM downloads WHERE playlist_id = ?`, playlistId)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +55,14 @@ func (d *DownloadDB) GetDownloadHistoryPage(offset, limit int, showSuccess, show
 		return []Download{}, nil
 	}
 
-	query := "SELECT * FROM downloads WHERE status IN (?" + strings.Repeat(",?", len(statuses)-1) + ") ORDER BY last_attempt DESC LIMIT ? OFFSET ?"
+	query := `SELECT 
+		d.id, d.playlist_id, d.url, d.status, d.format_downloaded, d.md5, d.output_filename, 
+		d.last_attempt, d.fail_message, d.attempt_count, p.save_directory
+		FROM downloads d 
+		LEFT JOIN playlists p ON d.playlist_id = p.id 
+		WHERE d.status IN (` + strings.Repeat("?,", len(statuses)-1) + `?) 
+		ORDER BY d.last_attempt DESC 
+		LIMIT ? OFFSET ?`
 
 	// Convert statuses to interface{} for query args
 	args := make([]interface{}, len(statuses)+2)
@@ -73,11 +87,21 @@ func (d *DownloadDB) scanRows(rows *sql.Rows) ([]Download, error) {
 		err := rows.Scan(
 			&download.ID, &download.PlaylistID, &download.Url,
 			&download.Status, &download.FormatDownloaded, &download.MD5, &download.OutputFilename,
-			&download.LastAttempt, &download.FailMessage, &download.AttemptCount,
+			&download.LastAttempt, &download.FailMessage, &download.AttemptCount, &download.SaveDirectory,
 		)
 		if err != nil {
 			return nil, err
 		}
+		
+		// Compute FullPath using proper path joining
+		if download.OutputFilename.Valid && download.OutputFilename.String != "" && 
+		   download.SaveDirectory.Valid && download.SaveDirectory.String != "" {
+			fullPath := filepath.Join(download.SaveDirectory.String, download.OutputFilename.String)
+			download.FullPath = sql.NullString{String: fullPath, Valid: true}
+		} else {
+			download.FullPath = sql.NullString{String: "", Valid: false}
+		}
+		
 		downloads = append(downloads, download)
 	}
 	return downloads, nil
