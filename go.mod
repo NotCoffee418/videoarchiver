@@ -13,7 +13,6 @@ require (
 )
 
 require (
-	github.com/dhowden/tag v0.0.0-20240417053706-3d75831295e8
 	github.com/otiai10/copy v1.14.1
 	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil/v3 v3.24.5

@@ -1,9 +1,10 @@
 package fileregistry
 
 import (
-	"bufio"
+	"bytes"
 	"database/sql"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -12,8 +13,6 @@ import (
 	"videoarchiver/backend/domains/db"
 	"videoarchiver/backend/domains/fileutils"
 	"videoarchiver/backend/domains/logging"
-
-	"github.com/dhowden/tag"
 )
 
 type FileRegistryService struct {
@@ -220,8 +219,6 @@ func (f *FileRegistryService) RegisterDirectoryWithProgress(directoryPath string
 	return nil
 }
 
-// Returns empty string or youtube url if found
-// Error only if file invalid/unreadable
 func (f *FileRegistryService) ExtractKnownYoutubeUrl(filePath string) (string, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -229,76 +226,68 @@ func (f *FileRegistryService) ExtractKnownYoutubeUrl(filePath string) (string, e
 	}
 	defer file.Close()
 
-	meta, err := tag.ReadFrom(file)
-	if err != nil {
-		// Return empty string instead of error for unreadable metadata
-		return "", nil
+	// YouTube regex - just get the clean URL
+	re := regexp.MustCompile(`https?://(?:www\.)?(?:youtube\.com/watch\?v=|youtu\.be/)([\w-]{11})`)
+
+	// Read first 512KB of file (MP4 metadata can be larger and further in)
+	buffer := make([]byte, 524288)
+	n, err := file.Read(buffer)
+	if err != nil && err != io.EOF {
+		return "", err
 	}
 
-	// More comprehensive YouTube regex that handles various formats
-	re := regexp.MustCompile(`https?://(?:www\.)?(?:youtube\.com/watch\?v=|youtu\.be/|m\.youtube\.com/watch\?v=)([\w-]+)(?:\S+)?`)
+	data := buffer[:n]
 
-	// Helper function to search for YouTube URL in text
-	findYouTubeURL := func(text string) string {
-		if text == "" {
-			return ""
-		}
-		return re.FindString(text)
+	// Look for common metadata tags and extract text around them
+	patterns := []string{
+		"COMM", // ID3v2 Comment
+		"comm", // lowercase variant
+		"TXXX", // ID3v2 User defined text
+		"TIT2", // ID3v2 Title
+		"TALB", // ID3v2 Album
+		"TPE1", // ID3v2 Artist
+		"©cmt", // iTunes comment
+		"desc", // Description
 	}
 
-	// First check standard metadata fields
-	candidates := []string{
-		meta.Comment(),
-	}
-
-	// Search for a match in standard fields
-	for _, text := range candidates {
-		if match := findYouTubeURL(text); match != "" {
-			return match, nil
-		}
-	}
-
-	// Check raw metadata fields more thoroughly
-	raw := meta.Raw()
-	for _, value := range raw {
-		// Debug: you might want to log this to see what's actually in the metadata
-		// fmt.Printf("Key: %v, Value: %v, Type: %T\n", key, value, value)
-
-		switch v := value.(type) {
-		case string:
-			if match := findYouTubeURL(v); match != "" {
-				return match, nil
+	for _, pattern := range patterns {
+		if idx := bytes.Index(data, []byte(pattern)); idx != -1 {
+			// Look for YouTube URL in the next 1000 bytes after the tag
+			start := idx
+			end := start + 1000
+			if end > len(data) {
+				end = len(data)
 			}
-		case []string:
-			for _, str := range v {
-				if match := findYouTubeURL(str); match != "" {
-					return match, nil
+
+			// Convert to string and clean it
+			text := string(data[start:end])
+
+			// Clean the text - keep only printable ASCII and basic punctuation
+			cleaned := strings.Map(func(r rune) rune {
+				if (r >= 32 && r <= 126) || r == '\n' || r == '\r' || r == '\t' {
+					return r
 				}
-			}
-		case []byte:
-			// Sometimes metadata is stored as bytes
-			if match := findYouTubeURL(string(v)); match != "" {
-				return match, nil
-			}
-		default:
-			// Try to convert to string as last resort
-			if match := findYouTubeURL(fmt.Sprintf("%v", v)); match != "" {
+				return -1
+			}, text)
+
+			if match := re.FindString(cleaned); match != "" {
 				return match, nil
 			}
 		}
 	}
 
-	// If the tag library isn't working well, try reading the file directly
-	// This is a fallback for files where metadata isn't parsed correctly
-	file.Seek(0, 0) // Reset file pointer
-	scanner := bufio.NewScanner(file)
-	scanner.Split(bufio.ScanLines)
-
-	for scanner.Scan() {
-		line := scanner.Text()
-		if match := findYouTubeURL(line); match != "" {
-			return match, nil
+	// Fallback: search the entire buffer for YouTube URLs
+	// Convert to string and clean
+	text := string(data)
+	cleaned := strings.Map(func(r rune) rune {
+		if (r >= 32 && r <= 126) || r == '\n' || r == '\r' || r == '\t' {
+			return r
 		}
+		return -1
+	}, text)
+
+	if match := re.FindString(cleaned); match != "" {
+		return match, nil
 	}
 
 	return "", nil
