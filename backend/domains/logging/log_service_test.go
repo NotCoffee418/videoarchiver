@@ -182,12 +182,12 @@ func TestClearLogsOlderThanDays(t *testing.T) {
 	veryRecent := now.AddDate(0, 0, -1) // 1 day old (should be kept)
 
 	logEntries := []string{
-		fmt.Sprintf(`{"level":"info","msg":"Old log entry","time":"%s","verbosity":"info","timestamp":"%s","mode":"daemon"}`, old.Format(time.RFC3339), old.Format(time.RFC3339)),
-		fmt.Sprintf(`{"level":"info","msg":"Recent log entry","time":"%s","verbosity":"info","timestamp":"%s","mode":"daemon"}`, recent.Format(time.RFC3339), recent.Format(time.RFC3339)),
-		fmt.Sprintf(`{"level":"info","msg":"Very recent log entry","time":"%s","verbosity":"info","timestamp":"%s","mode":"daemon"}`, veryRecent.Format(time.RFC3339), veryRecent.Format(time.RFC3339)),
-		`{"level":"info","msg":"Entry without time field","verbosity":"info","timestamp":"2024-01-01T00:00:00Z","mode":"daemon"}`, // No time field, should be kept
+		fmt.Sprintf(`{"level":"info","msg":"Old log entry","time":"%s","verbosity":"info","mode":"daemon"}`, old.Format(time.RFC3339)),
+		fmt.Sprintf(`{"level":"info","msg":"Recent log entry","time":"%s","verbosity":"info","mode":"daemon"}`, recent.Format(time.RFC3339)),
+		fmt.Sprintf(`{"level":"info","msg":"Very recent log entry","time":"%s","verbosity":"info","mode":"daemon"}`, veryRecent.Format(time.RFC3339)),
+		`{"level":"info","msg":"Entry without time field","verbosity":"info","mode":"daemon"}`, // No time field, should be kept
 		`Not a JSON entry`, // Not JSON, should be kept
-		`{"level":"info","msg":"Entry with invalid time","time":"invalid-time","verbosity":"info","timestamp":"2024-01-01T00:00:00Z","mode":"daemon"}`, // Invalid time, should be kept
+		`{"level":"info","msg":"Entry with invalid time","time":"invalid-time","verbosity":"info","mode":"daemon"}`, // Invalid time, should be kept
 	}
 
 	// Write test log entries to file

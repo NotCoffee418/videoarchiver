@@ -82,10 +82,8 @@ func (l *LogService) Log(verbosity logrus.Level, message string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
-	timestamp := time.Now()
 	logEntry := l.logger.WithFields(logrus.Fields{
 		"verbosity": verbosity,
-		"timestamp": timestamp.Format(time.RFC3339),
 		"mode":      l.mode,
 	})
 
