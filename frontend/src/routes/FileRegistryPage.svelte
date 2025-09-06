@@ -77,13 +77,13 @@
         showRegisterModal = true;
         modalError = null;
         selectedDirectory = "";
-        const dialog = document.querySelector('dialog#register-directory-dialog');
+        const dialog = /** @type {HTMLDialogElement} */ (document.querySelector('dialog#register-directory-dialog'));
         if (dialog) dialog.showModal();
     }
 
     function closeRegisterModal() {
         showRegisterModal = false;
-        const dialog = document.querySelector('dialog#register-directory-dialog');
+        const dialog = /** @type {HTMLDialogElement} */ (document.querySelector('dialog#register-directory-dialog'));
         if (dialog) dialog.close();
         selectedDirectory = "";
         modalError = null;
@@ -93,13 +93,13 @@
     function openClearModal() {
         showClearModal = true;
         modalError = null;
-        const dialog = document.querySelector('dialog#clear-all-dialog');
+        const dialog = /** @type {HTMLDialogElement} */ (document.querySelector('dialog#register-directory-dialog'));
         if (dialog) dialog.showModal();
     }
 
     function closeClearModal() {
         showClearModal = false;
-        const dialog = document.querySelector('dialog#clear-all-dialog');
+        const dialog = /** @type {HTMLDialogElement} */ (document.querySelector('dialog#register-directory-dialog'));
         if (dialog) dialog.close();
         modalError = null;
         modalProcessing = false;
@@ -354,20 +354,6 @@
     
     .clear-btn:hover {
         background-color: #da190b;
-    }
-    
-    .test-btn {
-        background-color: #2196F3;
-        border: none;
-        color: white;
-        padding: 0.75rem 1.5rem;
-        border-radius: 4px;
-        font-size: 1rem;
-        cursor: pointer;
-    }
-    
-    .test-btn:hover {
-        background-color: #1976D2;
     }
     
     .center { 

@@ -360,7 +360,7 @@ func (a *App) handleUILocking() error {
 			}
 		} else {
 			a.LogService.Error("LOG: UI about to exit - daemon is running but lock file is not being released")
-			a.LogService.Error(fmt.Sprintf("This suggests daemon (PID unknown) has a stale lock file"))
+			a.LogService.Error("This suggests daemon (PID unknown) has a stale lock file")
 			a.LogService.Error("Possible causes: daemon didn't remove lock properly, race condition, or multiple daemon instances")
 			a.LogService.Error("LOG: UI exiting due to: timeout waiting for daemon startup, but daemon is running")
 			return fmt.Errorf("timeout waiting for daemon startup, but daemon is running")
