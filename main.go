@@ -65,6 +65,16 @@ func runDaemon(app *App) {
 		os.Exit(0)
 	}
 
+	// Clean up old log entries before starting daemon
+	earlyLogger.Info("Cleaning up log entries older than 30 days...")
+	if err := earlyLogger.ClearLogsOlderThanDays("daemon.log", 30); err != nil {
+		earlyLogger.Warn(fmt.Sprintf("Failed to clean up old daemon logs: %v", err))
+	}
+	if err := earlyLogger.ClearLogsOlderThanDays("ui.log", 30); err != nil {
+		earlyLogger.Warn(fmt.Sprintf("Failed to clean up old UI logs: %v", err))
+	}
+	earlyLogger.Info("Log cleanup completed")
+
 	earlyLogger.Info("Initializing application")
 	app.startup(context.Background())
 	
