@@ -177,10 +177,11 @@ func (d *Download) updateDownload(dlDB *DownloadDB) error {
 
 // CheckForDuplicateInDownloads checks if any existing download has the same MD5
 func (d *DownloadDB) CheckForDuplicateInDownloads(fileMD5 string) (bool, error) {
-	// Query downloads table for matching MD5
+	// Query downloads table for matching MD5, but only consider successful downloads as duplicates
+	// Failed downloads should not prevent retries even if they have an MD5 stored
 	rows, err := d.db.Query(
-		"SELECT 1 FROM downloads WHERE md5 = ? LIMIT 1",
-		fileMD5,
+		"SELECT 1 FROM downloads WHERE md5 = ? AND (status = ? OR status = ?) LIMIT 1",
+		fileMD5, StSuccess, StSuccessDuplicate,
 	)
 	if err != nil {
 		return false, err
