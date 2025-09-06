@@ -66,15 +66,11 @@
 </SettingsGroup>
 
 <SettingsGroup title="Advanced">
-    <div class="advanced-disclaimer">
-        ⚠️ <strong>Warning:</strong> These settings are for advanced users only. Modifying these settings without understanding their impact may cause the application to malfunction. Only change these if you know what you're doing.
-    </div>
-    <Expander title="Configuration">
-        <SettingView 
-            key="autostart_service_demo"
-            label="Autostart Downloader Service"
-            description="This will automatically start the downloader service when the computer starts"
-            type={SettingType.BOOL} />
+    <Expander title="View Advanced Settings">        
+        <div class="advanced-disclaimer">
+            ⚠️ <strong>Warning:</strong> These settings are for advanced users only. Modifying these settings without understanding their impact may cause the application to malfunction. Only change these if you know what you're doing.
+        </div>
+        <!-- Advanced Settings Here -->
     </Expander>
 </SettingsGroup>
 <!-- Hidden div for development -->
