@@ -1,6 +1,7 @@
 package fileregistry
 
 import (
+	"bufio"
 	"database/sql"
 	"fmt"
 	"os"
@@ -37,7 +38,7 @@ func (f *FileRegistryService) CheckForDuplicateInFileRegistry(fileMD5 string, yo
 		// Duplicate found by MD5
 		return true, nil
 	}
-	
+
 	if err != sql.ErrNoRows {
 		// Actual error occurred
 		return false, err
@@ -54,7 +55,7 @@ func (f *FileRegistryService) CheckForDuplicateInFileRegistry(fileMD5 string, yo
 			// Duplicate found by YouTube URL
 			return true, nil
 		}
-		
+
 		if err != sql.ErrNoRows {
 			// Actual error occurred
 			return false, err
@@ -73,13 +74,13 @@ func (f *FileRegistryService) RegisterFile(filename, filePath, md5Hash string) e
 		// Log the error but don't fail the registration
 		// The error is already handled in ExtractKnownYoutubeUrl by returning empty string for metadata issues
 	}
-	
+
 	// Store NULL if knownUrl is empty, otherwise store the URL
 	var knownUrlPtr *string
 	if knownUrl != "" {
 		knownUrlPtr = &knownUrl
 	}
-	
+
 	_, err = f.db.Exec(
 		"INSERT INTO file_registry (filename, file_path, md5, registered_at, known_url) VALUES (?, ?, ?, ?, ?)",
 		filename, filePath, md5Hash, time.Now().Unix(), knownUrlPtr,
@@ -230,46 +231,73 @@ func (f *FileRegistryService) ExtractKnownYoutubeUrl(filePath string) (string, e
 
 	meta, err := tag.ReadFrom(file)
 	if err != nil {
+		// Return empty string instead of error for unreadable metadata
 		return "", nil
 	}
 
-	// YouTube regex
-	re := regexp.MustCompile(`https://((www\.youtube\.com/watch\?v=)|(youtu\.be/))([\w-]+)\??(&+)?`)
+	// More comprehensive YouTube regex that handles various formats
+	re := regexp.MustCompile(`https?://(?:www\.)?(?:youtube\.com/watch\?v=|youtu\.be/|m\.youtube\.com/watch\?v=)([\w-]+)(?:\S+)?`)
+
+	// Helper function to search for YouTube URL in text
+	findYouTubeURL := func(text string) string {
+		if text == "" {
+			return ""
+		}
+		return re.FindString(text)
+	}
 
 	// First check standard metadata fields
 	candidates := []string{
 		meta.Comment(),
-		meta.Title(),
-		meta.Album(),
-		meta.Artist(),
-		meta.AlbumArtist(),
-		meta.Composer(),
-		meta.Lyrics(),
 	}
 
 	// Search for a match in standard fields
 	for _, text := range candidates {
-		if match := re.FindString(text); match != "" {
+		if match := findYouTubeURL(text); match != "" {
 			return match, nil
 		}
 	}
 
-	// Check raw metadata fields (this is where TXXX frames and other custom fields are stored)
+	// Check raw metadata fields more thoroughly
 	raw := meta.Raw()
 	for _, value := range raw {
-		// Check if the value is a string and contains a YouTube URL
-		if strValue, ok := value.(string); ok {
-			if match := re.FindString(strValue); match != "" {
+		// Debug: you might want to log this to see what's actually in the metadata
+		// fmt.Printf("Key: %v, Value: %v, Type: %T\n", key, value, value)
+
+		switch v := value.(type) {
+		case string:
+			if match := findYouTubeURL(v); match != "" {
 				return match, nil
 			}
-		}
-		// Some metadata might be stored as []string
-		if strSlice, ok := value.([]string); ok {
-			for _, str := range strSlice {
-				if match := re.FindString(str); match != "" {
+		case []string:
+			for _, str := range v {
+				if match := findYouTubeURL(str); match != "" {
 					return match, nil
 				}
 			}
+		case []byte:
+			// Sometimes metadata is stored as bytes
+			if match := findYouTubeURL(string(v)); match != "" {
+				return match, nil
+			}
+		default:
+			// Try to convert to string as last resort
+			if match := findYouTubeURL(fmt.Sprintf("%v", v)); match != "" {
+				return match, nil
+			}
+		}
+	}
+
+	// If the tag library isn't working well, try reading the file directly
+	// This is a fallback for files where metadata isn't parsed correctly
+	file.Seek(0, 0) // Reset file pointer
+	scanner := bufio.NewScanner(file)
+	scanner.Split(bufio.ScanLines)
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		if match := findYouTubeURL(line); match != "" {
+			return match, nil
 		}
 	}
 
