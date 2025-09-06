@@ -176,19 +176,6 @@
         selectedDirectory = String(newPath).trim();
         console.log("selectedDirectory set to:", selectedDirectory);
     }
-
-    async function testModal() {
-        console.log("Test Modal button clicked");
-        // Show progress modal directly
-        showProgressModal = true;
-        
-        try {
-            await window.go.main.App.TestModalProgress();
-        } catch (error) {
-            console.error("Failed to test modal:", error);
-            showProgressModal = false;
-        }
-    }
 </script>
 
 <div class="container">
@@ -207,7 +194,6 @@
     <div class="actions">
         <button class="register-btn" onclick={openRegisterModal}>Register Directory</button>
         <button class="clear-btn" onclick={openClearModal}>Clear All Registered Files</button>
-        <button class="test-btn" onclick={testModal}>Test Modal</button>
     </div>
 
     {#if loading}

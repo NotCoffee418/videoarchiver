@@ -65,8 +65,8 @@ type App struct {
 func NewApp(wailsEnabled bool, mode string) *App {
 	fmt.Printf("NewApp called: wailsEnabled=%v, mode=%s\n", wailsEnabled, mode)
 	app := &App{
-		WailsEnabled: wailsEnabled,
-		mode:         mode,
+		WailsEnabled:        wailsEnabled,
+		mode:                mode,
 		confirmCloseEnabled: false, // Default to disabled, manually enabled when needed
 	}
 	// Check initial daemon state
@@ -697,7 +697,6 @@ func (a *App) CloseApplication() {
 	}
 }
 
-
 // GetRegisteredFiles returns a paginated list of registered files
 func (a *App) GetRegisteredFiles(offset int, limit int) ([]fileregistry.RegisteredFile, error) {
 	return a.FileRegistryService.GetAllPaginated(offset, limit)
@@ -706,7 +705,7 @@ func (a *App) GetRegisteredFiles(offset int, limit int) ([]fileregistry.Register
 // RegisterDirectory registers all files in a directory for duplicate detection with progress reporting
 func (a *App) RegisterDirectory(directoryPath string) error {
 	a.LogService.Info(fmt.Sprintf("RegisterDirectory called with path: '%s' (length: %d)", directoryPath, len(directoryPath)))
-	
+
 	// If Wails is enabled, emit progress events in background
 	if a.WailsEnabled {
 		go func() {
@@ -717,7 +716,7 @@ func (a *App) RegisterDirectory(directoryPath string) error {
 					"message": message,
 				})
 			}
-			
+
 			// All validation and processing happens in the service with consistent error handling
 			err := a.FileRegistryService.RegisterDirectoryWithProgress(directoryPath, a.LogService, progressCallback)
 			if err != nil {
@@ -736,7 +735,7 @@ func (a *App) RegisterDirectory(directoryPath string) error {
 		// Direct execution for non-UI mode (no progress callback needed)
 		return a.FileRegistryService.RegisterDirectoryWithProgress(directoryPath, a.LogService, nil)
 	}
-	
+
 	return nil
 }
 
@@ -744,44 +743,4 @@ func (a *App) RegisterDirectory(directoryPath string) error {
 func (a *App) ClearAllRegisteredFiles() error {
 	a.LogService.Info("Clearing all registered files")
 	return a.FileRegistryService.ClearAll()
-}
-
-// TestModalProgress is a test function to verify modal functionality
-func (a *App) TestModalProgress() error {
-	a.LogService.Info("TestModalProgress called - triggering progress events for testing")
-	
-	if a.WailsEnabled {
-		go func() {
-			// Quick test progression
-			steps := []struct {
-				percent int
-				message string
-				delay   time.Duration
-			}{
-				{0, "Test: Starting modal test...", 100 * time.Millisecond},
-				{25, "Test: First quarter...", 200 * time.Millisecond},
-				{50, "Test: Halfway there...", 200 * time.Millisecond},
-				{75, "Test: Almost done...", 200 * time.Millisecond},
-				{100, "Test: Modal test completed!", 200 * time.Millisecond},
-			}
-
-			for _, step := range steps {
-				time.Sleep(step.delay)
-				
-				runtime.EventsEmit(a.ctx, "file-registration-progress", map[string]interface{}{
-					"percent": step.percent,
-					"message": step.message,
-				})
-
-				a.LogService.Info(fmt.Sprintf("Test progress: %d%% - %s", step.percent, step.message))
-			}
-
-			// Final completion event
-			time.Sleep(100 * time.Millisecond)
-			runtime.EventsEmit(a.ctx, "file-registration-complete")
-			a.LogService.Info("Test modal progress completed")
-		}()
-	}
-	
-	return nil
 }
