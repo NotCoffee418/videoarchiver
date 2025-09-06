@@ -14,6 +14,8 @@ import (
 	"videoarchiver/backend/domains/playlist"
 	"videoarchiver/backend/domains/settings"
 	"videoarchiver/backend/domains/ytdlp"
+
+	cp "github.com/otiai10/copy"
 )
 
 // LogServiceInterface defines the logging interface to avoid circular imports
@@ -185,12 +187,11 @@ func (d *DownloadService) DownloadFile(url, directory, format string) (*Download
 // MoveToFinalLocation moves the downloaded file to its final location.
 // Returns final path and error (if any)
 func (dlR *DownloadResult) MoveToFinalLocation(finalDir string) error {
-	// Move file to directory
-	err := os.Rename(dlR.TempFilePath, dlR.FinalFullPath)
+	err := cp.Copy(dlR.TempFilePath, dlR.FinalFullPath)
 	if err != nil {
 		return fmt.Errorf("download service: failed to move file: %w", err)
 	}
-	// Clean up temp file if it still exists
+	// Clean up temp file
 	os.Remove(dlR.TempFilePath)
 	return nil
 }
