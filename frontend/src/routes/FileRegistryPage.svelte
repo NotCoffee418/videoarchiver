@@ -226,7 +226,7 @@
                             <div class="filename">{file.filename}</div>
                             <div class="file-path">{file.file_path}</div>
                             <div class="meta-section">
-                                <div class="hash">MD5: {file.md5_hash}</div>
+                                <div class="hash">MD5: {file.md5}</div>
                                 <div class="timestamp">{formatTimestamp(file.registered_at)}</div>
                             </div>
                         </div>
