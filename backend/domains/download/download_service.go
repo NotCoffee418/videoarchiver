@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -16,6 +15,7 @@ import (
 	"videoarchiver/backend/domains/settings"
 	"videoarchiver/backend/domains/ytdlp"
 
+	"github.com/asaskevich/govalidator"
 	cp "github.com/otiai10/copy"
 )
 
@@ -165,7 +165,7 @@ func (d *DownloadService) DownloadFile(url, directory, format string) (*Download
 
 	// Decide available filename, handling duplicate filenames.
 	// Sanitize the video title to remove invalid filename characters
-	sanitizedTitle := sanitizeFilename(videoTitle)
+	sanitizedTitle := govalidator.SafeFileName(videoTitle)
 	baseFilename := filepath.Base(sanitizedTitle + "." + strings.ToLower(format))
 	finalPath := filepath.Join(directory, baseFilename)
 	fileNum := 0
@@ -231,12 +231,4 @@ func (d *DownloadService) RegisterAllFailedForRetryManual() error {
 	return d.daemonSignalService.TriggerChange()
 }
 
-// sanitizeFilename replaces invalid filename characters with underscores
-// to ensure compatibility across Windows and Linux filesystems
-func sanitizeFilename(filename string) string {
-	// Replace invalid characters with underscore
-	// Windows invalid characters: < > : " | ? * \ /
-	// We also include some additional characters that might cause issues
-	invalidChars := regexp.MustCompile(`[<>:"/\\|?*]`)
-	return invalidChars.ReplaceAllString(filename, "_")
-}
+
