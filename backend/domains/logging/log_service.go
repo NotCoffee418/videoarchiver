@@ -290,3 +290,134 @@ func (l *LogService) GetLogLinesFromFileWithLevel(filename string, lines int, mi
 
 	return result, nil
 }
+
+// ClearLogsOlderThanDays removes log entries older than the specified number of days
+// It handles concurrent access by creating a temporary file and atomically replacing the original
+func (l *LogService) ClearLogsOlderThanDays(filename string, days int) error {
+	// Get proper log file path using pathing system
+	logFilePath, err := pathing.GetWorkingFile(filename)
+	if err != nil {
+		return fmt.Errorf("failed to get log file path: %w", err)
+	}
+
+	// Check if file exists
+	if _, err := os.Stat(logFilePath); os.IsNotExist(err) {
+		// File doesn't exist, nothing to clean
+		return nil
+	}
+
+	// Calculate cutoff date
+	cutoffDate := time.Now().AddDate(0, 0, -days)
+
+	// Open the original file for reading
+	file, err := os.Open(logFilePath)
+	if err != nil {
+		return fmt.Errorf("failed to open log file %s: %w", logFilePath, err)
+	}
+	defer file.Close()
+
+	// Read all content
+	content, err := io.ReadAll(file)
+	if err != nil {
+		return fmt.Errorf("failed to read log file %s: %w", logFilePath, err)
+	}
+
+	if len(content) == 0 {
+		// Empty file, nothing to clean
+		return nil
+	}
+
+	// Split into lines and filter by date
+	allLines := strings.Split(string(content), "\n")
+	var filteredLines []string
+	entriesRemoved := 0
+
+	for _, line := range allLines {
+		if strings.TrimSpace(line) == "" {
+			continue // Skip empty lines
+		}
+
+		// Try to parse JSON log entry to get timestamp
+		var logEntry struct {
+			Time string `json:"time"`
+		}
+
+		if err := json.Unmarshal([]byte(line), &logEntry); err != nil {
+			// If not valid JSON, keep the line (could be plain text log or corrupted entry)
+			filteredLines = append(filteredLines, line)
+			continue
+		}
+
+		// Parse the timestamp
+		if logEntry.Time == "" {
+			// No timestamp field, keep the line
+			filteredLines = append(filteredLines, line)
+			continue
+		}
+
+		logTime, err := time.Parse(time.RFC3339, logEntry.Time)
+		if err != nil {
+			// Invalid timestamp format, keep the line
+			filteredLines = append(filteredLines, line)
+			continue
+		}
+
+		// Keep entries newer than cutoff date
+		if logTime.After(cutoffDate) {
+			filteredLines = append(filteredLines, line)
+		} else {
+			entriesRemoved++
+		}
+	}
+
+	// If no entries were removed, no need to rewrite the file
+	if entriesRemoved == 0 {
+		return nil
+	}
+
+	// Create temporary file for atomic replacement
+	tmpFile := logFilePath + ".tmp"
+	tempHandle, err := os.Create(tmpFile)
+	if err != nil {
+		return fmt.Errorf("failed to create temporary file: %w", err)
+	}
+
+	// Write filtered content to temporary file
+	for i, line := range filteredLines {
+		if i > 0 {
+			if _, err := tempHandle.WriteString("\n"); err != nil {
+				tempHandle.Close()
+				os.Remove(tmpFile)
+				return fmt.Errorf("failed to write to temporary file: %w", err)
+			}
+		}
+		if _, err := tempHandle.WriteString(line); err != nil {
+			tempHandle.Close()
+			os.Remove(tmpFile)
+			return fmt.Errorf("failed to write to temporary file: %w", err)
+		}
+	}
+
+	// Add final newline if we have content
+	if len(filteredLines) > 0 {
+		if _, err := tempHandle.WriteString("\n"); err != nil {
+			tempHandle.Close()
+			os.Remove(tmpFile)
+			return fmt.Errorf("failed to write final newline to temporary file: %w", err)
+		}
+	}
+
+	// Close temporary file
+	if err := tempHandle.Close(); err != nil {
+		os.Remove(tmpFile)
+		return fmt.Errorf("failed to close temporary file: %w", err)
+	}
+
+	// Atomically replace original file with temporary file
+	if err := os.Rename(tmpFile, logFilePath); err != nil {
+		os.Remove(tmpFile)
+		return fmt.Errorf("failed to replace log file: %w", err)
+	}
+
+	return nil
+}
