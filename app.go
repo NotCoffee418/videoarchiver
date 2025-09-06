@@ -482,8 +482,8 @@ func (a *App) DirectDownload(url, directory, format string) (string, error) {
 	return result.FinalFullPath, nil
 }
 
-func (a *App) GetDownloadHistoryPage(offset int, limit int, showSuccess, showFailed bool) ([]download.Download, error) {
-	return a.DownloadDB.GetDownloadHistoryPage(offset, limit, showSuccess, showFailed)
+func (a *App) GetDownloadHistoryPage(offset int, limit int, showSuccess, showFailed, showDuplicate bool) ([]download.Download, error) {
+	return a.DownloadDB.GetDownloadHistoryPage(offset, limit, showSuccess, showFailed, showDuplicate)
 }
 
 func (a *App) SetManualRetry(downloadId int) error {

@@ -13,6 +13,7 @@
 
     let showFailed = true;
     let showSuccessful = true;
+    let showDuplicate = true;
 
     function statusLabel(s) {
         switch (s) {
@@ -99,7 +100,7 @@
         error = "";
         try {
             if (window?.go?.main?.App?.GetDownloadHistoryPage) {
-                const res = await window.go.main.App.GetDownloadHistoryPage(offset, limit, showSuccessful, showFailed);
+                const res = await window.go.main.App.GetDownloadHistoryPage(offset, limit, showSuccessful, showFailed, showDuplicate);
                 downloads = Array.isArray(res) ? res : [];
             } else {
                 downloads = [];
@@ -145,7 +146,7 @@
     $: nextDisabled = downloads.length < limit;
     $: pageNumber = Math.floor(offset / limit) + 1;
 
-    $: if (showFailed !== undefined && showSuccessful !== undefined) {
+    $: if (showFailed !== undefined && showSuccessful !== undefined && showDuplicate !== undefined) {
         onFilterChange();
     }
 
@@ -190,6 +191,10 @@
         <label>
             <input type="checkbox" bind:checked={showFailed}>
             Show Failed
+        </label>
+        <label>
+            <input type="checkbox" bind:checked={showDuplicate}>
+            Show Duplicate
         </label>
         <button 
             class="retry-all-btn" 

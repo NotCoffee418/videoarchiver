@@ -40,7 +40,8 @@ declare global {
             arg1: number,
             arg2: number,
             arg3: boolean,
-            arg4: boolean
+            arg4: boolean,
+            arg5: boolean
           ) => Promise<Array<any>>;
           GetRecentLogs: () => Promise<Array<any>>;
           GetDaemonLogLines: (arg1: number) => Promise<Array<string>>;

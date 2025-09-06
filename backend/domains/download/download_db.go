@@ -41,13 +41,16 @@ func (d *DownloadDB) GetDownloadsForPlaylist(playlistId int) ([]Download, error)
 	return d.scanRows(rows)
 }
 
-func (d *DownloadDB) GetDownloadHistoryPage(offset, limit int, showSuccess, showFailed bool) ([]Download, error) {
+func (d *DownloadDB) GetDownloadHistoryPage(offset, limit int, showSuccess, showFailed, showDuplicate bool) ([]Download, error) {
 	var statuses []int
 	if showSuccess {
-		statuses = append(statuses, StSuccess, StSuccessPlaylistRemoved, StSuccessDuplicate)
+		statuses = append(statuses, StSuccess, StSuccessPlaylistRemoved)
 	}
 	if showFailed {
 		statuses = append(statuses, StFailedAutoRetry, StFailedManualRetry, StFailedGiveUp, StFailedPlaylistRemoved)
+	}
+	if showDuplicate {
+		statuses = append(statuses, StSuccessDuplicate)
 	}
 
 	// Return empty if no filters selected
