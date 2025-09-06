@@ -160,7 +160,7 @@ func (d *DownloadService) DownloadFile(url, directory, format string) (*Download
 		return nil, fmt.Errorf("download service: failed to calculate MD5: %w", err)
 	}
 
-	// Decide available filename, handdling duplicate filenames.
+	// Decide available filename, handling duplicate filenames.
 	baseFilename := filepath.Base(videoTitle + "." + strings.ToLower(format))
 	finalPath := filepath.Join(directory, baseFilename)
 	fileNum := 0
