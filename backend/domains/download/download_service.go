@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -15,7 +16,6 @@ import (
 	"videoarchiver/backend/domains/settings"
 	"videoarchiver/backend/domains/ytdlp"
 
-	"github.com/asaskevich/govalidator"
 	cp "github.com/otiai10/copy"
 )
 
@@ -41,6 +41,30 @@ const (
 	// Used to wrap errors from download service
 	ErrDownloadErrorBase = "download service: failed to download file: "
 )
+
+// sanitizeFilename replaces filesystem-unsafe characters with underscores
+// while preserving Unicode characters like emojis and foreign text
+func sanitizeFilename(filename string) string {
+	// First remove control characters (ASCII 0-31)
+	re := regexp.MustCompile(`[\x00-\x1f]`)
+	filename = re.ReplaceAllString(filename, "")
+	
+	// Replace filesystem-unsafe characters with underscores
+	// Characters that are problematic: < > : " / \ | ? *
+	unsafeChars := []string{"<", ">", ":", "\"", "/", "\\", "|", "?", "*"}
+	for _, char := range unsafeChars {
+		filename = strings.ReplaceAll(filename, char, "_")
+	}
+	
+	// Clean up multiple consecutive underscores
+	re = regexp.MustCompile(`_+`)
+	filename = re.ReplaceAllString(filename, "_")
+	
+	// Trim leading/trailing underscores and spaces
+	filename = strings.Trim(filename, "_ ")
+	
+	return filename
+}
 
 func NewDownloadService(
 	ctx context.Context,
@@ -165,7 +189,7 @@ func (d *DownloadService) DownloadFile(url, directory, format string) (*Download
 
 	// Decide available filename, handling duplicate filenames.
 	// Sanitize the video title to remove invalid filename characters
-	sanitizedTitle := govalidator.SafeFileName(videoTitle)
+	sanitizedTitle := sanitizeFilename(videoTitle)
 	baseFilename := filepath.Base(sanitizedTitle + "." + strings.ToLower(format))
 	finalPath := filepath.Join(directory, baseFilename)
 	fileNum := 0
