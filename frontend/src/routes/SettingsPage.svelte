@@ -2,6 +2,7 @@
   import SettingView, { SettingType } from "../components/settings/SettingView.svelte";
   import SettingsGroup from "../components/settings/SettingsGroup.svelte";
   import AllowDuplicatesSetting from "../components/settings/AllowDuplicatesSetting.svelte";
+  import JsonSettingView from "../components/settings/JsonSettingView.svelte";
   import Expander from "../components/Expander.svelte";
   
 </script>
@@ -70,7 +71,15 @@
         <div class="advanced-disclaimer">
             ⚠️ <strong>Warning:</strong> These settings are for advanced users only. Modifying these settings without understanding their impact may cause the application to malfunction. Only change these if you know what you're doing.
         </div>
-        <!-- Advanced Settings Here -->
+        
+        <h3>Configuration File Settings</h3>
+        <JsonSettingView 
+            key="database_path"
+            label="Database Path"
+            description="Path to the SQLite database file. Can be absolute or relative to the application directory."
+            validationFunction={(value) => {
+                return value.length > 0;
+            }} />
     </Expander>
 </SettingsGroup>
 <!-- Hidden div for development -->
@@ -147,6 +156,12 @@
     
     .advanced-disclaimer strong {
         color: #ff6b6b;
+    }
+    
+    h3 {
+        color: #fff;
+        margin: 1rem 0 0.5rem 0;
+        font-size: 1.1rem;
     }
     
     @media (max-width: 768px) {

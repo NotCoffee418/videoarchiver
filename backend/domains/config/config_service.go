@@ -2,8 +2,10 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"videoarchiver/backend/domains/pathing"
 )
 
@@ -120,4 +122,56 @@ func (c *ConfigService) saveConfig() error {
 // getDefaultDatabasePath returns the default database path (current behavior)
 func getDefaultDatabasePath() (string, error) {
 	return pathing.GetWorkingFile("db.sqlite")
+}
+
+// GetConfigString gets a config field value as a string
+func (c *ConfigService) GetConfigString(key string) (string, error) {
+	// Use reflection to get field value from config struct
+	configValue := reflect.ValueOf(c.config).Elem()
+	configType := reflect.TypeOf(c.config).Elem()
+
+	// Find field by JSON tag
+	for i := 0; i < configType.NumField(); i++ {
+		field := configType.Field(i)
+		jsonTag := field.Tag.Get("json")
+		if jsonTag == key {
+			fieldValue := configValue.Field(i)
+			if !fieldValue.IsValid() {
+				return "", fmt.Errorf("field %s not found", key)
+			}
+			return fmt.Sprintf("%v", fieldValue.Interface()), nil
+		}
+	}
+
+	return "", fmt.Errorf("config field %s not found", key)
+}
+
+// SetConfigString sets a config field value from a string
+func (c *ConfigService) SetConfigString(key string, value string) error {
+	// Use reflection to set field value in config struct
+	configValue := reflect.ValueOf(c.config).Elem()
+	configType := reflect.TypeOf(c.config).Elem()
+
+	// Find field by JSON tag
+	for i := 0; i < configType.NumField(); i++ {
+		field := configType.Field(i)
+		jsonTag := field.Tag.Get("json")
+		if jsonTag == key {
+			fieldValue := configValue.Field(i)
+			if !fieldValue.IsValid() || !fieldValue.CanSet() {
+				return fmt.Errorf("field %s cannot be set", key)
+			}
+			
+			// For now, assume all fields are strings (as per requirements)
+			if fieldValue.Kind() == reflect.String {
+				fieldValue.SetString(value)
+				// Save the updated configuration
+				return c.saveConfig()
+			} else {
+				return fmt.Errorf("field %s is not a string type", key)
+			}
+		}
+	}
+
+	return fmt.Errorf("config field %s not found", key)
 }
