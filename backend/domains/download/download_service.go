@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -41,91 +40,6 @@ const (
 	// Used to wrap errors from download service
 	ErrDownloadErrorBase = "download service: failed to download file: "
 )
-
-// sanitizeFilename replaces filesystem-unsafe characters with underscores
-// while preserving Unicode characters like emojis and foreign text.
-// Handles control characters, invisible characters, and caps filename length to 48 characters.
-func sanitizeFilename(filename string) string {
-	// Remove control characters (ASCII 0-31) including NULL byte
-	re := regexp.MustCompile(`[\x00-\x1f]`)
-	filename = re.ReplaceAllString(filename, "")
-	
-	// Remove invisible Unicode characters
-	// Zero-width spaces and other invisible characters
-	invisibleChars := []string{
-		"\u200B", // Zero Width Space
-		"\u200C", // Zero Width Non-Joiner
-		"\u200D", // Zero Width Joiner
-		"\u200E", // Left-to-Right Mark
-		"\u200F", // Right-to-Left Mark
-		"\u202A", // Left-to-Right Embedding
-		"\u202B", // Right-to-Left Embedding
-		"\u202C", // Pop Directional Formatting
-		"\u202D", // Left-to-Right Override
-		"\u202E", // Right-to-Left Override
-		"\u2060", // Word Joiner
-		"\u2061", // Function Application
-		"\u2062", // Invisible Times
-		"\u2063", // Invisible Separator
-		"\u2064", // Invisible Plus
-		"\uFEFF", // Zero Width No-Break Space (BOM)
-	}
-	for _, char := range invisibleChars {
-		filename = strings.ReplaceAll(filename, char, "")
-	}
-	
-	// Replace filesystem-unsafe characters with underscores
-	// Characters that are problematic: < > : " / \ | ? *
-	unsafeChars := []string{"<", ">", ":", "\"", "/", "\\", "|", "?", "*"}
-	for _, char := range unsafeChars {
-		filename = strings.ReplaceAll(filename, char, "_")
-	}
-	
-	// Clean up multiple consecutive underscores
-	re = regexp.MustCompile(`_+`)
-	filename = re.ReplaceAllString(filename, "_")
-	
-	// Trim leading/trailing underscores and spaces
-	filename = strings.Trim(filename, "_ ")
-	
-	return filename
-}
-
-// sanitizeFilenameWithLength sanitizes filename and caps total length to maxLength characters
-// while preserving the file extension
-func sanitizeFilenameWithLength(filename, extension string, maxLength int) string {
-	// First sanitize the base filename
-	sanitized := sanitizeFilename(filename)
-	
-	// Ensure we have a valid extension format
-	if extension != "" && !strings.HasPrefix(extension, ".") {
-		extension = "." + extension
-	}
-	
-	// Calculate available space for the base name
-	extLength := len(extension)
-	maxBaseLength := maxLength - extLength
-	
-	// If the extension itself is too long, truncate it or use a default
-	if extLength >= maxLength {
-		extension = ".tmp" // Fallback extension
-		maxBaseLength = maxLength - 4
-	}
-	
-	// Ensure we have at least 1 character for the base name
-	if maxBaseLength < 1 {
-		maxBaseLength = 1
-	}
-	
-	// Truncate base name if necessary
-	if len(sanitized) > maxBaseLength {
-		sanitized = sanitized[:maxBaseLength]
-		// Clean up if we truncated in the middle of an underscore sequence
-		sanitized = strings.TrimRight(sanitized, "_")
-	}
-	
-	return sanitized
-}
 
 func NewDownloadService(
 	ctx context.Context,
@@ -250,7 +164,7 @@ func (d *DownloadService) DownloadFile(url, directory, format string) (*Download
 
 	// Decide available filename, handling duplicate filenames.
 	// Sanitize the video title to remove invalid filename characters and cap length to 48 chars
-	sanitizedTitle := sanitizeFilenameWithLength(videoTitle, strings.ToLower(format), 48)
+	sanitizedTitle := fileutils.SanitizeFilename(videoTitle)
 	baseFilename := filepath.Base(sanitizedTitle + "." + strings.ToLower(format))
 	finalPath := filepath.Join(directory, baseFilename)
 	fileNum := 0
@@ -315,5 +229,3 @@ func (d *DownloadService) RegisterAllFailedForRetryManual() error {
 	}
 	return d.daemonSignalService.TriggerChange()
 }
-
-
