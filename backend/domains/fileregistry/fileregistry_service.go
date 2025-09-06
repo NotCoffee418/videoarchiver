@@ -1,8 +1,10 @@
 package fileregistry
 
 import (
+	"bytes"
 	"database/sql"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -11,8 +13,6 @@ import (
 	"videoarchiver/backend/domains/db"
 	"videoarchiver/backend/domains/fileutils"
 	"videoarchiver/backend/domains/logging"
-
-	"github.com/dhowden/tag"
 )
 
 type FileRegistryService struct {
@@ -23,33 +23,66 @@ func NewFileRegistryService(dbService *db.DatabaseService) *FileRegistryService 
 	return &FileRegistryService{db: dbService.GetDB()}
 }
 
-// GetByMD5 returns the first registered file with the given MD5 hash
-func (f *FileRegistryService) CheckForDuplicateInFileRegistry(fileMD5 string) (bool, error) {
+// CheckForDuplicateInFileRegistry checks for duplicate files by MD5 hash and optionally by YouTube URL
+func (f *FileRegistryService) CheckForDuplicateInFileRegistry(fileMD5 string, youtubeUrl ...string) (bool, error) {
 	var id int
 
-	// Query downloads table for matching MD5
+	// First check by MD5 hash
 	err := f.db.QueryRow(
 		"SELECT 1 FROM file_registry WHERE md5 = ? LIMIT 1",
 		fileMD5,
 	).Scan(&id)
 
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return false, nil // No duplicate found
-		}
+	if err == nil {
+		// Duplicate found by MD5
+		return true, nil
+	}
+
+	if err != sql.ErrNoRows {
 		// Actual error occurred
 		return false, err
 	}
 
-	// Duplicate found
-	return true, nil
+	// If YouTube URL is provided, also check for URL match
+	if len(youtubeUrl) > 0 && youtubeUrl[0] != "" {
+		err = f.db.QueryRow(
+			"SELECT 1 FROM file_registry WHERE known_url = ? LIMIT 1",
+			youtubeUrl[0],
+		).Scan(&id)
+
+		if err == nil {
+			// Duplicate found by YouTube URL
+			return true, nil
+		}
+
+		if err != sql.ErrNoRows {
+			// Actual error occurred
+			return false, err
+		}
+	}
+
+	// No duplicate found
+	return false, nil
 }
 
 // RegisterFile adds a new file to the registry
 func (f *FileRegistryService) RegisterFile(filename, filePath, md5Hash string) error {
-	_, err := f.db.Exec(
-		"INSERT INTO file_registry (filename, file_path, md5, registered_at) VALUES (?, ?, ?, ?)",
-		filename, filePath, md5Hash, time.Now().Unix(),
+	// Extract YouTube URL from file metadata if available
+	knownUrl, err := f.ExtractKnownYoutubeUrl(filePath)
+	if err != nil {
+		// Log the error but don't fail the registration
+		// The error is already handled in ExtractKnownYoutubeUrl by returning empty string for metadata issues
+	}
+
+	// Store NULL if knownUrl is empty, otherwise store the URL
+	var knownUrlPtr *string
+	if knownUrl != "" {
+		knownUrlPtr = &knownUrl
+	}
+
+	_, err = f.db.Exec(
+		"INSERT INTO file_registry (filename, file_path, md5, registered_at, known_url) VALUES (?, ?, ?, ?, ?)",
+		filename, filePath, md5Hash, time.Now().Unix(), knownUrlPtr,
 	)
 	return err
 }
@@ -57,7 +90,7 @@ func (f *FileRegistryService) RegisterFile(filename, filePath, md5Hash string) e
 // GetAllPaginated returns a paginated list of registered files
 func (f *FileRegistryService) GetAllPaginated(offset, limit int) ([]RegisteredFile, error) {
 	rows, err := f.db.Query(
-		"SELECT id, filename, file_path, md5, registered_at FROM file_registry ORDER BY registered_at DESC LIMIT ? OFFSET ?",
+		"SELECT id, filename, file_path, md5, registered_at, known_url FROM file_registry ORDER BY registered_at DESC LIMIT ? OFFSET ?",
 		limit, offset,
 	)
 	if err != nil {
@@ -68,7 +101,7 @@ func (f *FileRegistryService) GetAllPaginated(offset, limit int) ([]RegisteredFi
 	var files []RegisteredFile
 	for rows.Next() {
 		var file RegisteredFile
-		err := rows.Scan(&file.ID, &file.Filename, &file.FilePath, &file.MD5, &file.RegisteredAt)
+		err := rows.Scan(&file.ID, &file.Filename, &file.FilePath, &file.MD5, &file.RegisteredAt, &file.KnownUrl)
 		if err != nil {
 			return nil, err
 		}
@@ -186,8 +219,6 @@ func (f *FileRegistryService) RegisterDirectoryWithProgress(directoryPath string
 	return nil
 }
 
-// Returns empty string or youtube url if found
-// Error only if file invalid/unreadable
 func (f *FileRegistryService) ExtractKnownYoutubeUrl(filePath string) (string, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -195,24 +226,68 @@ func (f *FileRegistryService) ExtractKnownYoutubeUrl(filePath string) (string, e
 	}
 	defer file.Close()
 
-	meta, err := tag.ReadFrom(file)
-	if err != nil {
-		return "", nil
+	// YouTube regex - just get the clean URL
+	re := regexp.MustCompile(`https?://(?:www\.)?(?:youtube\.com/watch\?v=|youtu\.be/)([\w-]{11})`)
+
+	// Read first 512KB of file (MP4 metadata can be larger and further in)
+	buffer := make([]byte, 524288)
+	n, err := file.Read(buffer)
+	if err != nil && err != io.EOF {
+		return "", err
 	}
 
-	// YouTube regex
-	re := regexp.MustCompile(`https://((www\.youtube\.com/watch\?v=)|(youtu\.be/))([\w-]+)\??(&+)?`)
+	data := buffer[:n]
 
-	// Gather metadata fields to scan
-	candidates := []string{
-		meta.Comment(),
+	// Look for common metadata tags and extract text around them
+	patterns := []string{
+		"COMM", // ID3v2 Comment
+		"comm", // lowercase variant
+		"TXXX", // ID3v2 User defined text
+		"TIT2", // ID3v2 Title
+		"TALB", // ID3v2 Album
+		"TPE1", // ID3v2 Artist
+		"©cmt", // iTunes comment
+		"desc", // Description
 	}
 
-	// Search for a match
-	for _, text := range candidates {
-		if match := re.FindString(text); match != "" {
-			return match, nil
+	for _, pattern := range patterns {
+		if idx := bytes.Index(data, []byte(pattern)); idx != -1 {
+			// Look for YouTube URL in the next 1000 bytes after the tag
+			start := idx
+			end := start + 1000
+			if end > len(data) {
+				end = len(data)
+			}
+
+			// Convert to string and clean it
+			text := string(data[start:end])
+
+			// Clean the text - keep only printable ASCII and basic punctuation
+			cleaned := strings.Map(func(r rune) rune {
+				if (r >= 32 && r <= 126) || r == '\n' || r == '\r' || r == '\t' {
+					return r
+				}
+				return -1
+			}, text)
+
+			if match := re.FindString(cleaned); match != "" {
+				return match, nil
+			}
 		}
+	}
+
+	// Fallback: search the entire buffer for YouTube URLs
+	// Convert to string and clean
+	text := string(data)
+	cleaned := strings.Map(func(r rune) rune {
+		if (r >= 32 && r <= 126) || r == '\n' || r == '\r' || r == '\t' {
+			return r
+		}
+		return -1
+	}, text)
+
+	if match := re.FindString(cleaned); match != "" {
+		return match, nil
 	}
 
 	return "", nil

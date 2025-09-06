@@ -211,6 +211,12 @@
                         <div class="content">
                             <div class="filename">{file.filename}</div>
                             <div class="file-path">{file.file_path}</div>
+                            {#if file.known_url && file.known_url.Valid && file.known_url.String}
+                                <div class="youtube-url">
+                                    <span class="youtube-icon">🎬</span>
+                                    <a href={file.known_url.String} target="_blank" rel="noopener noreferrer">{file.known_url.String}</a>
+                                </div>
+                            {/if}
                             <div class="meta-section">
                                 <div class="hash">MD5: {file.md5}</div>
                                 <div class="timestamp">{formatTimestamp(file.registered_at)}</div>
@@ -413,6 +419,31 @@
         color: #9ad1ff;
         word-break: break-all;
         font-family: monospace;
+    }
+
+    .youtube-url {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 0.25rem;
+        font-size: 0.85rem;
+    }
+
+    .youtube-icon {
+        font-size: 1rem;
+        flex-shrink: 0;
+    }
+
+    .youtube-url a {
+        color: #ff6b6b;
+        text-decoration: none;
+        word-break: break-all;
+        transition: color 0.2s ease;
+    }
+
+    .youtube-url a:hover {
+        color: #ff5252;
+        text-decoration: underline;
     }
 
     .meta-section {
