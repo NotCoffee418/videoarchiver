@@ -13,8 +13,6 @@
         /** @type {string} */
         const path = await window.go?.main?.App?.SelectDirectory();
         console.log("SelectDirectory returned:", path);
-        console.log("Path type:", typeof path);
-        console.log("Path length:", path ? path.length : "undefined");
         return await clickHandlerAsync(path);
       } catch (error) {
         console.error("Failed to open directory:", error);
