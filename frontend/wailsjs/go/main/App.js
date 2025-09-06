@@ -26,6 +26,10 @@ export function GetClipboard() {
   return window['go']['main']['App']['GetClipboard']();
 }
 
+export function GetConfigString(arg1) {
+  return window['go']['main']['App']['GetConfigString'](arg1);
+}
+
 export function GetConfirmCloseEnabled() {
   return window['go']['main']['App']['GetConfirmCloseEnabled']();
 }
@@ -92,6 +96,10 @@ export function RegisterDirectory(arg1) {
 
 export function SelectDirectory() {
   return window['go']['main']['App']['SelectDirectory']();
+}
+
+export function SetConfigString(arg1, arg2) {
+  return window['go']['main']['App']['SetConfigString'](arg1, arg2);
 }
 
 export function SetConfirmCloseEnabled(arg1) {
