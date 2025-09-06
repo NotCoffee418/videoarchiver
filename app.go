@@ -86,7 +86,7 @@ func (a *App) startup(ctx context.Context) {
 	// Initialize logging service early so it can be used throughout startup
 	a.LogService = logging.NewLogService(a.mode)
 	a.LogService.Info(fmt.Sprintf("Starting application startup for mode: %s", a.mode))
-	
+
 	// Log application version
 	a.LogService.Info(fmt.Sprintf("Application version: %s", GetVersionInfo()))
 
@@ -728,6 +728,8 @@ func (a *App) RegisterDirectory(directoryPath string) error {
 	// If Wails is enabled, emit progress events in background
 	if a.WailsEnabled {
 		go func() {
+			a.SetConfirmCloseEnabled(true) // Enable close confirmation during long operation
+			defer a.SetConfirmCloseEnabled(false)
 			// Create progress callback for UI mode
 			progressCallback := func(percent int, message string) {
 				runtime.EventsEmit(a.ctx, "file-registration-progress", map[string]interface{}{
