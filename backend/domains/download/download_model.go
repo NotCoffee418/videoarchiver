@@ -20,6 +20,8 @@ type Download struct {
 	LastAttempt      int64          `json:"last_attempt" db:"last_attempt"`
 	FailMessage      sql.NullString `json:"fail_message,omitempty" db:"fail_message"`
 	AttemptCount     int            `json:"attempt_count" db:"attempt_count"`
+	SaveDirectory    sql.NullString `json:"save_directory,omitempty" db:"save_directory"`
+	FullPath         sql.NullString `json:"full_path,omitempty" db:"full_path"`
 }
 
 // Creates new instance of Download without an ID or attempt info
