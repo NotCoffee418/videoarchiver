@@ -38,6 +38,8 @@ export function GetUILogLines(arg1:number):Promise<Array<string>>;
 
 export function GetUILogLinesWithLevel(arg1:number,arg2:string):Promise<Array<string>>;
 
+export function GetVersion():Promise<string>;
+
 export function HandleFatalError(arg1:string):Promise<void>;
 
 export function IsDaemonRunning():Promise<boolean>;

@@ -44,12 +44,17 @@ jobs:
 
       - name: Build Linux binary
         run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          BUILD_DATE=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          GIT_COMMIT=$(git rev-parse HEAD)
+          LDFLAGS="-X main.Version=$VERSION -X 'main.BuildDate=$BUILD_DATE' -X main.GitCommit=$GIT_COMMIT"
+          
           if [ "$WEBKIT_TAG" == "webkit2_41" ]; then
             echo "Building with webkit2_41 tag"
-            wails build --platform linux/amd64 -tags webkit2_41
+            wails build --platform linux/amd64 -tags webkit2_41 -ldflags "$LDFLAGS"
           else
             echo "Building with default webkit"
-            wails build --platform linux/amd64
+            wails build --platform linux/amd64 -ldflags "$LDFLAGS"
           fi
 
       - name: Get version
@@ -90,7 +95,13 @@ jobs:
         run: cd frontend && npm install
 
       - name: Build Windows installer
-        run: wails build -nsis
+        run: |
+          $VERSION = $env:GITHUB_REF -replace 'refs/tags/', ''
+          $BUILD_DATE = (Get-Date).ToUniversalTime().ToString('yyyy-MM-dd HH:mm:ss UTC')
+          $GIT_COMMIT = git rev-parse HEAD
+          $LDFLAGS = "-X main.Version=$VERSION -X `"main.BuildDate=$BUILD_DATE`" -X main.GitCommit=$GIT_COMMIT"
+          
+          wails build -nsis -ldflags $LDFLAGS
 
       - name: Get version
         id: get_version

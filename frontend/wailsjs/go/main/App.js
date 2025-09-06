@@ -70,6 +70,10 @@ export function GetUILogLinesWithLevel(arg1, arg2) {
   return window['go']['main']['App']['GetUILogLinesWithLevel'](arg1, arg2);
 }
 
+export function GetVersion() {
+  return window['go']['main']['App']['GetVersion']();
+}
+
 export function HandleFatalError(arg1) {
   return window['go']['main']['App']['HandleFatalError'](arg1);
 }
