@@ -180,20 +180,20 @@ func (d *Download) insertDownload(dlDB *DownloadDB) error {
 
 func (d *Download) updateDownload(dlDB *DownloadDB) error {
 	_, err := dlDB.db.Exec(
-		`UPDATE downloads SET playlist_id = ?, url = ?, status = ?, format_downloaded = ?, md5 = ?, last_attempt = ?, fail_message = ?, attempt_count = ? WHERE id = ?`,
-		d.PlaylistID, d.Url, d.Status, d.FormatDownloaded, d.MD5, d.LastAttempt, d.FailMessage, d.AttemptCount, d.ID)
+		`UPDATE downloads SET playlist_id = ?, url = ?, status = ?, format_downloaded = ?, md5 = ?, output_filename = ?, last_attempt = ?, fail_message = ?, attempt_count = ? WHERE id = ?`,
+		d.PlaylistID, d.Url, d.Status, d.FormatDownloaded, d.MD5, d.OutputFilename, d.LastAttempt, d.FailMessage, d.AttemptCount, d.ID)
 	return err
 }
 
 // CheckForDuplicateInDownloads checks if any existing download has the same MD5
 // Returns: exists (bool), id (int), error
-func (d *DownloadDB) CheckForDuplicateInDownloads(fileMD5 string) (bool, int, error) {
+func (d *DownloadDB) CheckForDuplicateInDownloads(fileMD5 string, ignoredOwnId int) (bool, int, error) {
 	var id int
 
 	// Query downloads table for matching MD5
 	err := d.db.QueryRow(
-		"SELECT id FROM downloads WHERE md5 = ? LIMIT 1",
-		fileMD5,
+		"SELECT id FROM downloads WHERE md5 = ? AND id != ? LIMIT 1",
+		fileMD5, ignoredOwnId,
 	).Scan(&id)
 
 	if err != nil {

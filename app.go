@@ -456,13 +456,13 @@ func (a *App) DirectDownload(url, directory, format string) (string, error) {
 	}
 
 	// Move to final location
-	resultFilePath, err := result.MoveToFinalLocation(directory)
+	err = result.MoveToFinalLocation(directory)
 	if err != nil {
 		return "", err
 	}
 
 	// Return final path
-	return resultFilePath, nil
+	return result.FinalFullPath, nil
 }
 
 func (a *App) GetDownloadHistoryPage(offset int, limit int, showSuccess, showFailed bool) ([]download.Download, error) {

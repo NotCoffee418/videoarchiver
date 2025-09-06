@@ -70,13 +70,13 @@ type DownloadResult struct {
 
 // ArchiveDownloadFile used by daemon and automated operations. Handles errors and logging.
 // Handles duplicates, downloads table, error logging.
-func (d *DownloadService) ArchiveDownloadFile(dlDb *Download, pl *playlist.Playlist) {
+func (d *DownloadService) ArchiveDownloadFile(dl *Download, pl *playlist.Playlist) {
 	// Download file
-	d.logService.Info(fmt.Sprintf("Downloading new item: %s", dlDb.Url))
-	dlR, err := d.DownloadFile(dlDb.Url, pl.SaveDirectory, pl.OutputFormat)
+	d.logService.Info(fmt.Sprintf("Downloading new item: %s", dl.Url))
+	dlR, err := d.DownloadFile(dl.Url, pl.SaveDirectory, pl.OutputFormat)
 	if err != nil {
-		d.logService.Error(fmt.Sprintf("Failed to download item %s: %v", dlDb.Url, err))
-		dlDb.SetFail(d.downloadDB, err.Error())
+		d.logService.Error(fmt.Sprintf("Failed to download item %s: %v", dl.Url, err))
+		dl.SetFail(d.downloadDB, err.Error())
 		return
 	}
 
@@ -84,22 +84,22 @@ func (d *DownloadService) ArchiveDownloadFile(dlDb *Download, pl *playlist.Playl
 	allowDuplicates, err := d.settingsService.GetSettingBool("allow_duplicates")
 	if err != nil {
 		// should never happen
-		d.logService.Fatal(fmt.Sprintf("Failed to get allow_duplicates setting for %s: %v", dlDb.Url, err))
+		d.logService.Fatal(fmt.Sprintf("Failed to get allow_duplicates setting for %s: %v", dl.Url, err))
 		return
 	}
 
 	if !allowDuplicates {
 		// Handle duplicate in downloads table
-		isDup, existingId, err := d.HasDownloadsDuplicate(dlR.MD5)
+		isDup, existingId, err := d.HasDownloadsDuplicate(dlR.MD5, dl.ID)
 		if err != nil {
-			d.logService.Error(fmt.Sprintf("Failed to check for duplicate in downloads table for %s: %v", dlDb.Url, err))
-			dlDb.SetFail(d.downloadDB, fmt.Sprintf("failed to check for duplicate in downloads table: %v", err))
+			d.logService.Error(fmt.Sprintf("Failed to check for duplicate in downloads table for %s: %v", dl.Url, err))
+			dl.SetFail(d.downloadDB, fmt.Sprintf("failed to check for duplicate in downloads table: %v", err))
 			return
 		}
 		if isDup {
-			d.logService.Info(fmt.Sprintf("Duplicate download detected in downloads table for %s (MD5: %s), skipping download. Existing ID: %d", dlDb.Url, dlR.MD5, existingId))
-			if err := dlDb.SetSuccessDuplicate(d.downloadDB, dlR.FinalFileName, dlR.MD5); err != nil {
-				d.logService.Error(fmt.Sprintf("Failed to mark download as duplicate for %s: %v", dlDb.Url, err))
+			d.logService.Info(fmt.Sprintf("Duplicate download detected in downloads table for %s (MD5: %s), skipping download. Existing ID: %d", dl.Url, dlR.MD5, existingId))
+			if err := dl.SetSuccessDuplicate(d.downloadDB, dlR.FinalFileName, dlR.MD5); err != nil {
+				d.logService.Error(fmt.Sprintf("Failed to mark download as duplicate for %s: %v", dl.Url, err))
 			}
 			return
 		}
@@ -107,30 +107,30 @@ func (d *DownloadService) ArchiveDownloadFile(dlDb *Download, pl *playlist.Playl
 		// Handle duplicate in file registry
 		isDup, err = d.HasFileRegistryDuplicate(dlR.MD5)
 		if err != nil {
-			d.logService.Error(fmt.Sprintf("Failed to check for duplicate in file registry for %s: %v", dlDb.Url, err))
-			dlDb.SetFail(d.downloadDB, fmt.Sprintf("failed to check for duplicate in file registry: %v", err))
+			d.logService.Error(fmt.Sprintf("Failed to check for duplicate in file registry for %s: %v", dl.Url, err))
+			dl.SetFail(d.downloadDB, fmt.Sprintf("failed to check for duplicate in file registry: %v", err))
 			return
 		}
 		if isDup {
-			d.logService.Info(fmt.Sprintf("Duplicate download detected in file registry for %s (MD5: %s), skipping download.", dlDb.Url, dlR.MD5))
-			if err := dlDb.SetSuccessDuplicate(d.downloadDB, dlR.FinalFileName, dlR.MD5); err != nil {
-				d.logService.Error(fmt.Sprintf("Failed to mark download as duplicate for %s: %v", dlDb.Url, err))
+			d.logService.Info(fmt.Sprintf("Duplicate download detected in file registry for %s (MD5: %s), skipping download.", dl.Url, dlR.MD5))
+			if err := dl.SetSuccessDuplicate(d.downloadDB, dlR.FinalFileName, dlR.MD5); err != nil {
+				d.logService.Error(fmt.Sprintf("Failed to mark download as duplicate for %s: %v", dl.Url, err))
 			}
 			return
 		}
 	}
 
 	// Move to final location
-	finalPath, err := dlR.MoveToFinalLocation(pl.SaveDirectory)
+	err = dlR.MoveToFinalLocation(pl.SaveDirectory)
 	if err != nil {
-		d.logService.Error(fmt.Sprintf("Failed to move downloaded file to final location for %s: %v", dlDb.Url, err))
-		dlDb.SetFail(d.downloadDB, fmt.Sprintf("failed to move file to final location: %v", err))
+		d.logService.Error(fmt.Sprintf("Failed to move downloaded file to final location for %s: %v", dl.Url, err))
+		dl.SetFail(d.downloadDB, fmt.Sprintf("failed to move file to final location: %v", err))
 		return
 	}
 
 	// Mark download as success
-	if err := dlDb.SetSuccess(d.downloadDB, finalPath, dlR.MD5); err != nil {
-		d.logService.Error(fmt.Sprintf("Failed to mark download as success for %s: %v", dlDb.Url, err))
+	if err := dl.SetSuccess(d.downloadDB, dlR.FinalFileName, dlR.MD5); err != nil {
+		d.logService.Error(fmt.Sprintf("Failed to mark download as success for %s: %v", dl.Url, err))
 		return
 	}
 }
@@ -184,15 +184,15 @@ func (d *DownloadService) DownloadFile(url, directory, format string) (*Download
 
 // MoveToFinalLocation moves the downloaded file to its final location.
 // Returns final path and error (if any)
-func (dlR *DownloadResult) MoveToFinalLocation(finalDir string) (string, error) {
+func (dlR *DownloadResult) MoveToFinalLocation(finalDir string) error {
 	// Move file to directory
 	err := os.Rename(dlR.TempFilePath, dlR.FinalFullPath)
 	if err != nil {
-		return "", fmt.Errorf("download service: failed to move file: %w", err)
+		return fmt.Errorf("download service: failed to move file: %w", err)
 	}
 	// Clean up temp file if it still exists
 	os.Remove(dlR.TempFilePath)
-	return dlR.FinalFullPath, nil
+	return nil
 }
 
 // CalculateMD5 calculates the MD5 hash of a file (now delegated to fileutils)
@@ -204,8 +204,8 @@ func (d *DownloadService) HasFileRegistryDuplicate(fileMD5 string) (bool, error)
 	return d.fileRegistryService.CheckForDuplicateInFileRegistry(fileMD5)
 }
 
-func (d *DownloadService) HasDownloadsDuplicate(fileMD5 string) (bool, int, error) {
-	return d.downloadDB.CheckForDuplicateInDownloads(fileMD5)
+func (d *DownloadService) HasDownloadsDuplicate(fileMD5 string, ignoredOwnId int) (bool, int, error) {
+	return d.downloadDB.CheckForDuplicateInDownloads(fileMD5, ignoredOwnId)
 }
 
 func fileExists(path string) bool {
