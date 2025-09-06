@@ -6,9 +6,12 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 	"videoarchiver/backend/domains/download"
+	"videoarchiver/backend/domains/fileutils"
+	"videoarchiver/backend/domains/playlist"
 	"videoarchiver/backend/domains/ytdlp"
 )
 
@@ -134,8 +137,7 @@ func processActivePlaylists() {
 			if shouldStopIteration() {
 				return
 			}
-			_, _ = app.DownloadService.DownloadFile(
-				dl.Url, pl.SaveDirectory, pl.OutputFormat, true)
+			downloadItem(&dl, &pl)
 		}
 
 		// Download any new items
@@ -145,8 +147,7 @@ func processActivePlaylists() {
 			}
 
 			dl := download.NewDownload(pl.ID, url, pl.OutputFormat)
-			_, _ = app.DownloadService.DownloadFile(
-				dl.Url, pl.SaveDirectory, pl.OutputFormat, true)
+			downloadItem(dl, &pl)
 		}
 
 	}
@@ -202,4 +203,36 @@ func shouldStopIteration() bool {
 		}
 	}
 	return false
+}
+
+func downloadItem(dl *download.Download, pl *playlist.Playlist) {
+	app.LogService.Info(fmt.Sprintf("Downloading new item: %s", dl.Url))
+	downloadResult, err := app.DownloadService.DownloadFile(
+		dl.Url, pl.SaveDirectory, pl.OutputFormat, true)
+	if err != nil {
+		app.LogService.Error(fmt.Sprintf("Failed to download item %s: %v", dl.Url, err))
+		dl.SetFail(app.DownloadDB, err.Error())
+	} else {
+		// Calculate MD5 of the file
+		md5, err := fileutils.CalculateMD5(downloadResult.FilePath)
+		if err != nil {
+			app.LogService.Error(fmt.Sprintf("Failed to calculate MD5 for item %s: %v", dl.Url, err))
+			err = dl.SetFail(app.DownloadDB, fmt.Sprintf("Failed to calculate MD5: %v", err))
+		} else {
+			fileName := filepath.Base(downloadResult.FilePath)
+			
+			if downloadResult.IsDuplicate {
+				app.LogService.Info(fmt.Sprintf("Duplicate detected for item %s (matches existing file: %s)", dl.Url, downloadResult.DuplicateOf))
+				err = dl.SetSuccessDuplicate(app.DownloadDB, downloadResult.DuplicateOf, md5)
+			} else {
+				app.LogService.Info(fmt.Sprintf("Download successful for item %s, saved to %s", dl.Url, downloadResult.FilePath))
+				err = dl.SetSuccess(app.DownloadDB, fileName, md5)
+			}
+		}
+
+		// Handle DB errors
+		if err != nil {
+			app.LogService.Error(fmt.Sprintf("failed to update database after download %s: %v", dl.Url, err))
+		}
+	}
 }
