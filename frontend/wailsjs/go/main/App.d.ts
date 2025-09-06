@@ -24,7 +24,7 @@ export function GetDaemonLogLines(arg1:number):Promise<Array<string>>;
 
 export function GetDaemonLogLinesWithLevel(arg1:number,arg2:string):Promise<Array<string>>;
 
-export function GetDownloadHistoryPage(arg1:number,arg2:number,arg3:boolean,arg4:boolean):Promise<Array<download.Download>>;
+export function GetDownloadHistoryPage(arg1:number,arg2:number,arg3:boolean,arg4:boolean,arg5:boolean):Promise<Array<download.Download>>;
 
 export function GetLegalDisclaimerAccepted():Promise<boolean>;
 
