@@ -27,11 +27,11 @@ func CalculateMD5(path string) (string, error) {
 
 // sanitizeFilename replaces filesystem-unsafe characters with underscores
 // while preserving Unicode characters like emojis and foreign text.
-// Handles control characters, invisible characters, and caps filename length to 48 characters.
+// Handles control characters, invisible characters, and caps filename length to 96 characters.
 func SanitizeFilename(filename string) string {
-	// Limit string length to 48
-	if len(filename) > 48 {
-		filename = filename[:48]
+	// Limit string length to 96
+	if len(filename) > 96 {
+		filename = filename[:96]
 	}
 
 	// Remove control characters (ASCII 0-31) including NULL byte
