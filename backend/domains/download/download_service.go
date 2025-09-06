@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -163,7 +164,9 @@ func (d *DownloadService) DownloadFile(url, directory, format string) (*Download
 	}
 
 	// Decide available filename, handling duplicate filenames.
-	baseFilename := filepath.Base(videoTitle + "." + strings.ToLower(format))
+	// Sanitize the video title to remove invalid filename characters
+	sanitizedTitle := sanitizeFilename(videoTitle)
+	baseFilename := filepath.Base(sanitizedTitle + "." + strings.ToLower(format))
 	finalPath := filepath.Join(directory, baseFilename)
 	fileNum := 0
 	for fileExists(finalPath) {
@@ -226,4 +229,14 @@ func (d *DownloadService) RegisterAllFailedForRetryManual() error {
 		return fmt.Errorf("failed to register all failed downloads for retry: %w", err)
 	}
 	return d.daemonSignalService.TriggerChange()
+}
+
+// sanitizeFilename replaces invalid filename characters with underscores
+// to ensure compatibility across Windows and Linux filesystems
+func sanitizeFilename(filename string) string {
+	// Replace invalid characters with underscore
+	// Windows invalid characters: < > : " | ? * \ /
+	// We also include some additional characters that might cause issues
+	invalidChars := regexp.MustCompile(`[<>:"/\\|?*]`)
+	return invalidChars.ReplaceAllString(filename, "_")
 }
