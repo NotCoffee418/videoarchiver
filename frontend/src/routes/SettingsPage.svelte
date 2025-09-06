@@ -2,6 +2,7 @@
   import SettingView, { SettingType } from "../components/settings/SettingView.svelte";
   import SettingsGroup from "../components/settings/SettingsGroup.svelte";
   import AllowDuplicatesSetting from "../components/settings/AllowDuplicatesSetting.svelte";
+  import Expander from "../components/Expander.svelte";
   
 </script>
 
@@ -16,6 +17,10 @@
         label="Autoupdate yt-dlp"
         description="This will automatically update yt-dlp when a new version is available"
         type={SettingType.BOOL} />
+    <AllowDuplicatesSetting 
+        key="allow_duplicates"
+        label="Allow Duplicate Downloads"
+        description="Disables duplicate detection, allowing videos to be re-downloaded even if they already exist in your directories." />
 </SettingsGroup>
 
 <SettingsGroup title="SponsorBlock">
@@ -61,10 +66,12 @@
 </SettingsGroup>
 
 <SettingsGroup title="Advanced">
-    <AllowDuplicatesSetting 
-        key="allow_duplicates"
-        label="Allow Duplicate Downloads"
-        description="Disables duplicate detection, allowing videos to be re-downloaded even if they already exist in your directories." />
+    <Expander title="View Advanced Settings">        
+        <div class="advanced-disclaimer">
+            ⚠️ <strong>Warning:</strong> These settings are for advanced users only. Modifying these settings without understanding their impact may cause the application to malfunction. Only change these if you know what you're doing.
+        </div>
+        <!-- Advanced Settings Here -->
+    </Expander>
 </SettingsGroup>
 <!-- Hidden div for development -->
 <!-- <SettingsGroup title="Example Settings">
@@ -125,6 +132,21 @@
     
     .column {
       flex: 1;
+    }
+    
+    .advanced-disclaimer {
+        background-color: rgba(255, 107, 107, 0.1);
+        border: 1px solid rgba(255, 107, 107, 0.3);
+        border-radius: 6px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        color: #ffcccc;
+        font-size: 0.9rem;
+        line-height: 1.5;
+    }
+    
+    .advanced-disclaimer strong {
+        color: #ff6b6b;
     }
     
     @media (max-width: 768px) {
