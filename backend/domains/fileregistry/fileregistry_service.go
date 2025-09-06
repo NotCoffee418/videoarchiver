@@ -236,15 +236,40 @@ func (f *FileRegistryService) ExtractKnownYoutubeUrl(filePath string) (string, e
 	// YouTube regex
 	re := regexp.MustCompile(`https://((www\.youtube\.com/watch\?v=)|(youtu\.be/))([\w-]+)\??(&+)?`)
 
-	// Gather metadata fields to scan
+	// First check standard metadata fields
 	candidates := []string{
 		meta.Comment(),
+		meta.Title(),
+		meta.Album(),
+		meta.Artist(),
+		meta.AlbumArtist(),
+		meta.Composer(),
+		meta.Lyrics(),
 	}
 
-	// Search for a match
+	// Search for a match in standard fields
 	for _, text := range candidates {
 		if match := re.FindString(text); match != "" {
 			return match, nil
+		}
+	}
+
+	// Check raw metadata fields (this is where TXXX frames and other custom fields are stored)
+	raw := meta.Raw()
+	for _, value := range raw {
+		// Check if the value is a string and contains a YouTube URL
+		if strValue, ok := value.(string); ok {
+			if match := re.FindString(strValue); match != "" {
+				return match, nil
+			}
+		}
+		// Some metadata might be stored as []string
+		if strSlice, ok := value.([]string); ok {
+			for _, str := range strSlice {
+				if match := re.FindString(str); match != "" {
+					return match, nil
+				}
+			}
 		}
 	}
 
