@@ -103,15 +103,8 @@ jobs:
           $VERSION = $env:GITHUB_REF -replace 'refs/tags/', ''
           $BUILD_DATE = (Get-Date).ToUniversalTime().ToString('yyyy-MM-dd HH:mm:ss UTC')
           $GIT_COMMIT = git rev-parse HEAD
-
-          # Use proper PowerShell escaping and array for complex arguments
-          $ldflags = @(
-            "-X", "main.Version=$VERSION",
-            "-X", "main.BuildDate=$BUILD_DATE",
-            "-X", "main.GitCommit=$GIT_COMMIT"
-          )
-
-          wails build -nsis -ldflags ($ldflags -join ' ')
+          $ldflags = "-X main.Version=$VERSION -X `"main.BuildDate=$BUILD_DATE`" -X main.GitCommit=$GIT_COMMIT"
+          wails build -nsis -ldflags $ldflags
 
       - name: Get version
         id: get_version
