@@ -3,11 +3,11 @@ name: Release
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - "v*.*.*"
 
 env:
-  GO_VERSION: '1.25'
-  NODE_VERSION: '20'
+  GO_VERSION: "1.25"
+  NODE_VERSION: "20"
 
 jobs:
   build-linux:
@@ -48,7 +48,7 @@ jobs:
           BUILD_DATE=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
           GIT_COMMIT=$(git rev-parse HEAD)
           LDFLAGS="-X main.Version=$VERSION -X 'main.BuildDate=$BUILD_DATE' -X main.GitCommit=$GIT_COMMIT"
-          
+
           if [ "$WEBKIT_TAG" == "webkit2_41" ]; then
             echo "Building with webkit2_41 tag"
             wails build --platform linux/amd64 -tags webkit2_41 -ldflags "$LDFLAGS"
@@ -98,13 +98,20 @@ jobs:
         run: choco install nsis
 
       - name: Build Windows installer
+        shell: pwsh
         run: |
           $VERSION = $env:GITHUB_REF -replace 'refs/tags/', ''
           $BUILD_DATE = (Get-Date).ToUniversalTime().ToString('yyyy-MM-dd HH:mm:ss UTC')
           $GIT_COMMIT = git rev-parse HEAD
-          $LDFLAGS = "-X main.Version=$VERSION -X `"main.BuildDate=$BUILD_DATE`" -X main.GitCommit=$GIT_COMMIT"
-          
-          wails build -nsis -ldflags $LDFLAGS
+
+          # Use proper PowerShell escaping and array for complex arguments
+          $ldflags = @(
+            "-X", "main.Version=$VERSION",
+            "-X", "main.BuildDate=$BUILD_DATE",
+            "-X", "main.GitCommit=$GIT_COMMIT"
+          )
+
+          wails build -nsis -ldflags ($ldflags -join ' ')
 
       - name: Get version
         id: get_version
@@ -137,10 +144,10 @@ jobs:
       - name: Prepare release assets
         run: |
           mkdir -p release-assets
-          
+
           # Copy Linux binary
           cp artifacts/linux-amd64-binary/videoarchiver-linux-amd64 release-assets/
-          
+
           # Find and copy Windows installer (specifically look for -installer.exe)
           INSTALLER_PATH=$(find artifacts/windows-installer -name "*-installer.exe" | head -1)
           cp "$INSTALLER_PATH" "release-assets/videoarchiver-windows-installer.exe"
