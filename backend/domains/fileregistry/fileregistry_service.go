@@ -21,22 +21,25 @@ func NewFileRegistryService(dbService *db.DatabaseService) *FileRegistryService 
 }
 
 // GetByMD5 returns the first registered file with the given MD5 hash
-func (f *FileRegistryService) GetByMD5(md5Hash string) (*RegisteredFile, error) {
-	row := f.db.QueryRow(
-		"SELECT id, filename, file_path, md5, registered_at FROM file_registry WHERE md5 = ? LIMIT 1",
-		md5Hash,
-	)
-	
-	var file RegisteredFile
-	err := row.Scan(&file.ID, &file.Filename, &file.FilePath, &file.MD5, &file.RegisteredAt)
+func (f *FileRegistryService) CheckForDuplicateInFileRegistry(fileMD5 string) (bool, error) {
+	var id int
+
+	// Query downloads table for matching MD5
+	err := f.db.QueryRow(
+		"SELECT 1 FROM file_registry WHERE md5 = ? LIMIT 1",
+		fileMD5,
+	).Scan(&id)
+
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, nil // No duplicate found
+			return false, nil // No duplicate found
 		}
-		return nil, err
+		// Actual error occurred
+		return false, err
 	}
-	
-	return &file, nil
+
+	// Duplicate found
+	return true, nil
 }
 
 // RegisterFile adds a new file to the registry
@@ -58,7 +61,7 @@ func (f *FileRegistryService) GetAllPaginated(offset, limit int) ([]RegisteredFi
 		return nil, err
 	}
 	defer rows.Close()
-	
+
 	var files []RegisteredFile
 	for rows.Next() {
 		var file RegisteredFile
@@ -68,7 +71,7 @@ func (f *FileRegistryService) GetAllPaginated(offset, limit int) ([]RegisteredFi
 		}
 		files = append(files, file)
 	}
-	
+
 	return files, nil
 }
 
@@ -87,63 +90,63 @@ func (f *FileRegistryService) RegisterDirectoryWithProgress(directoryPath string
 	if progressCallback != nil {
 		progressCallback(0, "Initializing directory registration...")
 	}
-	
+
 	// Trim and validate directory path
 	directoryPath = strings.TrimSpace(directoryPath)
 	logService.Info(fmt.Sprintf("Starting directory registration for: '%s' (length: %d)", directoryPath, len(directoryPath)))
-	
+
 	if directoryPath == "" {
 		return fmt.Errorf("directory path is empty")
 	}
-	
+
 	if _, err := os.Stat(directoryPath); os.IsNotExist(err) {
 		return fmt.Errorf("directory does not exist: %s", directoryPath)
 	}
-	
+
 	// Step 2: Scan directory to count files
 	if progressCallback != nil {
 		progressCallback(10, "Scanning directory structure...")
 	}
-	
+
 	var allFiles []string
 	err := filepath.Walk(directoryPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			logService.Warn(fmt.Sprintf("Error accessing path %s: %v", path, err))
 			return nil // Continue walking, don't fail on individual file errors
 		}
-		
+
 		if !info.IsDir() {
 			allFiles = append(allFiles, path)
 		}
 		return nil
 	})
-	
+
 	if err != nil {
 		return fmt.Errorf("failed to scan directory: %w", err)
 	}
-	
+
 	totalFiles := len(allFiles)
 	logService.Info(fmt.Sprintf("Found %d files to register", totalFiles))
-	
+
 	if totalFiles == 0 {
 		if progressCallback != nil {
 			progressCallback(100, "No files found in directory")
 		}
 		return nil
 	}
-	
+
 	// Step 3: Process files with progress updates
 	registeredCount := 0
 	errorCount := 0
-	
+
 	for i, filePath := range allFiles {
 		// Calculate progress (20% for setup, 80% for file processing)
 		progressPercent := 20 + int(float64(i)/float64(totalFiles)*80)
-		
+
 		if progressCallback != nil {
 			progressCallback(progressPercent, fmt.Sprintf("Processing file %d of %d: %s", i+1, totalFiles, filepath.Base(filePath)))
 		}
-		
+
 		// Calculate MD5 hash
 		md5Hash, err := fileutils.CalculateMD5(filePath)
 		if err != nil {
@@ -151,7 +154,7 @@ func (f *FileRegistryService) RegisterDirectoryWithProgress(directoryPath string
 			errorCount++
 			continue
 		}
-		
+
 		// Register the file
 		filename := filepath.Base(filePath)
 		err = f.RegisterFile(filename, filePath, md5Hash)
@@ -160,11 +163,11 @@ func (f *FileRegistryService) RegisterDirectoryWithProgress(directoryPath string
 			errorCount++
 			continue
 		}
-		
+
 		registeredCount++
 		logService.Debug(fmt.Sprintf("Registered file: %s (MD5: %s)", filePath, md5Hash))
 	}
-	
+
 	// Final progress update
 	if progressCallback != nil {
 		var message string
@@ -175,7 +178,7 @@ func (f *FileRegistryService) RegisterDirectoryWithProgress(directoryPath string
 		}
 		progressCallback(100, message)
 	}
-	
+
 	logService.Info(fmt.Sprintf("Directory registration completed: %d files registered, %d errors", registeredCount, errorCount))
 	return nil
 }

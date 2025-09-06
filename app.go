@@ -449,11 +449,20 @@ func (a *App) SetSettingPreparsed(key string, value string) error {
 }
 
 func (a *App) DirectDownload(url, directory, format string) (string, error) {
-	result, err := a.DownloadService.DownloadFile(url, directory, format, false)
+	// Download File
+	result, err := a.DownloadService.DownloadFile(url, directory, format)
 	if err != nil {
 		return "", err
 	}
-	return result.FilePath, nil
+
+	// Move to final location
+	err = result.MoveToFinalLocation(directory)
+	if err != nil {
+		return "", err
+	}
+
+	// Return final path
+	return result.FinalFullPath, nil
 }
 
 func (a *App) GetDownloadHistoryPage(offset int, limit int, showSuccess, showFailed bool) ([]download.Download, error) {
@@ -470,8 +479,11 @@ func (a *App) RegisterAllFailedForRetryManual() error {
 
 func (a *App) StartDaemon() error {
 	if a.isDaemonRunning {
+		a.LogService.Info("StartDaemon called but daemon is already running")
 		return nil
 	}
+
+	a.LogService.Info("Starting daemon process...")
 
 	switch goruntime.GOOS {
 	case "windows":
@@ -490,6 +502,7 @@ func (a *App) StartDaemon() error {
 		if !a.IsDaemonRunning() {
 			return fmt.Errorf("daemon process failed to start")
 		}
+		a.LogService.Info("Daemon process started successfully")
 
 	case "linux":
 		err := runner.RunAndWait("systemctl", "start", LinuxServiceName)
@@ -499,6 +512,11 @@ func (a *App) StartDaemon() error {
 			if err != nil {
 				return fmt.Errorf("failed to start daemon: %v", err)
 			}
+			time.Sleep(500 * time.Millisecond)
+			if !a.IsDaemonRunning() {
+				return fmt.Errorf("daemon process failed to start")
+			}
+			a.LogService.Info("Daemon process started successfully via direct execution")
 		}
 	default:
 		return fmt.Errorf("unsupported operating system: %s", goruntime.GOOS)
@@ -590,30 +608,19 @@ func (a *App) GetUILogLinesWithLevel(lines int, minLevel string) ([]string, erro
 }
 
 func (a *App) IsDaemonRunning() bool {
-	fmt.Printf("IsDaemonRunning called for mode: %s\n", a.mode)
 	switch goruntime.GOOS {
 	case "windows":
 		selfPid := os.Getpid()
-		fmt.Printf("Current process PID: %d\n", selfPid)
 		processes, err := process.Processes()
 		if err != nil {
-			if a.LogService != nil {
-				a.LogService.Error(fmt.Sprintf("Error getting process list: %v", err))
-			}
-			fmt.Printf("Error getting process list: %v\n", err)
 			return false
 		}
 
 		selfExe, err := os.Executable()
 		if err != nil {
-			if a.LogService != nil {
-				a.LogService.Error(fmt.Sprintf("Error getting executable path: %v", err))
-			}
-			fmt.Printf("Error getting executable path: %v\n", err)
 			return false
 		}
 		selfExe = strings.ToLower(selfExe)
-		fmt.Printf("Current executable path: %s\n", selfExe)
 
 		for _, p := range processes {
 			if int32(selfPid) == p.Pid {
@@ -630,10 +637,6 @@ func (a *App) IsDaemonRunning() bool {
 
 			// Check if it's our executable AND it's running in daemon mode
 			if exe == selfExe && strings.Contains(cmdline, "--mode daemon") {
-				fmt.Printf("Found daemon process: PID=%d CMD=%s\n", p.Pid, cmdline)
-				if a.LogService != nil {
-					a.LogService.Debug(fmt.Sprintf("Found daemon process: PID=%d CMD=%s", p.Pid, cmdline))
-				}
 				return true
 			}
 		}

@@ -93,13 +93,13 @@
     function openClearModal() {
         showClearModal = true;
         modalError = null;
-        const dialog = /** @type {HTMLDialogElement} */ (document.querySelector('dialog#register-directory-dialog'));
+        const dialog = /** @type {HTMLDialogElement} */ (document.querySelector('dialog#clear-all-dialog'));
         if (dialog) dialog.showModal();
     }
 
     function closeClearModal() {
         showClearModal = false;
-        const dialog = /** @type {HTMLDialogElement} */ (document.querySelector('dialog#register-directory-dialog'));
+        const dialog = /** @type {HTMLDialogElement} */ (document.querySelector('dialog#clear-all-dialog'));
         if (dialog) dialog.close();
         modalError = null;
         modalProcessing = false;
