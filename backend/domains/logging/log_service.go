@@ -292,7 +292,7 @@ func (l *LogService) GetLogLinesFromFileWithLevel(filename string, lines int, mi
 }
 
 // ClearLogsOlderThanDays removes log entries older than the specified number of days
-// It handles concurrent access by creating a temporary file and atomically replacing the original
+// It modifies the original file in place by truncating and rewriting filtered content
 func (l *LogService) ClearLogsOlderThanDays(filename string, days int) error {
 	// Get proper log file path using pathing system
 	logFilePath, err := pathing.GetWorkingFile(filename)
@@ -375,48 +375,30 @@ func (l *LogService) ClearLogsOlderThanDays(filename string, days int) error {
 		return nil
 	}
 
-	// Create temporary file for atomic replacement
-	tmpFile := logFilePath + ".tmp"
-	tempHandle, err := os.Create(tmpFile)
+	// Open the original file for writing (truncates the file)
+	writeFile, err := os.OpenFile(logFilePath, os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
-		return fmt.Errorf("failed to create temporary file: %w", err)
+		return fmt.Errorf("failed to open log file for writing: %w", err)
 	}
+	defer writeFile.Close()
 
-	// Write filtered content to temporary file
+	// Write filtered content directly to the original file
 	for i, line := range filteredLines {
 		if i > 0 {
-			if _, err := tempHandle.WriteString("\n"); err != nil {
-				tempHandle.Close()
-				os.Remove(tmpFile)
-				return fmt.Errorf("failed to write to temporary file: %w", err)
+			if _, err := writeFile.WriteString("\n"); err != nil {
+				return fmt.Errorf("failed to write to log file: %w", err)
 			}
 		}
-		if _, err := tempHandle.WriteString(line); err != nil {
-			tempHandle.Close()
-			os.Remove(tmpFile)
-			return fmt.Errorf("failed to write to temporary file: %w", err)
+		if _, err := writeFile.WriteString(line); err != nil {
+			return fmt.Errorf("failed to write to log file: %w", err)
 		}
 	}
 
 	// Add final newline if we have content
 	if len(filteredLines) > 0 {
-		if _, err := tempHandle.WriteString("\n"); err != nil {
-			tempHandle.Close()
-			os.Remove(tmpFile)
-			return fmt.Errorf("failed to write final newline to temporary file: %w", err)
+		if _, err := writeFile.WriteString("\n"); err != nil {
+			return fmt.Errorf("failed to write final newline to log file: %w", err)
 		}
-	}
-
-	// Close temporary file
-	if err := tempHandle.Close(); err != nil {
-		os.Remove(tmpFile)
-		return fmt.Errorf("failed to close temporary file: %w", err)
-	}
-
-	// Atomically replace original file with temporary file
-	if err := os.Rename(tmpFile, logFilePath); err != nil {
-		os.Remove(tmpFile)
-		return fmt.Errorf("failed to replace log file: %w", err)
 	}
 
 	return nil
