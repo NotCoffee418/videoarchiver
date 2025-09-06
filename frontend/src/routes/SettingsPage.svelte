@@ -66,7 +66,10 @@
 </SettingsGroup>
 
 <SettingsGroup title="Advanced">
-    <Expander>
+    <div class="advanced-disclaimer">
+        ⚠️ <strong>Warning:</strong> These settings are for advanced users only. Modifying these settings without understanding their impact may cause the application to malfunction. Only change these if you know what you're doing.
+    </div>
+    <Expander title="Configuration">
         <SettingView 
             key="autostart_service_demo"
             label="Autostart Downloader Service"
@@ -133,6 +136,21 @@
     
     .column {
       flex: 1;
+    }
+    
+    .advanced-disclaimer {
+        background-color: rgba(255, 107, 107, 0.1);
+        border: 1px solid rgba(255, 107, 107, 0.3);
+        border-radius: 6px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        color: #ffcccc;
+        font-size: 0.9rem;
+        line-height: 1.5;
+    }
+    
+    .advanced-disclaimer strong {
+        color: #ff6b6b;
     }
     
     @media (max-width: 768px) {

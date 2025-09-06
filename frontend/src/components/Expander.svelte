@@ -3,6 +3,8 @@
   let { 
     /** @type {boolean} */
     expanded = false,
+    /** @type {string} */
+    title = "Settings",
     children
   } = $props();
 
@@ -14,7 +16,7 @@
 <div class="expander">
   <button class="expander-header" onclick={toggle}>
     <span class="expander-icon" class:expanded>{expanded ? '▼' : '▶'}</span>
-    <span>Advanced Settings</span>
+    <span>{title}</span>
   </button>
   
   {#if expanded}
