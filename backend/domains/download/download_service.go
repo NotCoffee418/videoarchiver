@@ -203,8 +203,8 @@ func CalculateMD5(path string) (string, error) {
 	return fileutils.CalculateMD5(path)
 }
 
-func (d *DownloadService) HasFileRegistryDuplicate(fileMD5 string, youtubeUrl ...string) (bool, error) {
-	return d.fileRegistryService.CheckForDuplicateInFileRegistry(fileMD5, youtubeUrl...)
+func (d *DownloadService) HasFileRegistryDuplicate(fileMD5 string, youtubeUrl string) (bool, error) {
+	return d.fileRegistryService.CheckForDuplicateInFileRegistry(fileMD5, youtubeUrl)
 }
 
 func (d *DownloadService) HasDownloadsDuplicate(fileMD5 string, ignoredOwnId int) (bool, int, error) {
