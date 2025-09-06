@@ -69,10 +69,12 @@ Key components:
 When adding new exported functions to `app.go` that will be called from the frontend, you must also add corresponding TypeScript definitions to `frontend/src/vite-env.d.ts`.
 
 **Process:**
+
 1. Add your public function to `app.go` (functions that start with capital letters are automatically bound by Wails)
 2. Add the corresponding TypeScript definition to `vite-env.d.ts` in the `App` interface
 
 **TypeScript Mapping Patterns:**
+
 - Go `func() error` → TypeScript `() => Promise<void>`
 - Go `func() (string, error)` → TypeScript `() => Promise<string>`
 - Go `func() ([]Type, error)` → TypeScript `() => Promise<Array<any>>` (or specific type if available)
@@ -80,6 +82,7 @@ When adding new exported functions to `app.go` that will be called from the fron
 - Go `func(id int, name string) error` → TypeScript `(arg1: number, arg2: string) => Promise<void>`
 
 **Example:**
+
 ```go
 // In app.go
 func (a *App) GetUserName(id int) (string, error) {
@@ -112,10 +115,12 @@ This ensures proper TypeScript support and IDE autocompletion for Wails backend 
 The application uses a file-based locking system to coordinate between UI and daemon modes:
 
 **Lock File Location:**
+
 - Windows: `%LOCALAPPDATA%/videoarchiver/.lock`
 - Linux: `$HOME/.local/share/videoarchiver/.lock`
 
 **How It Works:**
+
 - When daemon mode starts (`go run . --mode daemon`), it creates a `.lock` file containing a timestamp
 - This prevents multiple daemon instances from running simultaneously
 - UI mode waits for the daemon lock to be released before proceeding (up to 10 minutes timeout)
@@ -126,6 +131,7 @@ The application uses a file-based locking system to coordinate between UI and da
 **Always remove the lock file before manual testing if it exists.** If you interrupt daemon mode (Ctrl+C, kill process, crash), the lock file may remain and cause subsequent tests to wait unnecessarily.
 
 **Quick lock file removal commands:**
-- Windows: `del "%LOCALAPPDATA%\videoarchiver\.lock"` 
+
+- Windows: `del "%LOCALAPPDATA%\videoarchiver\.lock"`
 - Linux: `rm "$HOME/.local/share/videoarchiver/.lock"`
 - Or use: `go run . --mode daemon` (will detect and remove stale locks automatically)

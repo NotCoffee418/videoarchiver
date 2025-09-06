@@ -49,7 +49,7 @@ Download the latest release for your platform from the [Releases page](https://g
 
 Requirements:
 - Go 1.25+
-- Node.js 20+
+- Node.js 22
 - Wails v2: `go install github.com/wailsapp/wails/v2/cmd/wails@latest`
 
 ```bash

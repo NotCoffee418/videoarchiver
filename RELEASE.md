@@ -48,14 +48,14 @@ Examples of invalid tags (won't trigger):
 The workflow performs the following steps:
 
 1. **Linux builds**:
-   - Sets up Go 1.25 and Node.js 20
+   - Sets up Go 1.25 and Node.js 22
    - Installs required GTK and WebKit dependencies
    - Installs Wails v2
    - Builds for amd64 architecture
    - Creates compressed tarball
 
 2. **Windows build**:
-   - Sets up Go 1.25 and Node.js 20 on Windows runner
+   - Sets up Go 1.25 and Node.js 22 on Windows runner
    - Installs Wails v2
    - Builds with NSIS installer (`wails build -nsis`)
    - Generates .exe installer
