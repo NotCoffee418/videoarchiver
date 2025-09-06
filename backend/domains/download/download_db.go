@@ -83,7 +83,11 @@ func (d *DownloadDB) scanRows(rows *sql.Rows) ([]Download, error) {
 	return downloads, nil
 }
 
-func (d *Download) SetSuccess(dlDB *DownloadDB, outputFilename string, md5 string) error {
+func (d *Download) SetSuccess(
+	dlDB *DownloadDB,
+	outputFilename string,
+	md5 string,
+) error {
 	d.Status = StSuccess
 	d.MD5 = sql.NullString{String: md5, Valid: true}
 	d.OutputFilename = sql.NullString{String: outputFilename, Valid: true}
@@ -100,7 +104,9 @@ func (d *Download) SetSuccess(dlDB *DownloadDB, outputFilename string, md5 strin
 	return err
 }
 
-func (d *Download) SetSuccessDuplicate(dlDB *DownloadDB, outputFilename string, md5 string) error {
+func (d *Download) SetSuccessDuplicate(
+	dlDB *DownloadDB, outputFilename string, md5 string,
+) error {
 	d.Status = StSuccessDuplicate
 	d.MD5 = sql.NullString{String: md5, Valid: true}
 	d.OutputFilename = sql.NullString{String: outputFilename, Valid: true}
@@ -117,7 +123,10 @@ func (d *Download) SetSuccessDuplicate(dlDB *DownloadDB, outputFilename string, 
 	return err
 }
 
-func (d *Download) SetFail(dlDB *DownloadDB, failMessage string) error {
+func (d *Download) SetFail(
+	dlDB *DownloadDB,
+	failMessage string,
+) error {
 	d.AttemptCount += 1
 	if d.AttemptCount > MaxRetryCount {
 		d.Status = StFailedGiveUp
@@ -137,6 +146,7 @@ func (d *Download) SetFail(dlDB *DownloadDB, failMessage string) error {
 	} else {
 		err = d.updateDownload(dlDB)
 	}
+
 	return err
 }
 
@@ -176,18 +186,27 @@ func (d *Download) updateDownload(dlDB *DownloadDB) error {
 }
 
 // CheckForDuplicateInDownloads checks if any existing download has the same MD5
-func (d *DownloadDB) CheckForDuplicateInDownloads(fileMD5 string) (bool, error) {
-	// Query downloads table for matching MD5
-	rows, err := d.db.Query(
-		"SELECT 1 FROM downloads WHERE md5 = ? LIMIT 1",
-		fileMD5,
-	)
-	if err != nil {
-		return false, err
-	}
-	defer rows.Close()
+// Returns: exists (bool), id (int), error
+func (d *DownloadDB) CheckForDuplicateInDownloads(fileMD5 string) (bool, int, error) {
+	var id int
 
-	return rows.Next(), nil
+	// Query downloads table for matching MD5
+	err := d.db.QueryRow(
+		"SELECT id FROM downloads WHERE md5 = ? LIMIT 1",
+		fileMD5,
+	).Scan(&id)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// No duplicate found
+			return false, 0, nil
+		}
+		// Actual error occurred
+		return false, 0, err
+	}
+
+	// Duplicate found
+	return true, id, nil
 }
 
 // Removes excessive error message parts

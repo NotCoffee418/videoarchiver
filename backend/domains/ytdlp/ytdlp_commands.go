@@ -13,6 +13,7 @@ type LogServiceInterface interface {
 	Info(message string)
 	Warn(message string)
 	Error(message string)
+	Fatal(message string)
 }
 
 // Get minimal playlist info

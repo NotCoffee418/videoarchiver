@@ -449,11 +449,20 @@ func (a *App) SetSettingPreparsed(key string, value string) error {
 }
 
 func (a *App) DirectDownload(url, directory, format string) (string, error) {
-	result, err := a.DownloadService.DownloadFile(url, directory, format, false)
+	// Download File
+	result, err := a.DownloadService.DownloadFile(url, directory, format)
 	if err != nil {
 		return "", err
 	}
-	return result.FilePath, nil
+
+	// Move to final location
+	resultFilePath, err := result.MoveToFinalLocation(directory)
+	if err != nil {
+		return "", err
+	}
+
+	// Return final path
+	return resultFilePath, nil
 }
 
 func (a *App) GetDownloadHistoryPage(offset int, limit int, showSuccess, showFailed bool) ([]download.Download, error) {
