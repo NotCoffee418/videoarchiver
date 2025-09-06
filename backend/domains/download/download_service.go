@@ -163,7 +163,9 @@ func (d *DownloadService) DownloadFile(url, directory, format string) (*Download
 	}
 
 	// Decide available filename, handling duplicate filenames.
-	baseFilename := filepath.Base(videoTitle + "." + strings.ToLower(format))
+	// Sanitize the video title to remove invalid filename characters and cap length to 48 chars
+	sanitizedTitle := fileutils.SanitizeFilename(videoTitle)
+	baseFilename := filepath.Base(sanitizedTitle + "." + strings.ToLower(format))
 	finalPath := filepath.Join(directory, baseFilename)
 	fileNum := 0
 	for fileExists(finalPath) {
