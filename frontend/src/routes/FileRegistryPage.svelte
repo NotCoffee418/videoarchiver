@@ -106,7 +106,8 @@
     }
 
     async function handleRegisterDirectory() {
-        if (!selectedDirectory || selectedDirectory.trim() === "") {
+        const dir = selectedDirectory + "";
+        if (!dir || dir.trim() === "") {
             modalError = "Please select a directory first";
             return;
         }
@@ -123,14 +124,8 @@
         // Show progress modal
         showProgressModal = true;
         
-        // Ensure we pass a clean string value and log for debugging
-        const directoryPath = String(selectedDirectory).trim();
-        console.log("About to register directory:", directoryPath);
-        console.log("Directory path type:", typeof directoryPath);
-        console.log("Directory path length:", directoryPath.length);
-        
         try {
-            await window.go.main.App.RegisterDirectory(directoryPath);
+            await window.go.main.App.RegisterDirectory(dir);
             // Don't handle success here - let the progress modal handle completion events
         } catch (error) {
             console.error("RegisterDirectory function threw error:", error);
@@ -173,8 +168,6 @@
 
     async function setDirectory(newPath) {
         console.log("setDirectory called with:", newPath);
-        console.log("setDirectory path type:", typeof newPath);
-        console.log("setDirectory path length:", newPath ? newPath.length : "undefined");
         
         if (!newPath || newPath.trim() === "") {
             modalError = "Invalid directory path selected";
@@ -182,20 +175,6 @@
         }
         selectedDirectory = String(newPath).trim();
         console.log("selectedDirectory set to:", selectedDirectory);
-        console.log("selectedDirectory length:", selectedDirectory.length);
-    }
-
-    async function testModal() {
-        console.log("Test Modal button clicked");
-        // Show progress modal directly
-        showProgressModal = true;
-        
-        try {
-            await window.go.main.App.TestModalProgress();
-        } catch (error) {
-            console.error("Failed to test modal:", error);
-            showProgressModal = false;
-        }
     }
 </script>
 
@@ -215,7 +194,6 @@
     <div class="actions">
         <button class="register-btn" onclick={openRegisterModal}>Register Directory</button>
         <button class="clear-btn" onclick={openClearModal}>Clear All Registered Files</button>
-        <button class="test-btn" onclick={testModal}>Test Modal</button>
     </div>
 
     {#if loading}
@@ -234,7 +212,7 @@
                             <div class="filename">{file.filename}</div>
                             <div class="file-path">{file.file_path}</div>
                             <div class="meta-section">
-                                <div class="hash">MD5: {file.md5_hash}</div>
+                                <div class="hash">MD5: {file.md5}</div>
                                 <div class="timestamp">{formatTimestamp(file.registered_at)}</div>
                             </div>
                         </div>
