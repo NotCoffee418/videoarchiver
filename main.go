@@ -75,6 +75,7 @@ func runDaemon(app *App) {
 	}
 	earlyLogger.Info("Log cleanup completed")
 
+	earlyLogger.Info(fmt.Sprintf("Application version: %s", GetVersionInfo()))
 	earlyLogger.Info("Initializing application")
 	app.startup(context.Background())
 	

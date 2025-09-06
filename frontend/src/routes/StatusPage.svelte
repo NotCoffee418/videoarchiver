@@ -8,13 +8,24 @@
     let loading = $state(false);
     let error = $state('');
     let minLogLevel = $state('info'); // Default to INFO level
+    let version = $state('Loading...');
 
     onMount(() => {
+        loadVersion();
         loadLogs();
         // Refresh logs every 10 seconds
         const interval = setInterval(loadLogs, 10000);
         return () => clearInterval(interval);
     });
+
+    async function loadVersion() {
+        try {
+            version = await window.go.main.App.GetVersion();
+        } catch (err) {
+            console.error("Failed to load version:", err);
+            version = 'Unknown';
+        }
+    }
 
     async function loadLogs() {
         try {
@@ -88,6 +99,13 @@
 
 <div class="container">
     <h1>Status</h1>
+    
+    <section class="version-section">
+        <div class="version-info">
+            <span class="version-label">Version:</span>
+            <span class="version-value">{version}</span>
+        </div>
+    </section>
 
     <section class="daemon-section">
         <DaemonManagement />
@@ -238,6 +256,31 @@
 
     h1 {
         margin-bottom: 1.5rem;
+    }
+
+    .version-section {
+        margin-bottom: 1.5rem;
+        padding: 1rem;
+        background: #151515;
+        border: 1px solid #2a2a2a;
+        border-radius: 8px;
+    }
+
+    .version-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .version-label {
+        font-weight: 600;
+        color: #b0b0b0;
+    }
+
+    .version-value {
+        font-family: 'Courier New', monospace;
+        color: #4CAF50;
+        font-weight: 500;
     }
 
     .daemon-section {

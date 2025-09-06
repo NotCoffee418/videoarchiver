@@ -86,6 +86,9 @@ func (a *App) startup(ctx context.Context) {
 	// Initialize logging service early so it can be used throughout startup
 	a.LogService = logging.NewLogService(a.mode)
 	a.LogService.Info(fmt.Sprintf("Starting application startup for mode: %s", a.mode))
+	
+	// Log application version
+	a.LogService.Info(fmt.Sprintf("Application version: %s", GetVersionInfo()))
 
 	// Add panic catcher with logging
 	defer func() {
@@ -760,4 +763,9 @@ func (a *App) RegisterDirectory(directoryPath string) error {
 func (a *App) ClearAllRegisteredFiles() error {
 	a.LogService.Info("Clearing all registered files")
 	return a.FileRegistryService.ClearAll()
+}
+
+// GetVersion returns the application version for frontend display
+func (a *App) GetVersion() string {
+	return GetVersionInfo()
 }

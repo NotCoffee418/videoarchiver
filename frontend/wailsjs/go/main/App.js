@@ -126,6 +126,10 @@ export function StopDaemon() {
   return window['go']['main']['App']['StopDaemon']();
 }
 
+export function GetVersion() {
+  return window['go']['main']['App']['GetVersion']();
+}
+
 export function UpdatePlaylistDirectory(arg1, arg2) {
   return window['go']['main']['App']['UpdatePlaylistDirectory'](arg1, arg2);
 }
