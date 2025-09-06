@@ -94,6 +94,9 @@ jobs:
       - name: Install frontend dependencies
         run: cd frontend && npm install
 
+      - name: Install NSIS
+        run: choco install nsis
+
       - name: Build Windows installer
         run: |
           $VERSION = $env:GITHUB_REF -replace 'refs/tags/', ''
