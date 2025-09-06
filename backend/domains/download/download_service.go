@@ -141,7 +141,6 @@ func (d *DownloadService) DownloadFile(url, directory, format string) (*Download
 
 	// Set temp path for the file
 	tmpFile := filepath.Join(os.TempDir(), fmt.Sprintf("videoarchiver-download-%d.%s", time.Now().UnixNano(), format))
-	defer os.Remove(tmpFile)
 
 	// Download to temp path
 	outputString, err := ytdlp.DownloadFile(d.settingsService, url, tmpFile, format, d.logService)
@@ -191,6 +190,8 @@ func (dlR *DownloadResult) MoveToFinalLocation(finalDir string) (string, error) 
 	if err != nil {
 		return "", fmt.Errorf("download service: failed to move file: %w", err)
 	}
+	// Clean up temp file if it still exists
+	os.Remove(dlR.TempFilePath)
 	return dlR.FinalFullPath, nil
 }
 
