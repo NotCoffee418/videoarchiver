@@ -14,6 +14,7 @@ import (
 	"videoarchiver/backend/domains/playlist"
 	"videoarchiver/backend/domains/settings"
 	"videoarchiver/backend/domains/ytdlp"
+	"videoarchiver/backend/domains/runner"
 
 	cp "github.com/otiai10/copy"
 )
@@ -122,6 +123,17 @@ func (d *DownloadService) ArchiveDownloadFile(dl *Download, pl *playlist.Playlis
 		}
 	}
 
+	// Check file for corruption before moving to final location
+	d.logService.Info(fmt.Sprintf("Checking file integrity for %s", dl.Url))
+	err = checkFileCorruption(dlR.TempFilePath)
+	if err != nil {
+		d.logService.Error(fmt.Sprintf("File corruption detected for %s: %v", dl.Url, err))
+		dl.SetFail(d.downloadDB, fmt.Sprintf("file corruption detected: %v", err))
+		// Clean up corrupted temp file
+		os.Remove(dlR.TempFilePath)
+		return
+	}
+
 	// Move to final location
 	err = dlR.MoveToFinalLocation(pl.SaveDirectory)
 	if err != nil {
@@ -214,6 +226,28 @@ func (d *DownloadService) HasDownloadsDuplicate(fileMD5 string, ignoredOwnId int
 func fileExists(path string) bool {
 	_, err := os.Stat(path)
 	return !os.IsNotExist(err)
+}
+
+// checkFileCorruption checks if a downloaded file is corrupted using ffmpeg
+// Returns error if file is corrupted or if ffmpeg check fails
+func checkFileCorruption(filePath string) error {
+	// Get ffmpeg path
+	ffmpegPath, err := ytdlp.GetFfmpegPath()
+	if err != nil {
+		return fmt.Errorf("failed to get ffmpeg path: %w", err)
+	}
+
+	// Run ffmpeg corruption check: ffmpeg -v error -i <file> -f null -
+	// This command will return non-zero exit code if the file is corrupted
+	// -v error: only show errors
+	// -f null: output to null (discard output)
+	// - : output to stdout (which is discarded by null format)
+	_, err = runner.RunCombinedOutput(ffmpegPath, "-v", "error", "-i", filePath, "-f", "null", "-")
+	if err != nil {
+		return fmt.Errorf("file corruption detected: %w", err)
+	}
+
+	return nil
 }
 
 func (d *DownloadService) SetManualRetry(downloadId int) error {
