@@ -13,15 +13,18 @@ import (
 type PlaylistService struct {
 	db              *PlaylistDB
 	daemonSignalSvc *daemonsignal.DaemonSignalService
+	LogService      ytdlp.LogServiceInterface
 }
 
 func NewPlaylistService(
 	db *PlaylistDB,
 	daemonSignalSvc *daemonsignal.DaemonSignalService,
+	logSvc ytdlp.LogServiceInterface,
 ) *PlaylistService {
 	return &PlaylistService{
 		db:              db,
 		daemonSignalSvc: daemonSignalSvc,
+		LogService:      logSvc,
 	}
 }
 
@@ -45,7 +48,7 @@ func (p *PlaylistService) TryAddNewPlaylist(url, directory, format string) error
 	// Get thumbnail
 	thumbnailBase64, err := imaging.GetBase64Thumb(plInfo.ThumbnailURL)
 	if err != nil {
-		return err
+		p.LogService.Warn(fmt.Sprintf("Failed to fetch playlist thumbnail: %v", err))
 	}
 
 	// Duplicate check

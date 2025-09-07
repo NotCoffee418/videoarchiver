@@ -138,7 +138,7 @@ func (a *App) startup(ctx context.Context) {
 
 	// Create PlaylistDB using dbService
 	a.PlaylistDB = playlist.NewPlaylistDB(dbService)
-	a.PlaylistService = playlist.NewPlaylistService(a.PlaylistDB, a.DaemonSignalService)
+	a.PlaylistService = playlist.NewPlaylistService(a.PlaylistDB, a.DaemonSignalService, a.LogService)
 
 	// Create DownloadService using dbService
 	a.DownloadDB = download.NewDownloadDB(dbService)
