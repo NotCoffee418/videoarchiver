@@ -11,6 +11,7 @@ Video Archiver automatically downloads new videos from your playlists in the bac
 - **Direct Downloads**: Manual download option for individual videos
 - **Background Processing**: Runs in the background
 - **Format Options**: Choose your preferred format per playlist
+- **File Registry**: Builds a file registry from directories to enable additional duplicate detection.
 
 ## Installation
 
