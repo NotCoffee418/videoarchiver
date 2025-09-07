@@ -2,6 +2,7 @@ package download
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -231,6 +232,8 @@ func fileExists(path string) bool {
 // CheckFileCorruption checks if a downloaded file is corrupted using ffmpeg
 // Returns error if file is corrupted or if ffmpeg check fails
 func CheckFileCorruption(filePath string) error {
+	corruptionMessage := "file was corrupted. possibly soundcloud premium content but cookies not set up."
+
 	// Get ffmpeg path
 	ffmpegPath, err := ytdlp.GetFfmpegPath()
 	if err != nil {
@@ -244,10 +247,7 @@ func CheckFileCorruption(filePath string) error {
 
 	// If runner returned an error, ffmpeg exited non-zero (corruption detected)
 	if err != nil {
-		if resultString != "" {
-			return fmt.Errorf("file is corrupted: %s", resultString)
-		}
-		return fmt.Errorf("file is corrupted: %w", err)
+		return errors.New(corruptionMessage)
 	}
 
 	// ffmpeg succeeded (exit code 0) but check stderr for warnings
@@ -260,7 +260,7 @@ func CheckFileCorruption(filePath string) error {
 		resultLower := strings.ToLower(resultString)
 		for _, part := range failParts {
 			if strings.Contains(resultLower, part) {
-				return fmt.Errorf("file has corruption warnings: %s", resultString)
+				return errors.New(corruptionMessage)
 			}
 		}
 	}
