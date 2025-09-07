@@ -24,7 +24,7 @@ func NewFileRegistryService(dbService *db.DatabaseService) *FileRegistryService 
 }
 
 // CheckForDuplicateInFileRegistry checks for duplicate files by MD5 hash and optionally by YouTube URL
-func (f *FileRegistryService) CheckForDuplicateInFileRegistry(fileMD5 string, youtubeUrl string) (bool, error) {
+func (f *FileRegistryService) CheckForDuplicateInFileRegistry(fileMD5 string, youtubeUrl string, fileFormat string) (bool, error) {
 	var id int
 
 	// First check by MD5 hash
@@ -46,8 +46,9 @@ func (f *FileRegistryService) CheckForDuplicateInFileRegistry(fileMD5 string, yo
 	// If YouTube URL is provided, also check for URL match
 	if len(youtubeUrl) > 0 && youtubeUrl != "" {
 		err = f.db.QueryRow(
-			"SELECT 1 FROM file_registry WHERE known_url = ? LIMIT 1",
+			"SELECT 1 FROM file_registry WHERE known_url = ? AND file_path LIKE ? LIMIT 1",
 			youtubeUrl,
+			"%"+fileFormat,
 		).Scan(&id)
 
 		if err == nil {

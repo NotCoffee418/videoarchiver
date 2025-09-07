@@ -107,7 +107,7 @@ func (d *DownloadService) ArchiveDownloadFile(dl *Download, pl *playlist.Playlis
 		}
 
 		// Handle duplicate in file registry
-		isDup, err = d.HasFileRegistryDuplicate(dlR.MD5, dl.Url)
+		isDup, err = d.HasFileRegistryDuplicate(dlR.MD5, dl.Url, dl.FormatDownloaded)
 		if err != nil {
 			d.logService.Error(fmt.Sprintf("Failed to check for duplicate in file registry for %s: %v", dl.Url, err))
 			dl.SetFail(d.downloadDB, fmt.Sprintf("failed to check for duplicate in file registry: %v", err))
@@ -203,8 +203,8 @@ func CalculateMD5(path string) (string, error) {
 	return fileutils.CalculateMD5(path)
 }
 
-func (d *DownloadService) HasFileRegistryDuplicate(fileMD5 string, youtubeUrl string) (bool, error) {
-	return d.fileRegistryService.CheckForDuplicateInFileRegistry(fileMD5, youtubeUrl)
+func (d *DownloadService) HasFileRegistryDuplicate(fileMD5 string, youtubeUrl string, fileFormat string) (bool, error) {
+	return d.fileRegistryService.CheckForDuplicateInFileRegistry(fileMD5, youtubeUrl, fileFormat)
 }
 
 func (d *DownloadService) HasDownloadsDuplicate(fileMD5 string, ignoredOwnId int) (bool, int, error) {
