@@ -1,4 +1,5 @@
 # Video Archiver
+**[Download Windows Installer](https://github.com/NotCoffee418/videoarchiver/releases/latest/download/videoarchiver-windows-installer.exe)**
 
 Video Archiver automatically downloads new videos from your playlists in the background. Simply add playlists to monitor, and the app handles everything else - no manual intervention needed. Works with [any platform supported by yt-dlp](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md).
 
