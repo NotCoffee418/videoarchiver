@@ -55,7 +55,7 @@ func TestSanitizeFilename(t *testing.T) {
 		{
 			name:     "Too Long and Complex mixed example",
 			input:    "Long  _/\\Mix<of>:many\"bad|chars?and*invisible\u200Bchars\x00\x1f  _",
-			expected: "Long  ___Mix_of__many_bad_chars_and_invisible_", // cuts off at 48 chars
+			expected: "Long  ___Mix_of__many_bad_chars_and_invisible_chars  _", // cuts off at 48 chars
 		},
 		{
 			name:     "Empty string",

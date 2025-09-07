@@ -2,6 +2,7 @@ package download
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -12,6 +13,7 @@ import (
 	"videoarchiver/backend/domains/fileregistry"
 	"videoarchiver/backend/domains/fileutils"
 	"videoarchiver/backend/domains/playlist"
+	"videoarchiver/backend/domains/runner"
 	"videoarchiver/backend/domains/settings"
 	"videoarchiver/backend/domains/ytdlp"
 
@@ -122,6 +124,17 @@ func (d *DownloadService) ArchiveDownloadFile(dl *Download, pl *playlist.Playlis
 		}
 	}
 
+	// Check file for corruption before moving to final location
+	d.logService.Info(fmt.Sprintf("Checking file integrity for %s", dl.Url))
+	err = CheckFileCorruption(dlR.TempFilePath)
+	if err != nil {
+		d.logService.Error(fmt.Sprintf("File corruption detected for %s: %v", dl.Url, err))
+		dl.SetFail(d.downloadDB, fmt.Sprintf("file corruption detected: %v", err))
+		// Clean up corrupted temp file
+		os.Remove(dlR.TempFilePath)
+		return
+	}
+
 	// Move to final location
 	err = dlR.MoveToFinalLocation(pl.SaveDirectory)
 	if err != nil {
@@ -214,6 +227,45 @@ func (d *DownloadService) HasDownloadsDuplicate(fileMD5 string, ignoredOwnId int
 func fileExists(path string) bool {
 	_, err := os.Stat(path)
 	return !os.IsNotExist(err)
+}
+
+// CheckFileCorruption checks if a downloaded file is corrupted using ffmpeg
+// Returns error if file is corrupted or if ffmpeg check fails
+func CheckFileCorruption(filePath string) error {
+	corruptionMessage := "file was corrupted. possibly soundcloud premium content but cookies not set up."
+
+	// Get ffmpeg path
+	ffmpegPath, err := ytdlp.GetFfmpegPath()
+	if err != nil {
+		return fmt.Errorf("failed to get ffmpeg path: %w", err)
+	}
+
+	// Run ffmpeg corruption check: ffmpeg -v error -i <file> -f null -
+	// This will return non-zero exit code if corrupted
+	resultBytes, err := runner.RunCombinedOutput(ffmpegPath, "-v", "error", "-i", filePath, "-f", "null", "-")
+	resultString := strings.TrimSpace(string(resultBytes))
+
+	// If runner returned an error, ffmpeg exited non-zero (corruption detected)
+	if err != nil {
+		return errors.New(corruptionMessage)
+	}
+
+	// ffmpeg succeeded (exit code 0) but check stderr for warnings
+	if resultString != "" {
+		failParts := []string{
+			"error", "corrupt", "invalid", "broken", "truncated",
+			"damaged", "failed", "missing", "decode error",
+			"header damaged", "no frame", "unexpected"}
+
+		resultLower := strings.ToLower(resultString)
+		for _, part := range failParts {
+			if strings.Contains(resultLower, part) {
+				return errors.New(corruptionMessage)
+			}
+		}
+	}
+
+	return nil
 }
 
 func (d *DownloadService) SetManualRetry(downloadId int) error {

@@ -52,6 +52,11 @@ func InstallOrUpdate(forceReinstall bool, settingsChecker SettingsChecker, logge
 	return nil
 }
 
+// GetFfmpegPath returns the path to the ffmpeg executable
+func GetFfmpegPath() (string, error) {
+	return getFfmpegPath()
+}
+
 // Runs a ytdlp command and returns the stdout and stderr
 func runCommand(args ...string) (string, error) {
 	// Note: This function doesn't use logger to avoid changing all call sites
