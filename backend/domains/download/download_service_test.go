@@ -22,14 +22,14 @@ func TestCheckFileCorruption(t *testing.T) {
 	}
 
 	// Test corruption check on invalid file - should return error
-	err = checkFileCorruption(textFilePath)
+	err = CheckFileCorruption(textFilePath)
 	if err == nil {
 		t.Error("Expected corruption check to fail on invalid file, but it passed")
 	}
 
 	// Test with non-existent file - should return error
 	nonExistentPath := filepath.Join(tmpDir, "nonexistent.mp4")
-	err = checkFileCorruption(nonExistentPath)
+	err = CheckFileCorruption(nonExistentPath)
 	if err == nil {
 		t.Error("Expected corruption check to fail on non-existent file, but it passed")
 	}

@@ -12,9 +12,9 @@ import (
 	"videoarchiver/backend/domains/fileregistry"
 	"videoarchiver/backend/domains/fileutils"
 	"videoarchiver/backend/domains/playlist"
+	"videoarchiver/backend/domains/runner"
 	"videoarchiver/backend/domains/settings"
 	"videoarchiver/backend/domains/ytdlp"
-	"videoarchiver/backend/domains/runner"
 
 	cp "github.com/otiai10/copy"
 )
@@ -125,7 +125,7 @@ func (d *DownloadService) ArchiveDownloadFile(dl *Download, pl *playlist.Playlis
 
 	// Check file for corruption before moving to final location
 	d.logService.Info(fmt.Sprintf("Checking file integrity for %s", dl.Url))
-	err = checkFileCorruption(dlR.TempFilePath)
+	err = CheckFileCorruption(dlR.TempFilePath)
 	if err != nil {
 		d.logService.Error(fmt.Sprintf("File corruption detected for %s: %v", dl.Url, err))
 		dl.SetFail(d.downloadDB, fmt.Sprintf("file corruption detected: %v", err))
@@ -228,9 +228,9 @@ func fileExists(path string) bool {
 	return !os.IsNotExist(err)
 }
 
-// checkFileCorruption checks if a downloaded file is corrupted using ffmpeg
+// CheckFileCorruption checks if a downloaded file is corrupted using ffmpeg
 // Returns error if file is corrupted or if ffmpeg check fails
-func checkFileCorruption(filePath string) error {
+func CheckFileCorruption(filePath string) error {
 	// Get ffmpeg path
 	ffmpegPath, err := ytdlp.GetFfmpegPath()
 	if err != nil {
@@ -238,13 +238,31 @@ func checkFileCorruption(filePath string) error {
 	}
 
 	// Run ffmpeg corruption check: ffmpeg -v error -i <file> -f null -
-	// This command will return non-zero exit code if the file is corrupted
-	// -v error: only show errors
-	// -f null: output to null (discard output)
-	// - : output to stdout (which is discarded by null format)
-	_, err = runner.RunCombinedOutput(ffmpegPath, "-v", "error", "-i", filePath, "-f", "null", "-")
+	// This will return non-zero exit code if corrupted
+	resultBytes, err := runner.RunCombinedOutput(ffmpegPath, "-v", "error", "-i", filePath, "-f", "null", "-")
+	resultString := strings.TrimSpace(string(resultBytes))
+
+	// If runner returned an error, ffmpeg exited non-zero (corruption detected)
 	if err != nil {
-		return fmt.Errorf("file corruption detected: %w", err)
+		if resultString != "" {
+			return fmt.Errorf("file is corrupted: %s", resultString)
+		}
+		return fmt.Errorf("file is corrupted: %w", err)
+	}
+
+	// ffmpeg succeeded (exit code 0) but check stderr for warnings
+	if resultString != "" {
+		failParts := []string{
+			"error", "corrupt", "invalid", "broken", "truncated",
+			"damaged", "failed", "missing", "decode error",
+			"header damaged", "no frame", "unexpected"}
+
+		resultLower := strings.ToLower(resultString)
+		for _, part := range failParts {
+			if strings.Contains(resultLower, part) {
+				return fmt.Errorf("file has corruption warnings: %s", resultString)
+			}
+		}
 	}
 
 	return nil
