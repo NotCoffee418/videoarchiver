@@ -46,10 +46,10 @@ func runDaemon(app *App) {
 	// Create early logger for daemon startup messages
 	earlyLogger := logging.NewLogService("daemon")
 	defer earlyLogger.Close()
-	
+
 	// Handle daemon locking before initialization - but only check, don't create yet
 	earlyLogger.Info("Checking for existing daemon instances...")
-	
+
 	// Check if lock already exists
 	locked, err := lockfile.IsLocked()
 	if err != nil {
@@ -78,7 +78,7 @@ func runDaemon(app *App) {
 	earlyLogger.Info(fmt.Sprintf("Application version: %s", GetVersionInfo()))
 	earlyLogger.Info("Initializing application")
 	app.startup(context.Background())
-	
+
 	app.LogService.Info("Daemon starting")
 	startDaemonLoop(app)
 }
@@ -86,9 +86,9 @@ func runDaemon(app *App) {
 func runUI(app *App) {
 	fmt.Println("Starting Wails UI...")
 	err := wails.Run(&options.App{
-		Title:  "videoarchiver",
+		Title:  "Video Archiver",
 		Width:  1024,
-		Height: 768,
+		Height: 900,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
