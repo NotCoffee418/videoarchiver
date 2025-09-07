@@ -139,7 +139,7 @@ func DownloadFile(
 	var outputError error
 
 	if format == "mp3" {
-		args := append([]string{"-x", "--audio-format", "mp3"}, baseArgs...)
+		args := append([]string{"-x", "--audio-format", "mp3", "--audio-quality", "0"}, baseArgs...)
 
 		// Sponsorblock audio (stored as comma seperated string for multiselect settings)
 		sponsorblockAudio, err := settingsService.GetSettingString("sponsorblock_audio")
@@ -156,6 +156,7 @@ func DownloadFile(
 		args := append([]string{
 			"-f",
 			"bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
+			"--merge-output-format", "mp4",
 			"--embed-chapters"},
 			baseArgs...)
 
