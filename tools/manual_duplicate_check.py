@@ -24,7 +24,7 @@ init(autoreset=True)
 # -------------------------------
 # CONFIG
 AUDIO_EXTENSIONS = (".mp3", ".flac", ".wav", ".aac", ".ogg", ".m4a")
-SIMILARITY_THRESHOLD = 0.90  # 90%
+SIMILARITY_THRESHOLD = 0.70  # 90%
 FPCALC_LENGTH = 120  # seconds of audio to fingerprint
 SAVE_INTERVAL = 50  # save cache every 50 new fingerprints
 # -------------------------------
