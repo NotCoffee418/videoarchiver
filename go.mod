@@ -6,9 +6,9 @@ require (
 	github.com/NotCoffee418/dbmigrator v0.2.4
 	github.com/mholt/archives v0.1.3
 	github.com/sirupsen/logrus v1.9.3
-	github.com/wailsapp/go-webview2 v1.0.21 // indirect; unbreak wails v2.10.2 at go-webview2 v1.0.22
+	github.com/wailsapp/go-webview2 v1.0.22 // indirect; unbreak wails v2.10.2 at go-webview2 v1.0.22
 	github.com/wailsapp/wails/v2 v2.10.2
-	golang.org/x/image v0.30.0
+	golang.org/x/image v0.31.0
 	modernc.org/sqlite v1.38.2
 )
 
@@ -57,7 +57,7 @@ require (
 	github.com/samber/lo v1.51.0 // indirect
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
 	github.com/sorairolake/lzip-go v0.3.8 // indirect
-	github.com/spf13/afero v1.14.0 // indirect
+	github.com/spf13/afero v1.15.0 // indirect
 	github.com/tklauser/go-sysconf v0.3.15 // indirect
 	github.com/tklauser/numcpus v0.10.0 // indirect
 	github.com/tkrajina/go-reflector v0.5.8 // indirect
@@ -67,12 +67,12 @@ require (
 	github.com/wailsapp/mimetype v1.4.1 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	go4.org v0.0.0-20230225012048-214862532bf5 // indirect
-	golang.org/x/crypto v0.41.0 // indirect
-	golang.org/x/exp v0.0.0-20250819193227-8b4c13bb791b // indirect
-	golang.org/x/net v0.43.0 // indirect
-	golang.org/x/sync v0.16.0 // indirect
-	golang.org/x/sys v0.35.0 // indirect
-	golang.org/x/text v0.28.0 // indirect
+	golang.org/x/crypto v0.42.0 // indirect
+	golang.org/x/exp v0.0.0-20250911091902-df9299821621 // indirect
+	golang.org/x/net v0.44.0 // indirect
+	golang.org/x/sync v0.17.0 // indirect
+	golang.org/x/sys v0.36.0 // indirect
+	golang.org/x/text v0.29.0 // indirect
 	modernc.org/libc v1.66.8 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
