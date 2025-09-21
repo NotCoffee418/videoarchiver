@@ -192,9 +192,13 @@
     .button-link {
       all: unset; /* Resets all button styles */
       cursor: pointer;
+      color: #ffffff; /* Subtle blue color for better visibility */
+      transition: color 0.2s ease;
     }
 
     .button-link:hover {
+      background-color: transparent !important; /* Override global button hover background */
+      color: #74c0fc; /* Lighter blue on hover */
       text-decoration: underline;
     }
 
