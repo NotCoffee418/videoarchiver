@@ -192,7 +192,7 @@
     .button-link {
       all: unset; /* Resets all button styles */
       cursor: pointer;
-      color: #4dabf7; /* Subtle blue color for better visibility */
+      color: #ffffff; /* Subtle blue color for better visibility */
       transition: color 0.2s ease;
     }
 
