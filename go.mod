@@ -6,7 +6,7 @@ require (
 	github.com/NotCoffee418/dbmigrator v0.2.4
 	github.com/mholt/archives v0.1.4
 	github.com/sirupsen/logrus v1.9.3
-	github.com/wailsapp/go-webview2 v1.0.22 // indirect; unbreak wails v2.10.2 at go-webview2 v1.0.22
+	github.com/wailsapp/go-webview2 v1.0.21 // indirect; unbreak wails v2.10.2 at go-webview2 v1.0.22
 	github.com/wailsapp/wails/v2 v2.10.2
 	golang.org/x/image v0.31.0
 	modernc.org/sqlite v1.39.0
