@@ -112,6 +112,65 @@ func (f *FileRegistryService) GetAllPaginated(offset, limit int) ([]RegisteredFi
 	return files, nil
 }
 
+// GetAllPaginatedWithSearch returns a paginated list of registered files filtered by search query
+func (f *FileRegistryService) GetAllPaginatedWithSearch(offset, limit int, searchQuery string) ([]RegisteredFile, error) {
+	var rows *sql.Rows
+	var err error
+	
+	if searchQuery == "" {
+		// No search query, use original method
+		return f.GetAllPaginated(offset, limit)
+	}
+	
+	// Search in filename and file_path using LIKE queries
+	likeQuery := "%" + searchQuery + "%"
+	rows, err = f.db.Query(
+		"SELECT id, filename, file_path, md5, registered_at, known_url FROM file_registry WHERE filename LIKE ? OR file_path LIKE ? ORDER BY registered_at DESC LIMIT ? OFFSET ?",
+		likeQuery, likeQuery, limit, offset,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var files []RegisteredFile
+	for rows.Next() {
+		var file RegisteredFile
+		err := rows.Scan(&file.ID, &file.Filename, &file.FilePath, &file.MD5, &file.RegisteredAt, &file.KnownUrl)
+		if err != nil {
+			return nil, err
+		}
+		files = append(files, file)
+	}
+
+	return files, nil
+}
+
+// GetCount returns the total count of registered files
+func (f *FileRegistryService) GetCount() (int, error) {
+	var count int
+	err := f.db.QueryRow("SELECT COUNT(*) FROM file_registry").Scan(&count)
+	return count, err
+}
+
+// GetCountWithSearch returns the count of registered files filtered by search query
+func (f *FileRegistryService) GetCountWithSearch(searchQuery string) (int, error) {
+	var count int
+	var err error
+	
+	if searchQuery == "" {
+		return f.GetCount()
+	}
+	
+	likeQuery := "%" + searchQuery + "%"
+	err = f.db.QueryRow(
+		"SELECT COUNT(*) FROM file_registry WHERE filename LIKE ? OR file_path LIKE ?",
+		likeQuery, likeQuery,
+	).Scan(&count)
+	
+	return count, err
+}
+
 // ClearAll removes all registered files from the database
 func (f *FileRegistryService) ClearAll() error {
 	_, err := f.db.Exec("DELETE FROM file_registry")

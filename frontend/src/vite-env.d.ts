@@ -55,6 +55,9 @@ declare global {
           IsDaemonRunning: () => Promise<boolean>;
           CloseApplication: () => Promise<void>;
           GetRegisteredFiles: (arg1: number, arg2: number) => Promise<Array<any>>;
+          GetRegisteredFilesWithSearch: (arg1: number, arg2: number, arg3: string) => Promise<Array<any>>;
+          GetRegisteredFilesCount: () => Promise<number>;
+          GetRegisteredFilesCountWithSearch: (arg1: string) => Promise<number>;
           RegisterDirectory: (arg1: string) => Promise<void>;
           ClearAllRegisteredFiles: () => Promise<void>;
           GetVersion: () => Promise<string>;
