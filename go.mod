@@ -4,12 +4,12 @@ go 1.25.0
 
 require (
 	github.com/NotCoffee418/dbmigrator v0.2.4
-	github.com/mholt/archives v0.1.3
+	github.com/mholt/archives v0.1.4
 	github.com/sirupsen/logrus v1.9.3
 	github.com/wailsapp/go-webview2 v1.0.22 // indirect; unbreak wails v2.10.2 at go-webview2 v1.0.22
 	github.com/wailsapp/wails/v2 v2.10.2
 	golang.org/x/image v0.31.0
-	modernc.org/sqlite v1.38.2
+	modernc.org/sqlite v1.39.0
 )
 
 require (
@@ -55,7 +55,7 @@ require (
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/samber/lo v1.51.0 // indirect
-	github.com/shoenig/go-m1cpu v0.1.6 // indirect
+	github.com/shoenig/go-m1cpu v0.1.7 // indirect
 	github.com/sorairolake/lzip-go v0.3.8 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/tklauser/go-sysconf v0.3.15 // indirect
@@ -73,7 +73,7 @@ require (
 	golang.org/x/sync v0.17.0 // indirect
 	golang.org/x/sys v0.36.0 // indirect
 	golang.org/x/text v0.29.0 // indirect
-	modernc.org/libc v1.66.8 // indirect
+	modernc.org/libc v1.66.9 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
 )
