@@ -22,7 +22,7 @@
     let selectedDirectory = $state("");
 
     // Derived values
-    let nextDisabled = $derived(registeredFiles.length < limit);
+    let nextDisabled = $derived(registeredFiles.length < limit || (offset + limit) >= totalCount);
     let pageNumber = $derived(Math.floor(offset / limit) + 1);
     let totalPages = $derived(Math.max(1, Math.ceil(totalCount / limit)));
 
@@ -247,7 +247,9 @@
     {:else}
         <div class="files-list">
             {#if registeredFiles.length === 0}
-                <div class="empty-state">No registered files</div>
+                <div class="empty-state">
+                    {searchQuery ? 'No files match your search' : 'No registered files'}
+                </div>
             {:else}
                 {#each registeredFiles as file}
                     <div class="file-item">
