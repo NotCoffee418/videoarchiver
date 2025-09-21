@@ -32,6 +32,12 @@ export function GetRecentLogs():Promise<Array<any>>;
 
 export function GetRegisteredFiles(arg1:number,arg2:number):Promise<Array<fileregistry.RegisteredFile>>;
 
+export function GetRegisteredFilesCount():Promise<number>;
+
+export function GetRegisteredFilesCountWithSearch(arg1:string):Promise<number>;
+
+export function GetRegisteredFilesWithSearch(arg1:number,arg2:number,arg3:string):Promise<Array<fileregistry.RegisteredFile>>;
+
 export function GetSettingString(arg1:string):Promise<string>;
 
 export function GetUILogLines(arg1:number):Promise<Array<string>>;

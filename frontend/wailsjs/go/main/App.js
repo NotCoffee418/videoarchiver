@@ -58,6 +58,18 @@ export function GetRegisteredFiles(arg1, arg2) {
   return window['go']['main']['App']['GetRegisteredFiles'](arg1, arg2);
 }
 
+export function GetRegisteredFilesCount() {
+  return window['go']['main']['App']['GetRegisteredFilesCount']();
+}
+
+export function GetRegisteredFilesCountWithSearch(arg1) {
+  return window['go']['main']['App']['GetRegisteredFilesCountWithSearch'](arg1);
+}
+
+export function GetRegisteredFilesWithSearch(arg1, arg2, arg3) {
+  return window['go']['main']['App']['GetRegisteredFilesWithSearch'](arg1, arg2, arg3);
+}
+
 export function GetSettingString(arg1) {
   return window['go']['main']['App']['GetSettingString'](arg1);
 }
