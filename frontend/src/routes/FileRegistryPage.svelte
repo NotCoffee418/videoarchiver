@@ -9,6 +9,9 @@
     let limit = $state(10);
     let loading = $state(false);
     let error = $state("");
+    let searchQuery = $state("");
+    let totalCount = $state(0);
+    let searchTimeout = null;
 
     // Modal states
     let showRegisterModal = $state(false);
@@ -21,23 +24,46 @@
     // Derived values
     let nextDisabled = $derived(registeredFiles.length < limit);
     let pageNumber = $derived(Math.floor(offset / limit) + 1);
+    let totalPages = $derived(Math.max(1, Math.ceil(totalCount / limit)));
 
     async function fetchPage(showLoading = true) {
         if (showLoading) loading = true;
         error = "";
         try {
-            if (window?.go?.main?.App?.GetRegisteredFiles) {
-                const res = await window.go.main.App.GetRegisteredFiles(offset, limit);
-                registeredFiles = Array.isArray(res) ? res : [];
+            if (window?.go?.main?.App?.GetRegisteredFilesWithSearch && window?.go?.main?.App?.GetRegisteredFilesCountWithSearch) {
+                // Fetch both files and count
+                const [filesRes, countRes] = await Promise.all([
+                    window.go.main.App.GetRegisteredFilesWithSearch(offset, limit, searchQuery),
+                    window.go.main.App.GetRegisteredFilesCountWithSearch(searchQuery)
+                ]);
+                registeredFiles = Array.isArray(filesRes) ? filesRes : [];
+                totalCount = typeof countRes === 'number' ? countRes : 0;
             } else {
                 registeredFiles = [];
+                totalCount = 0;
             }
         } catch (err) {
             error = String(err ?? "Unknown error");
             registeredFiles = [];
+            totalCount = 0;
         } finally {
             if (showLoading) loading = false;
         }
+    }
+
+    function onSearchInput() {
+        // Clear existing timeout
+        if (searchTimeout) {
+            clearTimeout(searchTimeout);
+        }
+        
+        // Reset to first page when searching
+        offset = 0;
+        
+        // Debounce search to avoid too many API calls
+        searchTimeout = setTimeout(() => {
+            fetchPage(true);
+        }, 300);
     }
 
     function prevPage() {
@@ -62,6 +88,9 @@
     onDestroy(() => {
         if (refreshInterval) {
             clearInterval(refreshInterval);
+        }
+        if (searchTimeout) {
+            clearTimeout(searchTimeout);
         }
     });
 
@@ -148,7 +177,7 @@
 
     function onRegistrationComplete() {
         console.log("Directory registration completed successfully");
-        // Refresh the list after completion
+        // Refresh the list and count after completion
         fetchPage(false);
     }
 
@@ -157,7 +186,7 @@
         try {
             await window.go.main.App.ClearAllRegisteredFiles();
             closeClearModal();
-            // Refresh the list
+            // Refresh the list and count
             await fetchPage(false);
         } catch (error) {
             modalError = error;
@@ -196,6 +225,21 @@
         <button class="clear-btn" onclick={openClearModal}>Clear All Registered Files</button>
     </div>
 
+    <div class="search-and-count">
+        <div class="search-container">
+            <input 
+                type="text" 
+                placeholder="Search files by name or path..." 
+                bind:value={searchQuery}
+                oninput={onSearchInput}
+                class="search-input"
+            />
+        </div>
+        <div class="file-count">
+            {totalCount} files registered
+        </div>
+    </div>
+
     {#if loading}
         <div class="center"><LoadingSpinner size="3rem" /></div>
     {:else if error}
@@ -229,7 +273,7 @@
 
         <div class="pagination">
             <button onclick={prevPage} disabled={offset === 0}>Previous</button>
-            <div class="page-info">Page {pageNumber}</div>
+            <div class="page-info">Page {pageNumber} of {totalPages}</div>
             <button onclick={nextPage} disabled={nextDisabled}>Next</button>
         </div>
     {/if}
@@ -360,6 +404,45 @@
     
     .clear-btn:hover {
         background-color: #da190b;
+    }
+    
+    .search-and-count {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        gap: 1rem;
+    }
+    
+    .search-container {
+        flex: 1;
+        max-width: 400px;
+    }
+    
+    .search-input {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 1px solid #333;
+        border-radius: 4px;
+        background-color: #1e1e1e;
+        color: #fff;
+        font-size: 1rem;
+    }
+    
+    .search-input:focus {
+        outline: none;
+        border-color: #4caf50;
+    }
+    
+    .search-input::placeholder {
+        color: #999;
+    }
+    
+    .file-count {
+        color: #ccc;
+        font-size: 0.95rem;
+        white-space: nowrap;
+        font-weight: 500;
     }
     
     .center { 
@@ -573,6 +656,20 @@
         
         .actions {
             flex-direction: column;
+        }
+        
+        .search-and-count {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .search-container {
+            max-width: none;
+        }
+        
+        .file-count {
+            text-align: center;
+            margin-top: 0.5rem;
         }
         
         .meta-section {

@@ -721,6 +721,21 @@ func (a *App) GetRegisteredFiles(offset int, limit int) ([]fileregistry.Register
 	return a.FileRegistryService.GetAllPaginated(offset, limit)
 }
 
+// GetRegisteredFilesWithSearch returns a paginated list of registered files filtered by search query
+func (a *App) GetRegisteredFilesWithSearch(offset int, limit int, searchQuery string) ([]fileregistry.RegisteredFile, error) {
+	return a.FileRegistryService.GetAllPaginatedWithSearch(offset, limit, searchQuery)
+}
+
+// GetRegisteredFilesCount returns the total count of registered files
+func (a *App) GetRegisteredFilesCount() (int, error) {
+	return a.FileRegistryService.GetCount()
+}
+
+// GetRegisteredFilesCountWithSearch returns the count of registered files filtered by search query
+func (a *App) GetRegisteredFilesCountWithSearch(searchQuery string) (int, error) {
+	return a.FileRegistryService.GetCountWithSearch(searchQuery)
+}
+
 // RegisterDirectory registers all files in a directory for duplicate detection with progress reporting
 func (a *App) RegisterDirectory(directoryPath string) error {
 	a.LogService.Info(fmt.Sprintf("RegisterDirectory called with path: '%s' (length: %d)", directoryPath, len(directoryPath)))
