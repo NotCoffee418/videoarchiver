@@ -233,38 +233,67 @@ func fileExists(path string) bool {
 // Returns error if file is corrupted or if ffmpeg check fails
 func CheckFileCorruption(filePath string) error {
 	corruptionMessage := "file was corrupted. possibly soundcloud premium content but cookies not set up."
-
 	// Get ffmpeg path
 	ffmpegPath, err := ytdlp.GetFfmpegPath()
 	if err != nil {
 		return fmt.Errorf("failed to get ffmpeg path: %w", err)
 	}
-
 	// Run ffmpeg corruption check: ffmpeg -v error -i <file> -f null -
 	// This will return non-zero exit code if corrupted
 	resultBytes, err := runner.RunCombinedOutput(ffmpegPath, "-v", "error", "-i", filePath, "-f", "null", "-")
 	resultString := strings.TrimSpace(string(resultBytes))
-
 	// If runner returned an error, ffmpeg exited non-zero (corruption detected)
 	if err != nil {
 		return errors.New(corruptionMessage)
 	}
-
 	// ffmpeg succeeded (exit code 0) but check stderr for warnings
 	if resultString != "" {
-		failParts := []string{
-			"error", "corrupt", "invalid", "broken", "truncated",
-			"damaged", "failed", "missing", "decode error",
-			"header damaged", "no frame", "unexpected"}
-
 		resultLower := strings.ToLower(resultString)
-		for _, part := range failParts {
-			if strings.Contains(resultLower, part) {
+
+		// specific common but non-corrupt video-only issue related to timestamps
+		// Create fixed version of the video and re-check for corruption
+		if strings.Contains(resultLower, "invalid, non monotonically increasing dts to muxer in stream") {
+			// Create temp file path for fixed version - USE .mp4 EXTENSION
+			fixedPath := filePath + ".fixed.mp4"
+
+			// Fix timestamps with re-encode using constant frame rate
+			_, fixErr := runner.RunCombinedOutput(ffmpegPath, "-i", filePath, "-vsync", "cfr", "-y", fixedPath)
+
+			if fixErr != nil {
+				// Cleanup and fail
+				os.Remove(fixedPath)
 				return errors.New(corruptionMessage)
+			}
+
+			// Check if fixed file exists and has content
+			if info, err := os.Stat(fixedPath); err != nil || info.Size() == 0 {
+				os.Remove(fixedPath)
+				return errors.New(corruptionMessage)
+			}
+
+			// Replace original with fixed version
+			if err := os.Remove(filePath); err != nil {
+				os.Remove(fixedPath) // Cleanup temp file
+				return fmt.Errorf("failed to remove original file: %w", err)
+			}
+			if err := os.Rename(fixedPath, filePath); err != nil {
+				return fmt.Errorf("failed to replace file with fixed version: %w", err)
+			}
+
+			// Recheck the fixed file
+			return CheckFileCorruption(filePath)
+		} else { // Handle other corruption indicators
+			failParts := []string{
+				"error", "corrupt", "invalid", "broken", "truncated",
+				"damaged", "failed", "missing", "decode error",
+				"header damaged", "no frame", "unexpected"}
+			for _, part := range failParts {
+				if strings.Contains(resultLower, part) {
+					return errors.New(corruptionMessage)
+				}
 			}
 		}
 	}
-
 	return nil
 }
 
