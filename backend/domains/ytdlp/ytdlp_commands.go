@@ -154,7 +154,7 @@ func DownloadFile(
 	} else { // mp4
 		args := append([]string{
 			"-f",
-			"bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
+			"bestvideo+bestaudio/best",
 			"--merge-output-format", "mp4",
 			"--embed-chapters"},
 			baseArgs...)
