@@ -125,7 +125,6 @@ func DownloadFile(
 
 	baseArgs := []string{
 		"--ffmpeg-location", ffmpegDir,
-		"--prefer-ffmpeg",
 		"--add-metadata",
 		"--embed-thumbnail",
 		"--embed-metadata",
