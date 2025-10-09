@@ -10,9 +10,9 @@ import (
 )
 
 type DatabaseService struct {
-	db           *sql.DB
-	configSvc    *config.ConfigService
-	logSvc       *logging.LogService
+	db        *sql.DB
+	configSvc *config.ConfigService
+	logSvc    *logging.LogService
 }
 
 var (

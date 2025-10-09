@@ -50,12 +50,12 @@ func (c *ConfigService) GetDatabasePath() (string, error) {
 		// Return default path if not configured
 		return getDefaultDatabasePath()
 	}
-	
+
 	// If the configured path is relative, make it absolute using GetWorkingFile
 	if !filepath.IsAbs(c.config.DatabasePath) {
 		return pathing.GetWorkingFile(c.config.DatabasePath)
 	}
-	
+
 	return c.config.DatabasePath, nil
 }
 
@@ -68,11 +68,11 @@ func (c *ConfigService) loadConfig() error {
 		if err != nil {
 			return err
 		}
-		
+
 		c.config = &Config{
 			DatabasePath: defaultPath,
 		}
-		
+
 		// Save the default configuration
 		return c.saveConfig()
 	}
@@ -161,7 +161,7 @@ func (c *ConfigService) SetConfigString(key string, value string) error {
 			if !fieldValue.IsValid() || !fieldValue.CanSet() {
 				return fmt.Errorf("field %s cannot be set", key)
 			}
-			
+
 			// For now, assume all fields are strings (as per requirements)
 			if fieldValue.Kind() == reflect.String {
 				fieldValue.SetString(value)

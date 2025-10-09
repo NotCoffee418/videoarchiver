@@ -18,6 +18,20 @@
         label="Autoupdate yt-dlp"
         description="This will automatically update yt-dlp when a new version is available"
         type={SettingType.BOOL} />
+    <SettingView 
+        key="browser_credentials_source"
+        label="Browser Credentials Source"
+        description="Export browser cookies for authenticated downloads. Credentials are exported before each daemon iteration and removed after."
+        type={SettingType.SELECT}
+        options={[
+            { label: "None", value: "none" },
+            { label: "Chrome", value: "chrome" },
+            { label: "Firefox", value: "firefox" },
+            { label: "Edge", value: "edge" },
+            { label: "Opera", value: "opera" },
+            { label: "Brave", value: "brave" },
+            { label: "Safari", value: "safari" }
+        ]} />
     <AllowDuplicatesSetting 
         key="allow_duplicates"
         label="Allow Duplicate Downloads"

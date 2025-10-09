@@ -470,6 +470,22 @@ func (a *App) SetConfigString(key string, value string) error {
 }
 
 func (a *App) DirectDownload(url, directory, format string) (string, error) {
+	// Export browser credentials before download if configured
+	browserSource, err := a.SettingsService.GetSettingString("browser_credentials_source")
+	if err == nil && browserSource != "" && browserSource != "none" {
+		_, err := ytdlp.ExportBrowserCredentials(browserSource, a.LogService)
+		if err != nil {
+			a.LogService.Warn(fmt.Sprintf("Failed to export browser credentials from %s: %v", browserSource, err))
+		}
+	}
+
+	// Ensure credentials are cleaned up after download
+	defer func() {
+		if err := ytdlp.CleanupCredentialsFile(a.LogService); err != nil {
+			a.LogService.Warn(fmt.Sprintf("Failed to cleanup credentials file: %v", err))
+		}
+	}()
+
 	// Download File
 	result, err := a.DownloadService.DownloadFile(url, directory, format)
 	if err != nil {

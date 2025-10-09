@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"videoarchiver/backend/domains/settings"
 )
 
@@ -113,6 +114,7 @@ func DownloadFile(
 	outputPath,
 	format string,
 	logService LogServiceInterface,
+	withCredentials bool,
 ) (string, error) {
 	if format != "mp3" && format != "mp4" {
 		return "", fmt.Errorf("unsupported format: %s", format)
@@ -132,6 +134,17 @@ func DownloadFile(
 		"--metadata-from-title", "%(artist)s - %(title)s",
 		"--no-warnings",
 		"--no-playlist",
+	}
+
+	// Add credentials if requested
+	if withCredentials {
+		credPath := GetCredentialsFilePathForDownload()
+		if credPath != "" {
+			baseArgs = append(baseArgs, "--cookies", credPath)
+			if logService != nil {
+				logService.Debug("Using credentials file for download")
+			}
+		}
 	}
 
 	var outputString string
@@ -170,6 +183,47 @@ func DownloadFile(
 
 		// Download
 		outputString, outputError = runCommand(append(args, "-o", outputPath, url)...)
+	}
+
+	// Check if download failed due to private/age-restricted content and retry with credentials if not already used
+	if outputError != nil && !withCredentials {
+		errorMsg := outputError.Error()
+		needsAuth := strings.Contains(errorMsg, "Private video") ||
+			strings.Contains(errorMsg, "members-only") ||
+			strings.Contains(errorMsg, "This video is private") ||
+			strings.Contains(errorMsg, "Sign in to confirm your age") ||
+			strings.Contains(errorMsg, "age-restricted") ||
+			strings.Contains(errorMsg, "This video requires payment") ||
+			strings.Contains(errorMsg, "Join this channel")
+
+		if needsAuth {
+			// Try again with browser credentials if configured
+			browserSource, err := settingsService.GetSettingString("browser_credentials_source")
+			if err == nil && browserSource != "" && browserSource != "none" {
+				if logService != nil {
+					logService.Info(fmt.Sprintf("Video requires authentication, retrying with browser credentials from %s", browserSource))
+				}
+
+				// Export credentials
+				credPath, err := ExportBrowserCredentials(browserSource, logService)
+				if err != nil {
+					if logService != nil {
+						logService.Warn(fmt.Sprintf("Failed to export credentials for retry: %v", err))
+					}
+				} else if credPath != "" {
+					// Retry with credentials
+					outputString, outputError = DownloadFile(settingsService, url, outputPath, format, logService, true)
+
+					if logService != nil {
+						if outputError == nil {
+							logService.Info("Successfully downloaded video with browser credentials")
+						} else {
+							logService.Warn(fmt.Sprintf("Retry with credentials also failed: %v", outputError))
+						}
+					}
+				}
+			}
+		}
 	}
 
 	// Log verbose output for debugging

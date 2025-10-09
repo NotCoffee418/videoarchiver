@@ -95,16 +95,16 @@ func (d *DownloadDB) scanRows(rows *sql.Rows) ([]Download, error) {
 		if err != nil {
 			return nil, err
 		}
-		
+
 		// Compute FullPath using proper path joining
-		if download.OutputFilename.Valid && download.OutputFilename.String != "" && 
-		   download.SaveDirectory.Valid && download.SaveDirectory.String != "" {
+		if download.OutputFilename.Valid && download.OutputFilename.String != "" &&
+			download.SaveDirectory.Valid && download.SaveDirectory.String != "" {
 			fullPath := filepath.Join(download.SaveDirectory.String, download.OutputFilename.String)
 			download.FullPath = sql.NullString{String: fullPath, Valid: true}
 		} else {
 			download.FullPath = sql.NullString{String: "", Valid: false}
 		}
-		
+
 		downloads = append(downloads, download)
 	}
 	return downloads, nil
