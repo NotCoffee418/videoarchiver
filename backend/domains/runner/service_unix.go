@@ -30,10 +30,10 @@ func configureProcessAttributesWithFlags(cmd *exec.Cmd, creationFlags uint32) {
 func runWithTimeoutCheck(timeout time.Duration, name string, args ...string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	
+
 	cmd := exec.CommandContext(ctx, name, args...)
 	configureProcessAttributes(cmd)
-	
+
 	err := cmd.Run()
 	if ctx.Err() == context.DeadlineExceeded {
 		return fmt.Errorf("command timed out after %v (possible corrupted binary): %s", timeout, name)

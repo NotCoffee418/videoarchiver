@@ -44,7 +44,7 @@ func TestClearLogsOlderThanDaysIntegration(t *testing.T) {
 
 	// Create test log files
 	testLogContent := createTestLogContent()
-	
+
 	// Write to daemon.log
 	daemonLogPath := filepath.Join(vaDirPath, "daemon.log")
 	err = os.WriteFile(daemonLogPath, []byte(testLogContent), 0644)
@@ -93,7 +93,7 @@ func TestClearLogsOlderThanDaysIntegration(t *testing.T) {
 
 func createTestLogContent() string {
 	now := time.Now()
-	old := now.AddDate(0, 0, -35) // 35 days old (should be removed)
+	old := now.AddDate(0, 0, -35)    // 35 days old (should be removed)
 	recent := now.AddDate(0, 0, -25) // 25 days old (should be kept)
 
 	entries := []string{
@@ -115,7 +115,7 @@ func createLogEntry(level, message string, timestamp time.Time) string {
 		"verbosity": level,
 		"mode":      "test",
 	}
-	
+
 	data, _ := json.Marshal(entry)
 	return string(data)
 }
@@ -133,26 +133,26 @@ func verifyCleanupResults(t *testing.T, filePath, filename string) {
 	}
 
 	contentStr := string(content)
-	
+
 	// Should not contain old entries
 	if strings.Contains(contentStr, "Old log entry that should be removed") {
 		t.Errorf("Expected old entry to be removed from %s", filename)
 	}
-	
+
 	// Should contain recent entries
 	if !strings.Contains(contentStr, "Recent log entry that should be kept") {
 		t.Errorf("Expected recent entry to be kept in %s", filename)
 	}
-	
+
 	if !strings.Contains(contentStr, "Another recent entry") {
 		t.Errorf("Expected another recent entry to be kept in %s", filename)
 	}
-	
+
 	// Should keep entries without time field
 	if !strings.Contains(contentStr, "Entry without time field") {
 		t.Errorf("Expected entry without time field to be kept in %s", filename)
 	}
-	
+
 	// Should keep non-JSON entries
 	if !strings.Contains(contentStr, "Not a JSON entry") {
 		t.Errorf("Expected non-JSON entry to be kept in %s", filename)
@@ -177,8 +177,8 @@ func TestClearLogsOlderThanDays(t *testing.T) {
 
 	// Generate test log entries with different timestamps
 	now := time.Now()
-	old := now.AddDate(0, 0, -35) // 35 days old (should be removed)
-	recent := now.AddDate(0, 0, -25) // 25 days old (should be kept)
+	old := now.AddDate(0, 0, -35)       // 35 days old (should be removed)
+	recent := now.AddDate(0, 0, -25)    // 25 days old (should be kept)
 	veryRecent := now.AddDate(0, 0, -1) // 1 day old (should be kept)
 
 	logEntries := []string{
@@ -233,7 +233,7 @@ func testClearLogsOlderThanDaysDirectly(t *testing.T, logFilePath string, days i
 			entriesRemoved++
 			continue
 		}
-		
+
 		filteredLines = append(filteredLines, line)
 	}
 
@@ -244,31 +244,31 @@ func testClearLogsOlderThanDaysDirectly(t *testing.T, logFilePath string, days i
 
 	// Verify remaining entries
 	remainingContent := strings.Join(filteredLines, "\n")
-	
+
 	// Should keep recent entries
 	if !strings.Contains(remainingContent, "Recent log entry") {
 		t.Error("Expected recent log entry to be kept")
 	}
-	
+
 	if !strings.Contains(remainingContent, "Very recent log entry") {
 		t.Error("Expected very recent log entry to be kept")
 	}
-	
+
 	// Should keep entries without time field
 	if !strings.Contains(remainingContent, "Entry without time field") {
 		t.Error("Expected entry without time field to be kept")
 	}
-	
+
 	// Should keep non-JSON entries
 	if !strings.Contains(remainingContent, "Not a JSON entry") {
 		t.Error("Expected non-JSON entry to be kept")
 	}
-	
+
 	// Should keep entries with invalid time
 	if !strings.Contains(remainingContent, "Entry with invalid time") {
 		t.Error("Expected entry with invalid time to be kept")
 	}
-	
+
 	// Should not contain old entries
 	if strings.Contains(remainingContent, "Old log entry") {
 		t.Error("Expected old log entry to be removed")
@@ -277,7 +277,7 @@ func testClearLogsOlderThanDaysDirectly(t *testing.T, logFilePath string, days i
 
 func TestClearLogsOlderThanDays_NonExistentFile(t *testing.T) {
 	logService := &LogService{}
-	
+
 	// Test with a file that doesn't exist - should not return error
 	err := logService.ClearLogsOlderThanDays("nonexistent.log", 30)
 	// This will fail due to pathing, but that's expected in the test environment
@@ -327,9 +327,9 @@ func TestClearLogsOlderThanDays_AllEntriesRecent(t *testing.T) {
 
 	// Create a test log file with only recent entries
 	logFile := filepath.Join(tmpDir, "recent.log")
-	
+
 	now := time.Now()
-	recent1 := now.AddDate(0, 0, -1) // 1 day old
+	recent1 := now.AddDate(0, 0, -1)  // 1 day old
 	recent2 := now.AddDate(0, 0, -10) // 10 days old
 
 	logEntries := []string{
@@ -353,11 +353,11 @@ func TestClearLogsOlderThanDays_AllEntriesRecent(t *testing.T) {
 	if string(content) != originalContent {
 		t.Error("Expected file content to remain unchanged when all entries are recent")
 	}
-	
+
 	if !strings.Contains(string(content), "Recent entry 1") {
 		t.Error("Expected recent entry 1 to be preserved")
 	}
-	
+
 	if !strings.Contains(string(content), "Recent entry 2") {
 		t.Error("Expected recent entry 2 to be preserved")
 	}
