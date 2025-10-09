@@ -3,6 +3,8 @@ package utils
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"runtime"
 	"videoarchiver/backend/domains/runner"
 
@@ -47,4 +49,25 @@ func (u *Utils) OpenDirectory(path string) error {
 
 func (u *Utils) GetClipboard() (string, error) {
 	return wailsRuntime.ClipboardGetText(u.ctx)
+}
+
+func (u *Utils) GetDownloadsDirectory() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get user home directory: %w", err)
+	}
+
+	var downloadDir string
+	switch runtime.GOOS {
+	case "windows":
+		downloadDir = filepath.Join(home, "Downloads")
+	case "darwin":
+		downloadDir = filepath.Join(home, "Downloads")
+	case "linux":
+		downloadDir = filepath.Join(home, "Downloads")
+	default:
+		downloadDir = home
+	}
+
+	return downloadDir, nil
 }

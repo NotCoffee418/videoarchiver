@@ -1,12 +1,45 @@
 <script>
     import LoadingSpinner from "../components/LoadingSpinner.svelte";
     import SelectDirectoryButton from "../components/SelectDirectoryButton.svelte";
+    import { onMount } from "svelte";
 
-    let format = "mp3";
+    let format = "mp4";
     let url = "";
     let directory = "";
     let isDownloading = false;
     let error = "";
+
+    // Load last used settings on mount
+    onMount(async () => {
+        try {
+            // Load last format
+            const lastFormat = await window.go.main.App.GetSettingString("direct_download_last_format");
+            if (lastFormat) {
+                format = lastFormat;
+            }
+        } catch (err) {
+            // If setting doesn't exist yet, use default
+            console.log("No last format found, using default");
+        }
+
+        try {
+            // Load last path
+            const lastPath = await window.go.main.App.GetSettingString("direct_download_last_path");
+            if (lastPath === "" || !lastPath) {
+                // Empty string means use Downloads folder
+                directory = await window.go.main.App.GetDownloadsDirectory();
+            } else {
+                directory = lastPath;
+            }
+        } catch (err) {
+            // If setting doesn't exist yet, use Downloads folder
+            try {
+                directory = await window.go.main.App.GetDownloadsDirectory();
+            } catch (dirErr) {
+                console.log("Could not get downloads directory", dirErr);
+            }
+        }
+    });
 
     async function selectDirectory(path) {
         directory = path;
