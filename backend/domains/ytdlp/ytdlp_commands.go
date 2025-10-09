@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"videoarchiver/backend/domains/settings"
 )
 
@@ -134,15 +135,6 @@ func DownloadFile(
 		"--no-playlist",
 	}
 
-	// Add cookies file if available
-	credPath := GetCredentialsFilePathForDownload()
-	if credPath != "" {
-		baseArgs = append(baseArgs, "--cookies", credPath)
-		if logService != nil {
-			logService.Debug("Using credentials file for download")
-		}
-	}
-
 	var outputString string
 	var outputError error
 
@@ -179,6 +171,68 @@ func DownloadFile(
 
 		// Download
 		outputString, outputError = runCommand(append(args, "-o", outputPath, url)...)
+	}
+
+	// Check if download failed due to private/age-restricted content
+	if outputError != nil {
+		errorMsg := outputError.Error()
+		needsAuth := strings.Contains(errorMsg, "Private video") ||
+			strings.Contains(errorMsg, "members-only") ||
+			strings.Contains(errorMsg, "This video is private") ||
+			strings.Contains(errorMsg, "Sign in to confirm your age") ||
+			strings.Contains(errorMsg, "age-restricted") ||
+			strings.Contains(errorMsg, "This video requires payment") ||
+			strings.Contains(errorMsg, "Join this channel")
+
+		if needsAuth {
+			// Try again with browser credentials if configured
+			browserSource, err := settingsService.GetSettingString("browser_credentials_source")
+			if err == nil && browserSource != "" && browserSource != "none" {
+				if logService != nil {
+					logService.Info(fmt.Sprintf("Video requires authentication, retrying with browser credentials from %s", browserSource))
+				}
+
+				// Export credentials
+				credPath, err := ExportBrowserCredentials(browserSource, logService)
+				if err != nil {
+					if logService != nil {
+						logService.Warn(fmt.Sprintf("Failed to export credentials for retry: %v", err))
+					}
+				} else if credPath != "" {
+					// Add cookies to args and retry
+					argsWithCookies := append(baseArgs, "--cookies", credPath)
+
+					if format == "mp3" {
+						retryArgs := append([]string{"-x", "--audio-format", "mp3", "--audio-quality", "0"}, argsWithCookies...)
+						sponsorblockAudio, _ := settingsService.GetSettingString("sponsorblock_audio")
+						if sponsorblockAudio != "" {
+							retryArgs = append(retryArgs, "--sponsorblock-remove", sponsorblockAudio)
+						}
+						outputString, outputError = runCommand(append(retryArgs, "-o", outputPath, url)...)
+					} else {
+						retryArgs := append([]string{
+							"-f",
+							"bestvideo+bestaudio/best",
+							"--merge-output-format", "mp4",
+							"--embed-chapters"},
+							argsWithCookies...)
+						sponsorblockVideo, _ := settingsService.GetSettingString("sponsorblock_video")
+						if sponsorblockVideo != "" {
+							retryArgs = append(retryArgs, "--sponsorblock-remove", sponsorblockVideo)
+						}
+						outputString, outputError = runCommand(append(retryArgs, "-o", outputPath, url)...)
+					}
+
+					if logService != nil {
+						if outputError == nil {
+							logService.Info("Successfully downloaded video with browser credentials")
+						} else {
+							logService.Warn(fmt.Sprintf("Retry with credentials also failed: %v", outputError))
+						}
+					}
+				}
+			}
+		}
 	}
 
 	// Log verbose output for debugging

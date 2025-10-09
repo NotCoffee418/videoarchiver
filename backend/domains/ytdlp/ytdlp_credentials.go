@@ -30,10 +30,15 @@ func ExportBrowserCredentials(browserName string, logService LogServiceInterface
 	}
 
 	// Export credentials using yt-dlp's --cookies-from-browser option
-	// We need to provide a dummy URL to make yt-dlp actually export the cookies
-	_, err = runCommand("--cookies-from-browser", browserName, "--cookies", credPath, "--print", "cookies", "https://www.youtube.com/")
-	if err != nil {
-		return "", fmt.Errorf("failed to export browser credentials from %s: %w", browserName, err)
+	// Note: This will produce an expected error about missing URL, but cookies are still extracted successfully
+	output, err := runCommand("--cookies-from-browser", browserName, "--cookies", credPath)
+
+	// Check if cookies file was created (success indicator)
+	if !fileExists(credPath) {
+		if logService != nil {
+			logService.Error(fmt.Sprintf("Failed to export browser credentials from %s: cookies file not created. Output: %s, Error: %v", browserName, output, err))
+		}
+		return "", fmt.Errorf("failed to export browser credentials from %s: cookies file not created", browserName)
 	}
 
 	if logService != nil {

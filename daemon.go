@@ -95,18 +95,8 @@ func startDaemonLoop(_app *App) {
 func processActivePlaylists() {
 	app.LogService.Info("Processing playlists...")
 
-	// Export browser credentials before processing
-	browserSource, err := app.SettingsService.GetSettingString("browser_credentials_source")
-	if err != nil {
-		app.LogService.Error(fmt.Sprintf("Failed to get browser credentials source setting: %v", err))
-	} else if browserSource != "" && browserSource != "none" {
-		_, err := ytdlp.ExportBrowserCredentials(browserSource, app.LogService)
-		if err != nil {
-			app.LogService.Warn(fmt.Sprintf("Failed to export browser credentials from %s: %v", browserSource, err))
-		}
-	}
-
 	// Ensure credentials are cleaned up after processing
+	// (credentials may be created during retry attempts for private/age-restricted videos)
 	defer func() {
 		if err := ytdlp.CleanupCredentialsFile(app.LogService); err != nil {
 			app.LogService.Warn(fmt.Sprintf("Failed to cleanup credentials file: %v", err))
