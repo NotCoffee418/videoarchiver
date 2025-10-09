@@ -420,6 +420,10 @@ func (a *App) GetClipboard() (string, error) {
 	return a.Utils.GetClipboard()
 }
 
+func (a *App) GetDownloadsDirectory() (string, error) {
+	return a.Utils.GetDownloadsDirectory()
+}
+
 func (a *App) UpdatePlaylistDirectory(id int, newDirectory string) error {
 	return a.PlaylistService.TryUpdatePlaylistDirectory(id, newDirectory)
 }
@@ -493,6 +497,10 @@ func (a *App) DirectDownload(url, directory, format string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
+	// Save last used settings for next time
+	_ = a.SettingsService.SetPreparsed("direct_download_last_path", directory)
+	_ = a.SettingsService.SetPreparsed("direct_download_last_format", format)
 
 	// Return final path
 	return result.FinalFullPath, nil
