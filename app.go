@@ -470,6 +470,10 @@ func (a *App) SetConfigString(key string, value string) error {
 }
 
 func (a *App) DirectDownload(url, directory, format string) (string, error) {
+	// Save current used settings for next time
+	_ = a.SettingsService.SetPreparsed("direct_download_last_path", directory)
+	_ = a.SettingsService.SetPreparsed("direct_download_last_format", format)
+
 	// Export browser credentials before download if configured
 	browserSource, err := a.SettingsService.GetSettingString("browser_credentials_source")
 	if err == nil && browserSource != "" && browserSource != "none" {
@@ -497,10 +501,6 @@ func (a *App) DirectDownload(url, directory, format string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
-	// Save last used settings for next time
-	_ = a.SettingsService.SetPreparsed("direct_download_last_path", directory)
-	_ = a.SettingsService.SetPreparsed("direct_download_last_format", format)
 
 	// Return final path
 	return result.FinalFullPath, nil

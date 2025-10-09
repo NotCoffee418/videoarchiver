@@ -46,6 +46,10 @@ export function GetDownloadHistoryPage(arg1, arg2, arg3, arg4, arg5) {
   return window['go']['main']['App']['GetDownloadHistoryPage'](arg1, arg2, arg3, arg4, arg5);
 }
 
+export function GetDownloadsDirectory() {
+  return window['go']['main']['App']['GetDownloadsDirectory']();
+}
+
 export function GetLegalDisclaimerAccepted() {
   return window['go']['main']['App']['GetLegalDisclaimerAccepted']();
 }
