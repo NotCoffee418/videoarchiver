@@ -134,6 +134,15 @@ func DownloadFile(
 		"--no-playlist",
 	}
 
+	// Add cookies file if available
+	credPath := GetCredentialsFilePathForDownload()
+	if credPath != "" {
+		baseArgs = append(baseArgs, "--cookies", credPath)
+		if logService != nil {
+			logService.Debug("Using credentials file for download")
+		}
+	}
+
 	var outputString string
 	var outputError error
 
