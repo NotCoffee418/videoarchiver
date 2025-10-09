@@ -3,7 +3,6 @@ package ytdlp
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"videoarchiver/backend/domains/pathing"
 )
 
@@ -31,7 +30,8 @@ func ExportBrowserCredentials(browserName string, logService LogServiceInterface
 	}
 
 	// Export credentials using yt-dlp's --cookies-from-browser option
-	_, err = runCommand("--cookies-from-browser", browserName, "--cookies", credPath, "--no-warnings")
+	// We need to provide a dummy URL to make yt-dlp actually export the cookies
+	_, err = runCommand("--cookies-from-browser", browserName, "--cookies", credPath, "--print", "cookies", "https://www.youtube.com/")
 	if err != nil {
 		return "", fmt.Errorf("failed to export browser credentials from %s: %w", browserName, err)
 	}
