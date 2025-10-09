@@ -158,7 +158,7 @@ func (d *DownloadService) DownloadFile(url, directory, format string) (*Download
 	tmpFile := filepath.Join(os.TempDir(), fmt.Sprintf("videoarchiver-download-%d.%s", time.Now().UnixNano(), format))
 
 	// Download to temp path
-	outputString, err := ytdlp.DownloadFile(d.settingsService, url, tmpFile, format, d.logService)
+	outputString, err := ytdlp.DownloadFile(d.settingsService, url, tmpFile, format, d.logService, false)
 	if err != nil {
 		return nil, fmt.Errorf("%s%w", ErrDownloadErrorBase, err)
 	}

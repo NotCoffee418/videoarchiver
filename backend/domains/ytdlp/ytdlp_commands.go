@@ -114,6 +114,7 @@ func DownloadFile(
 	outputPath,
 	format string,
 	logService LogServiceInterface,
+	withCredentials bool,
 ) (string, error) {
 	if format != "mp3" && format != "mp4" {
 		return "", fmt.Errorf("unsupported format: %s", format)
@@ -133,6 +134,17 @@ func DownloadFile(
 		"--metadata-from-title", "%(artist)s - %(title)s",
 		"--no-warnings",
 		"--no-playlist",
+	}
+
+	// Add credentials if requested
+	if withCredentials {
+		credPath := GetCredentialsFilePathForDownload()
+		if credPath != "" {
+			baseArgs = append(baseArgs, "--cookies", credPath)
+			if logService != nil {
+				logService.Debug("Using credentials file for download")
+			}
+		}
 	}
 
 	var outputString string
@@ -173,8 +185,8 @@ func DownloadFile(
 		outputString, outputError = runCommand(append(args, "-o", outputPath, url)...)
 	}
 
-	// Check if download failed due to private/age-restricted content
-	if outputError != nil {
+	// Check if download failed due to private/age-restricted content and retry with credentials if not already used
+	if outputError != nil && !withCredentials {
 		errorMsg := outputError.Error()
 		needsAuth := strings.Contains(errorMsg, "Private video") ||
 			strings.Contains(errorMsg, "members-only") ||
@@ -199,29 +211,8 @@ func DownloadFile(
 						logService.Warn(fmt.Sprintf("Failed to export credentials for retry: %v", err))
 					}
 				} else if credPath != "" {
-					// Add cookies to args and retry
-					argsWithCookies := append(baseArgs, "--cookies", credPath)
-
-					if format == "mp3" {
-						retryArgs := append([]string{"-x", "--audio-format", "mp3", "--audio-quality", "0"}, argsWithCookies...)
-						sponsorblockAudio, _ := settingsService.GetSettingString("sponsorblock_audio")
-						if sponsorblockAudio != "" {
-							retryArgs = append(retryArgs, "--sponsorblock-remove", sponsorblockAudio)
-						}
-						outputString, outputError = runCommand(append(retryArgs, "-o", outputPath, url)...)
-					} else {
-						retryArgs := append([]string{
-							"-f",
-							"bestvideo+bestaudio/best",
-							"--merge-output-format", "mp4",
-							"--embed-chapters"},
-							argsWithCookies...)
-						sponsorblockVideo, _ := settingsService.GetSettingString("sponsorblock_video")
-						if sponsorblockVideo != "" {
-							retryArgs = append(retryArgs, "--sponsorblock-remove", sponsorblockVideo)
-						}
-						outputString, outputError = runCommand(append(retryArgs, "-o", outputPath, url)...)
-					}
+					// Retry with credentials
+					outputString, outputError = DownloadFile(settingsService, url, outputPath, format, logService, true)
 
 					if logService != nil {
 						if outputError == nil {
