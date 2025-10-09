@@ -46,7 +46,7 @@ func (s *SettingsService) GetSettingBool(key string) (bool, error) {
 func (s *SettingsService) SetPreparsed(key string, value string) error {
 	// Get old value for handler
 	oldValue, _ := s.GetSettingString(key) // Ignore error - may not exist
-	
+
 	_, err := s.db.Exec(`
 		UPDATE settings SET setting_value = ? WHERE setting_key = ?
 	`, value, key)

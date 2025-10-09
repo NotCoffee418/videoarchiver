@@ -95,6 +95,14 @@ func startDaemonLoop(_app *App) {
 func processActivePlaylists() {
 	app.LogService.Info("Processing playlists...")
 
+	// Ensure credentials are cleaned up after processing
+	// (credentials may be created during retry attempts for private/age-restricted videos)
+	defer func() {
+		if err := ytdlp.CleanupCredentialsFile(app.LogService); err != nil {
+			app.LogService.Warn(fmt.Sprintf("Failed to cleanup credentials file: %v", err))
+		}
+	}()
+
 	// Get acive playlists
 	activePlaylists, err := app.PlaylistDB.GetActivePlaylists()
 	if err != nil {

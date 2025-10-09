@@ -116,12 +116,12 @@ func (f *FileRegistryService) GetAllPaginated(offset, limit int) ([]RegisteredFi
 func (f *FileRegistryService) GetAllPaginatedWithSearch(offset, limit int, searchQuery string) ([]RegisteredFile, error) {
 	var rows *sql.Rows
 	var err error
-	
+
 	if searchQuery == "" {
 		// No search query, use original method
 		return f.GetAllPaginated(offset, limit)
 	}
-	
+
 	// Search in filename and file_path using LIKE queries
 	likeQuery := "%" + searchQuery + "%"
 	rows, err = f.db.Query(
@@ -157,17 +157,17 @@ func (f *FileRegistryService) GetCount() (int, error) {
 func (f *FileRegistryService) GetCountWithSearch(searchQuery string) (int, error) {
 	var count int
 	var err error
-	
+
 	if searchQuery == "" {
 		return f.GetCount()
 	}
-	
+
 	likeQuery := "%" + searchQuery + "%"
 	err = f.db.QueryRow(
 		"SELECT COUNT(*) FROM file_registry WHERE filename LIKE ? OR file_path LIKE ?",
 		likeQuery, likeQuery,
 	).Scan(&count)
-	
+
 	return count, err
 }
 

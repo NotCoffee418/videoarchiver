@@ -4,10 +4,10 @@ package main
 var (
 	// Version is the application version, typically set from git tag during build
 	Version = "development"
-	
+
 	// BuildDate is when the binary was built
 	BuildDate = "unknown"
-	
+
 	// GitCommit is the git commit hash
 	GitCommit = "unknown"
 )
