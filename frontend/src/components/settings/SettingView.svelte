@@ -199,8 +199,11 @@
                 }
             });
 
+        } else if (type === SettingType.SELECT || type === SettingType.STRING) {
+            // SELECT and STRING are stored as raw strings in the database
+            value = loadedValue;
         } else {
-            // Everything else acts like a string
+            // INT and FLOAT need JSON parsing
             value = JSON.parse(loadedValue);
         }
     }
