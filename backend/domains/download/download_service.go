@@ -63,13 +63,14 @@ func NewDownloadService(
 
 // DownloadResult contains information about a download
 type DownloadResult struct {
-	TempFilePath   string
-	FinalDirectory string
-	FinalFileName  string
-	FinalFullPath  string
-	VideoTitle     string
-	Format         string
-	MD5            string
+	TempFilePath    string
+	FinalDirectory  string
+	FinalFileName   string
+	FinalFullPath   string
+	VideoTitle      string
+	Format          string
+	MD5             string
+	ThumbnailBase64 string
 }
 
 // ArchiveDownloadFile used by daemon and automated operations. Handles errors and logging.
@@ -102,7 +103,7 @@ func (d *DownloadService) ArchiveDownloadFile(dl *Download, pl *playlist.Playlis
 		}
 		if isDup {
 			d.logService.Info(fmt.Sprintf("Duplicate download detected in downloads table for %s (MD5: %s), skipping download. Existing ID: %d", dl.Url, dlR.MD5, existingId))
-			if err := dl.SetSuccessDuplicate(d.downloadDB, dlR.FinalFileName, dlR.MD5); err != nil {
+			if err := dl.SetSuccessDuplicate(d.downloadDB, dlR.FinalFileName, dlR.MD5, dlR.ThumbnailBase64); err != nil {
 				d.logService.Error(fmt.Sprintf("Failed to mark download as duplicate for %s: %v", dl.Url, err))
 			}
 			return
@@ -117,7 +118,7 @@ func (d *DownloadService) ArchiveDownloadFile(dl *Download, pl *playlist.Playlis
 		}
 		if isDup {
 			d.logService.Info(fmt.Sprintf("Duplicate download detected in file registry for %s (MD5: %s), skipping download.", dl.Url, dlR.MD5))
-			if err := dl.SetSuccessDuplicate(d.downloadDB, dlR.FinalFileName, dlR.MD5); err != nil {
+			if err := dl.SetSuccessDuplicate(d.downloadDB, dlR.FinalFileName, dlR.MD5, dlR.ThumbnailBase64); err != nil {
 				d.logService.Error(fmt.Sprintf("Failed to mark download as duplicate for %s: %v", dl.Url, err))
 			}
 			return
@@ -144,7 +145,7 @@ func (d *DownloadService) ArchiveDownloadFile(dl *Download, pl *playlist.Playlis
 	}
 
 	// Mark download as success
-	if err := dl.SetSuccess(d.downloadDB, dlR.FinalFileName, dlR.MD5); err != nil {
+	if err := dl.SetSuccess(d.downloadDB, dlR.FinalFileName, dlR.MD5, dlR.ThumbnailBase64); err != nil {
 		d.logService.Error(fmt.Sprintf("Failed to mark download as success for %s: %v", dl.Url, err))
 		return
 	}
@@ -169,6 +170,19 @@ func (d *DownloadService) DownloadFile(url, directory, format string) (*Download
 		return nil, fmt.Errorf("download service: failed to get title: %w", err)
 	}
 
+	// Extract thumbnail URL from ytdlp output
+	thumbnailURL, err := ytdlp.GetString(outputString, "thumbnail")
+	var thumbnailBase64 string
+	if err == nil && thumbnailURL != "" {
+		// Try to fetch the thumbnail
+		thumbB64, thumbErr := ytdlp.GetThumbnailBase64(thumbnailURL)
+		if thumbErr != nil {
+			d.logService.Warn(fmt.Sprintf("Failed to fetch thumbnail for %s: %v", url, thumbErr))
+		} else {
+			thumbnailBase64 = thumbB64
+		}
+	}
+
 	// Calculate MD5 of the downloaded temp file
 	fileMD5, err := CalculateMD5(tmpFile)
 	if err != nil {
@@ -189,13 +203,14 @@ func (d *DownloadService) DownloadFile(url, directory, format string) (*Download
 	}
 
 	return &DownloadResult{
-		TempFilePath:   tmpFile,
-		FinalDirectory: directory,
-		FinalFileName:  filepath.Base(finalPath),
-		FinalFullPath:  finalPath,
-		VideoTitle:     videoTitle,
-		Format:         format,
-		MD5:            fileMD5,
+		TempFilePath:    tmpFile,
+		FinalDirectory:  directory,
+		FinalFileName:   filepath.Base(finalPath),
+		FinalFullPath:   finalPath,
+		VideoTitle:      videoTitle,
+		Format:          format,
+		MD5:             fileMD5,
+		ThumbnailBase64: thumbnailBase64,
 	}, nil
 }
 

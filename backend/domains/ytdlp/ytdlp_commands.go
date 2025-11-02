@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 	"videoarchiver/backend/domains/settings"
+	"videoarchiver/backend/imaging"
 )
 
 // LogServiceInterface defines the logging interface to avoid circular imports
@@ -237,4 +238,9 @@ func DownloadFile(
 	}
 
 	return outputString, outputError
+}
+
+// GetThumbnailBase64 fetches a thumbnail from a URL and returns it as base64
+func GetThumbnailBase64(url string) (string, error) {
+	return imaging.GetBase64Thumb(url)
 }
