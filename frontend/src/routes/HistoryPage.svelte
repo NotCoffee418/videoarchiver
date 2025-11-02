@@ -221,7 +221,7 @@
                     <div class="history-item {d.status === 1 || d.status === 5 || d.status === 7 ? 'success' : 'failed'}">
                         {#if d.thumbnail_base64?.Valid && d.thumbnail_base64?.String.trim() !== ""}
                             <div class="thumbnail">
-                                <img src={`data:image/jpg;base64,${d.thumbnail_base64.String}`} alt="Thumbnail" />
+                                <img src={`data:image/jpeg;base64,${d.thumbnail_base64.String}`} alt="Thumbnail" />
                             </div>
                         {/if}
                         

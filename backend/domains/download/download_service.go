@@ -177,7 +177,7 @@ func (d *DownloadService) DownloadFile(url, directory, format string) (*Download
 		// Try to fetch the thumbnail
 		thumbB64, thumbErr := ytdlp.GetThumbnailBase64(thumbnailURL)
 		if thumbErr != nil {
-			d.logService.Warn(fmt.Sprintf("Failed to fetch thumbnail for %s: %v", url, thumbErr))
+			d.logService.Warn(fmt.Sprintf("Failed to fetch thumbnail from %s: %v", thumbnailURL, thumbErr))
 		} else {
 			thumbnailBase64 = thumbB64
 		}
