@@ -20,7 +20,7 @@ func NewDownloadDB(dbService *db.DatabaseService) *DownloadDB {
 func (d *DownloadDB) GetAllDownloads(limit int) ([]Download, error) {
 	rows, err := d.db.Query(`SELECT 
 		id, playlist_id, url, status, format_downloaded, md5, output_filename, 
-		last_attempt, fail_message, attempt_count, NULL as save_directory
+		last_attempt, fail_message, attempt_count, NULL as save_directory, thumbnail_base64
 		FROM downloads ORDER BY last_attempt DESC LIMIT ?`, limit)
 	if err != nil {
 		return nil, err
@@ -32,7 +32,7 @@ func (d *DownloadDB) GetAllDownloads(limit int) ([]Download, error) {
 func (d *DownloadDB) GetDownloadsForPlaylist(playlistId int) ([]Download, error) {
 	rows, err := d.db.Query(`SELECT 
 		id, playlist_id, url, status, format_downloaded, md5, output_filename, 
-		last_attempt, fail_message, attempt_count, NULL as save_directory
+		last_attempt, fail_message, attempt_count, NULL as save_directory, thumbnail_base64
 		FROM downloads WHERE playlist_id = ?`, playlistId)
 	if err != nil {
 		return nil, err
@@ -60,7 +60,7 @@ func (d *DownloadDB) GetDownloadHistoryPage(offset, limit int, showSuccess, show
 
 	query := `SELECT 
 		d.id, d.playlist_id, d.url, d.status, d.format_downloaded, d.md5, d.output_filename, 
-		d.last_attempt, d.fail_message, d.attempt_count, p.save_directory
+		d.last_attempt, d.fail_message, d.attempt_count, p.save_directory, d.thumbnail_base64
 		FROM downloads d 
 		LEFT JOIN playlists p ON d.playlist_id = p.id 
 		WHERE d.status IN (` + strings.Repeat("?,", len(statuses)-1) + `?) 
@@ -91,6 +91,7 @@ func (d *DownloadDB) scanRows(rows *sql.Rows) ([]Download, error) {
 			&download.ID, &download.PlaylistID, &download.Url,
 			&download.Status, &download.FormatDownloaded, &download.MD5, &download.OutputFilename,
 			&download.LastAttempt, &download.FailMessage, &download.AttemptCount, &download.SaveDirectory,
+			&download.ThumbnailBase64,
 		)
 		if err != nil {
 			return nil, err
@@ -114,11 +115,13 @@ func (d *Download) SetSuccess(
 	dlDB *DownloadDB,
 	outputFilename string,
 	md5 string,
+	thumbnailBase64 string,
 ) error {
 	d.Status = StSuccess
 	d.MD5 = sql.NullString{String: md5, Valid: true}
 	d.OutputFilename = sql.NullString{String: outputFilename, Valid: true}
 	d.FailMessage = sql.NullString{String: "", Valid: false}
+	d.ThumbnailBase64 = sql.NullString{String: thumbnailBase64, Valid: thumbnailBase64 != ""}
 	d.AttemptCount += 1
 	d.LastAttempt = time.Now().Unix()
 
@@ -132,12 +135,13 @@ func (d *Download) SetSuccess(
 }
 
 func (d *Download) SetSuccessDuplicate(
-	dlDB *DownloadDB, outputFilename string, md5 string,
+	dlDB *DownloadDB, outputFilename string, md5 string, thumbnailBase64 string,
 ) error {
 	d.Status = StSuccessDuplicate
 	d.MD5 = sql.NullString{String: md5, Valid: true}
 	d.OutputFilename = sql.NullString{String: outputFilename, Valid: true}
 	d.FailMessage = sql.NullString{String: "", Valid: false}
+	d.ThumbnailBase64 = sql.NullString{String: thumbnailBase64, Valid: thumbnailBase64 != ""}
 	d.AttemptCount += 1
 	d.LastAttempt = time.Now().Unix()
 
@@ -198,17 +202,17 @@ func (d *DownloadDB) RegisterAllFailedForRetryManual() error {
 
 func (d *Download) insertDownload(dlDB *DownloadDB) error {
 	_, err := dlDB.db.Exec(
-		`INSERT INTO downloads (playlist_id, url, status, format_downloaded, md5, output_filename, last_attempt, fail_message, attempt_count)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		d.PlaylistID, d.Url, d.Status, d.FormatDownloaded, d.MD5, d.OutputFilename, d.LastAttempt, d.FailMessage, d.AttemptCount,
+		`INSERT INTO downloads (playlist_id, url, status, format_downloaded, md5, output_filename, last_attempt, fail_message, attempt_count, thumbnail_base64)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		d.PlaylistID, d.Url, d.Status, d.FormatDownloaded, d.MD5, d.OutputFilename, d.LastAttempt, d.FailMessage, d.AttemptCount, d.ThumbnailBase64,
 	)
 	return err
 }
 
 func (d *Download) updateDownload(dlDB *DownloadDB) error {
 	_, err := dlDB.db.Exec(
-		`UPDATE downloads SET playlist_id = ?, url = ?, status = ?, format_downloaded = ?, md5 = ?, output_filename = ?, last_attempt = ?, fail_message = ?, attempt_count = ? WHERE id = ?`,
-		d.PlaylistID, d.Url, d.Status, d.FormatDownloaded, d.MD5, d.OutputFilename, d.LastAttempt, d.FailMessage, d.AttemptCount, d.ID)
+		`UPDATE downloads SET playlist_id = ?, url = ?, status = ?, format_downloaded = ?, md5 = ?, output_filename = ?, last_attempt = ?, fail_message = ?, attempt_count = ?, thumbnail_base64 = ? WHERE id = ?`,
+		d.PlaylistID, d.Url, d.Status, d.FormatDownloaded, d.MD5, d.OutputFilename, d.LastAttempt, d.FailMessage, d.AttemptCount, d.ThumbnailBase64, d.ID)
 	return err
 }
 
