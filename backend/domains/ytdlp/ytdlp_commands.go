@@ -109,9 +109,13 @@ func GetPlaylistInfoFlat(url string) (*YtdlpPlaylistInfo, error) {
 		}
 
 		// Get URL
-		url, ok := entryMap["url"].(string)
+		url, ok := entryMap["webpage_url"].(string)
 		if !ok {
-			continue
+			// Dailymotion needs webpage_url,
+			url, ok = entryMap["url"].(string)
+			if !ok {
+				continue
+			}
 		}
 
 		// Add entry to result
