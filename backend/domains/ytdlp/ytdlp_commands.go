@@ -19,7 +19,19 @@ type LogServiceInterface interface {
 
 // Get minimal playlist info
 func GetPlaylistInfoFlat(url string) (*YtdlpPlaylistInfo, error) {
-	raw, err := runCommand("--no-warnings", "--flat-playlist", "--yes-playlist", "-J", url)
+	// Handle dailymotion (requires non-flat)
+	var raw string
+	var err error
+
+	if strings.Contains(url, "dailymotion.com") {
+		//  Dailymotion (drop --flat-playlist, misses video info)
+		raw, err = runCommand("--no-warnings", "--yes-playlist", "-J", url)
+
+	} else {
+		// Youtube, soundcloud, other
+		raw, err = runCommand("--no-warnings", "--flat-playlist", "--yes-playlist", "-J", url)
+	}
+
 	if err != nil {
 		return nil, err
 	}
