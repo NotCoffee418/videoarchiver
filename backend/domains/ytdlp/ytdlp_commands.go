@@ -48,7 +48,11 @@ func GetPlaylistInfoFlat(url string) (*YtdlpPlaylistInfo, error) {
 	// Get playlist name (type assertion with check)
 	playlistName, ok := data["title"].(string)
 	if !ok {
-		return nil, errors.New("missing or invalid playlist title")
+		// Try ID instead (title not available for dailymotion)
+		playlistName, ok = data["id"].(string)
+		if !ok {
+			return nil, errors.New("missing or invalid playlist title")
+		}
 	}
 	result.Title = playlistName
 
